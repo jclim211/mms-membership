@@ -37,20 +37,20 @@ const showFilterPanel = ref(false);
 
 const activeFiltersCount = computed(() => {
   let count = 0;
-  if (memberStore.membershipFilter !== 'all') count++;
-  if (memberStore.studentStatusFilter !== 'all') count++;
-  if (memberStore.yearFilter !== 'all') count++;
-  if (memberStore.schoolFilter !== 'all') count++;
-  if (memberStore.trackFilter !== 'all') count++;
+  if (memberStore.membershipFilter !== "all") count++;
+  if (memberStore.studentStatusFilter !== "all") count++;
+  if (memberStore.yearFilter !== "all") count++;
+  if (memberStore.schoolFilter !== "all") count++;
+  if (memberStore.trackFilter !== "all") count++;
   return count;
 });
 
 const clearAllFilters = () => {
-  memberStore.membershipFilter = 'all';
-  memberStore.studentStatusFilter = 'all';
-  memberStore.yearFilter = 'all';
-  memberStore.schoolFilter = 'all';
-  memberStore.trackFilter = 'all';
+  memberStore.membershipFilter = "all";
+  memberStore.studentStatusFilter = "all";
+  memberStore.yearFilter = "all";
+  memberStore.schoolFilter = "all";
+  memberStore.trackFilter = "all";
 };
 
 onMounted(async () => {
@@ -259,7 +259,7 @@ const getNextSubsidyRate = (member) => {
             >
               <Filter :size="20" />
               <span class="font-medium">Filters</span>
-              <span 
+              <span
                 v-if="activeFiltersCount > 0"
                 class="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
               >
@@ -392,7 +392,9 @@ const getNextSubsidyRate = (member) => {
                   <span class="text-sm text-gray-600">{{ member.school }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600">{{ member.track || '-' }}</span>
+                  <span class="text-sm text-gray-600">{{
+                    member.track || "-"
+                  }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
@@ -452,16 +454,23 @@ const getNextSubsidyRate = (member) => {
     >
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+          <div
+            class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center"
+          >
             <AlertCircle :size="20" class="text-red-600" />
           </div>
           <div class="flex-1">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Delete Member</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Delete Member
+            </h3>
             <p class="text-sm text-gray-600 mb-1">
-              Are you sure you want to delete <strong>{{ confirmDelete?.fullName }}</strong>?
+              Are you sure you want to delete
+              <strong>{{ confirmDelete?.fullName }}</strong
+              >?
             </p>
             <p class="text-sm text-gray-500 mb-4">
-              This action cannot be undone. All member data, ISM attendance records, and subsidy history will be permanently deleted.
+              This action cannot be undone. All member data, ISM attendance
+              records, and subsidy history will be permanently deleted.
             </p>
             <div class="flex justify-end gap-3">
               <button
@@ -489,9 +498,13 @@ const getNextSubsidyRate = (member) => {
       class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
       @click.self="showFilterPanel = false"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+      <div
+        class="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col"
+      >
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div
+          class="flex items-center justify-between p-6 border-b border-gray-200"
+        >
           <h2 class="text-xl font-bold text-gray-900">Filters</h2>
           <button
             @click="showFilterPanel = false"
@@ -505,7 +518,9 @@ const getNextSubsidyRate = (member) => {
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
           <!-- Membership Type -->
           <div>
-            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <label
+              class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3"
+            >
               <Users :size="18" class="text-indigo-600" />
               Membership Type
             </label>
@@ -522,7 +537,9 @@ const getNextSubsidyRate = (member) => {
 
           <!-- Student Status -->
           <div>
-            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <label
+              class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3"
+            >
               <CheckCircle :size="18" class="text-indigo-600" />
               Student Status
             </label>
