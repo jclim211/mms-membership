@@ -44,7 +44,7 @@ const editingMember = ref(null);
 const confirmDelete = ref(null);
 const showFilterPanel = ref(false);
 const sortField = ref("createdAt");
-const sortOrder = ref("desc");
+const sortOrder = ref("asc");
 
 const activeFiltersCount = computed(() => {
   let count = 0;
@@ -151,7 +151,8 @@ const handleLogout = async () => {
 
 const handleExport = () => {
   // Add next subsidy rate to each member before export
-  const membersWithSubsidy = memberStore.members.map((member) => ({
+  // Use sortedMembers to maintain current sort order in export
+  const membersWithSubsidy = sortedMembers.value.map((member) => ({
     ...member,
     nextSubsidyRate: calculateNextSubsidyRate(
       member.membershipType,
