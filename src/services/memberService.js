@@ -7,6 +7,7 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -31,6 +32,20 @@ export const memberService = {
   // Add a new member
   async addMember(memberData) {
     try {
+      // Check for duplicate Campus ID
+      const q = query(
+        collection(db, MEMBERS_COLLECTION),
+        where("campusId", "==", memberData.campusId)
+      );
+      const existingMembers = await getDocs(q);
+
+      if (!existingMembers.empty) {
+        return {
+          id: null,
+          error: "A member with this Campus ID already exists",
+        };
+      }
+
       const docRef = await addDoc(collection(db, MEMBERS_COLLECTION), {
         ...memberData,
         createdAt: new Date().toISOString(),

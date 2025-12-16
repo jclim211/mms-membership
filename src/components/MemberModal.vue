@@ -61,7 +61,7 @@ const schools = [
 ];
 
 // Tracks list
-const tracksOptions = ["ITI", "MBOT"];
+const tracksOptions = ["ITT", "MBOT"];
 
 // Calculate scholarship eligibility
 const isScholarshipEligible = computed(() => {
@@ -203,7 +203,10 @@ const handleSave = async () => {
 
   isSaving.value = false;
 
-  if (!result.error) {
+  if (result.error) {
+    // Show error message to user
+    alert(result.error);
+  } else {
     emit("close");
   }
 };

@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import { useMemberStore } from "../stores/memberStore";
 import { exportToExcel } from "../utils/exportExcel";
+import { downloadTemplate } from "../utils/bulkImport";
 import {
   calculateNextSubsidyRate,
   getMembershipBadgeColor,
@@ -23,17 +24,27 @@ import {
   Shield,
   AlertCircle,
   X,
+  FileSpreadsheet,
+  Upload,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-vue-next";
 import MemberModal from "../components/MemberModal.vue";
+import BulkImportModal from "../components/BulkImportModal.vue";
+import BulkImportHelp from "../components/BulkImportHelp.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const memberStore = useMemberStore();
 
 const showMemberModal = ref(false);
+const showBulkImportModal = ref(false);
+const showBulkImportHelp = ref(false);
 const editingMember = ref(null);
 const confirmDelete = ref(null);
 const showFilterPanel = ref(false);
+const sortField = ref("createdAt");
+const sortOrder = ref("desc");
 
 const activeFiltersCount = computed(() => {
   let count = 0;
@@ -67,6 +78,67 @@ const availableSchools = computed(() => {
   ];
   return schools.sort();
 });
+
+// Sorted members
+const sortedMembers = computed(() => {
+  const filtered = [...memberStore.filteredMembers];
+
+  if (sortField.value === "createdAt") {
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return sortOrder.value === "asc" ? dateA - dateB : dateB - dateA;
+    });
+  } else if (sortField.value === "admitYear") {
+    filtered.sort((a, b) => {
+      const yearA = a.admitYear || 0;
+      const yearB = b.admitYear || 0;
+      return sortOrder.value === "asc" ? yearA - yearB : yearB - yearA;
+    });
+  } else if (sortField.value === "fullName") {
+    filtered.sort((a, b) => {
+      const nameA = (a.fullName || "").toLowerCase();
+      const nameB = (b.fullName || "").toLowerCase();
+      if (sortOrder.value === "asc") {
+        return nameA.localeCompare(nameB);
+      } else {
+        return nameB.localeCompare(nameA);
+      }
+    });
+  }
+
+  return filtered;
+});
+
+// Toggle sort order or field
+const toggleSort = (field) => {
+  if (sortField.value === field) {
+    // Same field, toggle order
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    // Different field, set new field and default to desc
+    sortField.value = field;
+    sortOrder.value = field === "fullName" ? "asc" : "desc";
+  }
+};
+
+// Format date for display
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  return (
+    date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }) +
+    " " +
+    date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
+};
 
 onMounted(async () => {
   await memberStore.fetchMembers();
@@ -265,6 +337,23 @@ const getNextSubsidyRate = (member) => {
         </div>
       </div>
 
+      <!-- Backup Reminder Banner -->
+      <div
+        class="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-4 mb-6 shadow-sm"
+      >
+        <div class="flex items-start gap-3">
+          <AlertCircle :size="20" class="text-amber-600 flex-shrink-0 mt-0.5" />
+          <div class="flex-1">
+            <p class="text-sm font-medium text-amber-800">💾 Backup Reminder</p>
+            <p class="text-sm text-amber-700 mt-1">
+              Always backup your data frequently by clicking
+              <span class="font-semibold">Export All</span>
+              to prevent data loss.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Action Bar -->
       <div
         class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 mb-6"
@@ -282,7 +371,7 @@ const getNextSubsidyRate = (member) => {
               <input
                 v-model="memberStore.searchQuery"
                 type="text"
-                placeholder="Search by name, ID, or email..."
+                placeholder="Search by name, ID, email, or Telegram handle..."
                 class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm"
               />
             </div>
@@ -304,7 +393,7 @@ const getNextSubsidyRate = (member) => {
           </div>
 
           <!-- Action Buttons Row -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <button
               @click="handleExport"
               class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors font-medium text-sm"
@@ -323,8 +412,31 @@ const getNextSubsidyRate = (member) => {
               <span class="sm:hidden">TG Export</span>
             </button>
             <button
+              @click="
+                () => {
+                  downloadTemplate();
+                  showBulkImportHelp = true;
+                }
+              "
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium text-sm"
+              title="Download Excel template for bulk import"
+            >
+              <FileSpreadsheet :size="18" />
+              <span class="hidden sm:inline">Download Template</span>
+              <span class="sm:hidden">Template</span>
+            </button>
+            <button
+              @click="showBulkImportModal = true"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium text-sm"
+              title="Bulk import members from Excel"
+            >
+              <Upload :size="18" />
+              <span class="hidden sm:inline">Bulk Import</span>
+              <span class="sm:hidden">Import</span>
+            </button>
+            <button
               @click="openAddModal"
-              class="flex items-center justify-center gap-2 px-4 py-2 bg-navy hover:bg-navy/90 text-white rounded-lg transition-colors font-medium text-sm"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-navy hover:bg-navy/90 text-white rounded-lg transition-colors font-medium text-sm col-span-2 sm:col-span-1"
             >
               <Plus :size="18" />
               <span>Add Member</span>
@@ -382,12 +494,52 @@ const getNextSubsidyRate = (member) => {
                 <th
                   class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
-                  Full Name
+                  <button
+                    @click="toggleSort('fullName')"
+                    class="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    :class="{ 'text-gray-700': sortField === 'fullName' }"
+                    title="Click to sort by Full Name"
+                  >
+                    <span>Full Name</span>
+                    <span class="text-gray-400">
+                      <ChevronUp
+                        v-if="sortField === 'fullName' && sortOrder === 'asc'"
+                        :size="14"
+                      />
+                      <ChevronDown
+                        v-else-if="
+                          sortField === 'fullName' && sortOrder === 'desc'
+                        "
+                        :size="14"
+                      />
+                      <span v-else class="text-xs">⇅</span>
+                    </span>
+                  </button>
                 </th>
                 <th
                   class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
-                  Admit Year
+                  <button
+                    @click="toggleSort('admitYear')"
+                    class="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    :class="{ 'text-gray-700': sortField === 'admitYear' }"
+                    title="Click to sort by Admit Year"
+                  >
+                    <span>Admit Year</span>
+                    <span class="text-gray-400">
+                      <ChevronUp
+                        v-if="sortField === 'admitYear' && sortOrder === 'asc'"
+                        :size="14"
+                      />
+                      <ChevronDown
+                        v-else-if="
+                          sortField === 'admitYear' && sortOrder === 'desc'
+                        "
+                        :size="14"
+                      />
+                      <span v-else class="text-xs">⇅</span>
+                    </span>
+                  </button>
                 </th>
                 <th
                   class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
@@ -415,6 +567,31 @@ const getNextSubsidyRate = (member) => {
                   Next Subsidy
                 </th>
                 <th
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                >
+                  <button
+                    @click="toggleSort('createdAt')"
+                    class="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    :class="{ 'text-gray-700': sortField === 'createdAt' }"
+                    title="Click to sort by Date Added"
+                  >
+                    <span>Date Added</span>
+                    <span class="text-gray-400">
+                      <ChevronUp
+                        v-if="sortField === 'createdAt' && sortOrder === 'asc'"
+                        :size="14"
+                      />
+                      <ChevronDown
+                        v-else-if="
+                          sortField === 'createdAt' && sortOrder === 'desc'
+                        "
+                        :size="14"
+                      />
+                      <span v-else class="text-xs">⇅</span>
+                    </span>
+                  </button>
+                </th>
+                <th
                   class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Actions
@@ -423,7 +600,7 @@ const getNextSubsidyRate = (member) => {
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-if="memberStore.loading" class="hover:bg-gray-50">
-                <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                <td colspan="10" class="px-6 py-8 text-center text-gray-500">
                   Loading members...
                 </td>
               </tr>
@@ -431,13 +608,13 @@ const getNextSubsidyRate = (member) => {
                 v-else-if="memberStore.filteredMembers.length === 0"
                 class="hover:bg-gray-50"
               >
-                <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                <td colspan="10" class="px-6 py-8 text-center text-gray-500">
                   No members found
                 </td>
               </tr>
               <tr
                 v-else
-                v-for="member in memberStore.filteredMembers"
+                v-for="member in sortedMembers"
                 :key="member.id"
                 class="hover:bg-gray-50"
               >
@@ -469,7 +646,9 @@ const getNextSubsidyRate = (member) => {
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   <span class="text-xs sm:text-sm text-gray-600">{{
-                    member.tracks || "-"
+                    member.tracks && member.tracks.length > 0
+                      ? member.tracks.join(", ")
+                      : "-"
                   }}</span>
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
@@ -499,6 +678,11 @@ const getNextSubsidyRate = (member) => {
                       M
                     </span>
                   </div>
+                </td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span class="text-xs sm:text-sm text-gray-600">
+                    {{ formatDate(member.createdAt) }}
+                  </span>
                 </td>
                 <td
                   class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium"
@@ -532,6 +716,19 @@ const getNextSubsidyRate = (member) => {
       v-if="showMemberModal"
       :member="editingMember"
       @close="showMemberModal = false"
+    />
+
+    <!-- Bulk Import Modal -->
+    <BulkImportModal
+      v-if="showBulkImportModal"
+      @close="showBulkImportModal = false"
+      @imported="showBulkImportModal = false"
+    />
+
+    <!-- Bulk Import Help Modal -->
+    <BulkImportHelp
+      v-if="showBulkImportHelp"
+      @close="showBulkImportHelp = false"
     />
 
     <!-- Delete Confirmation Modal -->

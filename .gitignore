@@ -43,3 +43,5 @@ coverage
 
 # Vitest
 __screenshots__/
+
+.firebase/*

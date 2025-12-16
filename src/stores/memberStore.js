@@ -20,12 +20,19 @@ export const useMemberStore = defineStore("members", () => {
     // Apply search filter
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
-      filtered = filtered.filter(
-        (member) =>
+      filtered = filtered.filter((member) => {
+        // Normalize telegram handle (remove @ for comparison)
+        const telegramHandle =
+          member.telegramHandle?.toLowerCase().replace("@", "") || "";
+        const searchQuery = query.replace("@", "");
+
+        return (
           member.fullName?.toLowerCase().includes(query) ||
           member.campusId?.toLowerCase().includes(query) ||
-          member.schoolEmail?.toLowerCase().includes(query)
-      );
+          member.schoolEmail?.toLowerCase().includes(query) ||
+          telegramHandle.includes(searchQuery)
+        );
+      });
     }
 
     // Apply membership type filter
@@ -59,7 +66,7 @@ export const useMemberStore = defineStore("members", () => {
     // Apply track filter
     if (trackFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.track === trackFilter.value
+        (member) => member.tracks && member.tracks.includes(trackFilter.value)
       );
     }
 
