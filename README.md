@@ -1,95 +1,223 @@
-# Club Membership Management Portal (MMS)
+# 🎓 Club Membership Management System (MMS)
 
-A centralized, secure dashboard for club admins to manage member data, track scholarship eligibility, and monitor event attendance/subsidies.
+> A modern, full-featured web application for managing club memberships, event attendance, and subsidies.
+
+[![Vue 3](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)](https://vuejs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-12.6-FFCA28?logo=firebase)](https://firebase.google.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+A centralized, secure dashboard for club administrators to manage member data, track scholarship eligibility, monitor event attendance, and calculate subsidies with powerful bulk import capabilities.
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Demo](#-demo)
+- [Tech Stack](#-tech-stack)
+- [Prerequisites](#-prerequisites)
+- [Quick Start](#-quick-start)
+- [Documentation](#-documentation)
+- [Project Structure](#-project-structure)
+- [Deployment](#-deployment)
+- [Security](#-security)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+## 🌟 Features
+
+### Core Functionality
 
 > **📚 New here?** Check out [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for a complete guide to all documentation.
 >
 > **🚀 Quick Start:** Jump to [SETUP_GUIDE.md](SETUP_GUIDE.md) for a 5-minute setup guide.
+>
+> **🆕 Non-Technical Guide:** See [NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md) for troubleshooting without coding knowledge.
 
-## Features
+### Authentication & Security
 
-- 🔐 **Secure Admin Authentication** - Firebase Authentication with email/password
-- 👥 **Member Management** - Add, edit, delete, and search members
-- 📊 **Dashboard Statistics** - Quick overview of total members, Ordinary A members, and scholarship eligibility
-- 🎯 **Smart Subsidy System** - Automatic calculation of ISM subsidy rates based on membership type and history
-- 📈 **ISM Attendance Tracking** - Log event attendance with automatic subsidy assignment
-- 🎓 **Scholarship Eligibility** - Auto-calculated based on membership type and award status
-- 📥 **Excel Export** - One-click export of all member data including attendance history
-- 🔍 **Advanced Filtering** - Search by name or Campus ID, filter by membership type
-- ✨ **Dynamic Fields** - Admins can add custom fields for unexpected data needs
-- 🎨 **Clean UI** - Modern, Notion-esque design with Tailwind CSS
+- 🔐 **Multi-Provider Authentication** - Email/password and Google Sign-In via Firebase
+- 👤 **Admin Management** - Dedicated admin panel for user management
+- 🛡️ **Role-Based Access** - Secure admin-only access control
 
-## Tech Stack
+### Member Management
 
-- **Framework:** Vue 3 (Composition API with `<script setup>`)
-- **Build Tool:** Vite
-- **State Management:** Pinia
-- **Styling:** Tailwind CSS
-- **Icons:** Lucide Vue Next
-- **Routing:** Vue Router
-- **Backend:** Firebase (Authentication + Firestore)
-- **Excel Export:** xlsx
+- 👥 **CRUD Operations** - Add, edit, delete, and view member profiles
+- 🔍 **Advanced Search** - Search by name, Campus ID, email, or Telegram handle (with/without @)
+- 🎯 **Multi-Filter System** - Filter by membership type, school, year, status, and track
+- 📋 **Smart Sorting** - Sort by name, admit year, or date added with visual indicators
+- ✅ **Duplicate Prevention** - Campus ID uniqueness validation
 
-## Prerequisites
+### Data Management
 
-- Node.js (v20.19.0 or >=22.12.0)
-- Firebase account and project
+- 📤 **Bulk Import** - Excel-based mass upload with:
+  - Drag & drop file upload
+  - 4-step validation workflow
+  - Case-insensitive field mapping
+  - Comprehensive error reporting
+  - Support for 15+ fields
+- 📥 **Smart Export** - Multiple export options:
+  - Export all members
+  - Export filtered results
+  - Export members not added to Telegram
+- 💾 **Auto Backup Reminders** - Persistent notification system
 
-## Setup Instructions
+### Subsidy & Attendance
 
-### 1. Install Dependencies
+- 🎯 **Intelligent Subsidy Calculator** - Automatic tier-based calculation:
+  - Ordinary A: 90% → 70% → 50% → 10%
+  - Ordinary B: 70% → 10%
+  - Associate: 10% (fixed)
+- 🔧 **Manual Override** - Admin can set custom subsidy rates (95%, 90%, 70%, 50%, 10%)
+- 📈 **Event Tracking** - Log ISM/NCS/ISS attendance with history
+- 🎓 **Scholarship Management** - Auto-calculated eligibility tracking
+
+### User Experience
+
+- 🎨 **Modern UI** - Clean, Notion-inspired design with Tailwind CSS
+- 📱 **Fully Responsive** - Works on mobile, tablet, and desktop
+- ⚡ **Real-Time Updates** - Instant feedback and live data sync
+- ✨ **Dynamic Fields** - Add custom fields for unique data needs
+- 📊 **Dashboard Analytics** - Quick overview with key statistics
+
+## 🎬 Demo
+
+![Dashboard Screenshot](docs/screenshots/dashboard.png)
+_Main dashboard with member table and statistics_
+
+> **Note:** Replace with your own screenshots after deployment
+
+## ⚡ Features
+
+## 🛠️ Tech Stack
+
+| Category       | Technology                                      |
+| -------------- | ----------------------------------------------- |
+| **Frontend**   | Vue 3.5 (Composition API with `<script setup>`) |
+| **Build Tool** | Vite 7.2.4                                      |
+| **State**      | Pinia 3.0.4                                     |
+| **Styling**    | Tailwind CSS 3.4.0                              |
+| **Icons**      | Lucide Vue Next 0.561.0                         |
+| **Routing**    | Vue Router 4.5.0                                |
+| **Backend**    | Firebase 12.6.0 (Auth + Firestore)              |
+| **Excel**      | xlsx 0.18.5                                     |
+| **Hosting**    | Firebase Hosting                                |
+
+## 📋 Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js**: v20.19.0 or >=22.12.0 ([Download](https://nodejs.org/))
+- **npm**: Comes with Node.js
+- **Git**: For cloning the repository ([Download](https://git-scm.com/))
+- **Firebase Account**: Free tier available ([Sign up](https://firebase.google.com/))
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/mms-membership.git
+cd mms-membership
+```
+
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Firebase Configuration
+### 3. Firebase Setup
+
+#### a) Create Firebase Project
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or select an existing one
-3. Enable **Authentication** (Email/Password provider)
-4. Enable **Firestore Database** (Start in test mode for development)
-5. Get your Firebase config:
+2. Click "Add project"
+3. Enter a project name (e.g., "my-club-membership")
+4. Follow the setup wizard
 
-   - Go to Project Settings > General
-   - Scroll down to "Your apps"
-   - Click the web icon to create a web app
-   - Copy the Firebase configuration
+#### b) Enable Authentication
 
-6. Update the Firebase config in `src/services/firebase.js`:
+1. In Firebase Console, go to **Authentication**
+2. Click "Get started"
+3. Enable **Email/Password** sign-in method
+4. (Optional) Enable **Google** sign-in method
 
-```javascript
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
-```
+#### c) Create Firestore Database
 
-### 3. Create Admin User
+1. Go to **Firestore Database**
+2. Click "Create database"
+3. Start in **test mode** (you'll update security rules later)
+4. Choose a location closest to your users
 
-Since this is an admin-only portal, you need to create an admin user in Firebase:
+#### d) Get Firebase Configuration
 
-1. Go to Firebase Console > Authentication > Users
+1. Go to **Project Settings** (gear icon)
+2. Scroll to "Your apps"
+3. Click the web icon `</>`
+4. Register your app with a nickname
+5. Copy the `firebaseConfig` object
+
+#### e) Configure Environment Variables
+
+1. Copy the example environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Open `.env` and add your Firebase config:
+
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key_here
+   VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
+
+   > ⚠️ **Important:** Never commit `.env` to Git! It's already in `.gitignore`.
+
+### 4. Create Admin User
+
+1. Go to Firebase Console → **Authentication** → **Users**
 2. Click "Add user"
 3. Enter email and password for your admin account
+4. Save the credentials securely
 
-### 4. Run Development Server
+### 5. Update Security Rules
+
+Copy these rules to Firestore and Authentication:
+
+**Firestore Rules** (Firestore Database → Rules):
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only authenticated users can read/write
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+### 6. Run Development Server
 
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+The application will open at `http://localhost:5173`
 
-### 5. Build for Production
+### 7. Login & Start Using
 
-```bash
-npm run build
-```
+1. Open `http://localhost:5173`
+2. Login with your admin credentials
+3. Start managing members!
+
+## 📚 Documentation
 
 ## Project Structure
 
@@ -207,38 +335,78 @@ mms-membership/
 }
 ```
 
-## Deployment
+## 🚀 Deployment
 
-### Firebase Hosting
-
-1. Install Firebase CLI:
-
-```bash
-npm install -g firebase-tools
-```
-
-2. Login to Firebase:
-
-```bash
-firebase login
-```
-
-3. Initialize Firebase hosting:
-
-```bash
-firebase init hosting
-```
-
-4. Build and deploy:
+### Build for Production
 
 ```bash
 npm run build
-firebase deploy
 ```
 
-## Security Considerations
+This creates an optimized production build in the `dist/` folder.
 
-1. **Firestore Security Rules**: Update your Firestore rules to restrict access to authenticated users only:
+### Deploy to Firebase Hosting
+
+1. **Install Firebase CLI** (if not already installed):
+
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. **Login to Firebase**:
+
+   ```bash
+   firebase login
+   ```
+
+3. **Initialize Firebase** (first time only):
+
+   ```bash
+   firebase init hosting
+   ```
+
+   - Select your Firebase project
+   - Set public directory to `dist`
+   - Configure as single-page app: `Yes`
+   - Don't overwrite `dist/index.html`
+
+4. **Deploy**:
+   ```bash
+   npm run build
+   firebase deploy --only hosting
+   ```
+
+Your site will be live at `https://your-project-id.web.app`
+
+### Deploy to Other Platforms
+
+The `dist/` folder can be deployed to any static hosting service:
+
+- **Vercel**: `vercel --prod`
+- **Netlify**: Drag `dist/` folder to Netlify dashboard
+- **GitHub Pages**: Copy `dist/` to gh-pages branch
+- **AWS S3**: Upload `dist/` to S3 bucket with static hosting
+
+## 🔒 Security
+
+### Environment Variables
+
+✅ **DO:**
+
+- Use `.env` for sensitive data
+- Add `.env` to `.gitignore` (already done)
+- Share `.env.example` as a template
+- Use different Firebase projects for dev/prod
+
+❌ **DON'T:**
+
+- Commit `.env` to Git
+- Share API keys in public issues
+- Use production credentials in development
+
+### Firestore Security Rules
+
+**Production-Ready Rules:**
 
 ```javascript
 rules_version = '2';
@@ -272,9 +440,137 @@ service cloud.firestore {
 - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
 - Check Node.js version matches requirements
 
-## License
+## Current Feature Summary (Latest)
 
-Private project for club use.
+### ✅ Authentication & Admin
+
+- Email/Password and Google Sign-In
+- Admin management interface
+- Role-based access control
+
+### ✅ Member Management
+
+- Add, edit, delete members
+- Duplicate Campus ID prevention
+- Auto-formatting (names → UPPERCASE, emails → lowercase)
+- 15 data fields supported
+
+### ✅ Search & Filter
+
+- Multi-field search (name, ID, email, Telegram handle)
+- 5 independent filters (membership, status, year, school, track)
+- Real-time results count
+- Clear all filters option
+
+### ✅ Sorting
+
+- Sortable: Full Name, Admit Year, Date Added
+- Visual direction indicators
+- Ascending/descending toggle
+
+### ✅ Bulk Import
+
+- Excel template download
+- Drag & drop upload
+- 4-step workflow with validation
+- Duplicate detection
+- ISM attendance parsing
+- Comprehensive help guide
+
+### ✅ Export
+
+- Export all members
+- Export Telegram not added
+- Full ISM attendance history included
+
+### ✅ ISM Subsidy System
+
+- Automatic tier-based calculation
+- Manual override capability
+- Individual subsidy rates per event
+- Override indicator in table
+
+### ✅ Responsive Design
+
+- Mobile, tablet, desktop support
+- Touch-friendly interface
+- Collapsible columns
+
+### ✅ User Experience
+
+- Backup reminder banner
+- Loading states
+- Progress indicators
+- Tooltips and help text
+- Confirmation dialogs
+
+---
+
+## 📋 Usage & Forking
+
+This project is **open for cloning and personal use**, but **not accepting contributions**.
+
+Feel free to:
+
+- ✅ Clone/fork for your own organization
+- ✅ Modify for your specific needs
+- ✅ Use as a template for similar projects
+- ✅ Learn from the codebase
+
+**Note:** Pull requests and issues will not be reviewed. If you find bugs or want features, please fork and implement in your own version.
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### What this means:
+
+- ✅ Commercial use
+- ✅ Modification
+- ✅ Distribution
+- ✅ Private use
+- ⚠️ Liability and warranty disclaimers apply
+
+## 🙏 Acknowledgments
+
+- [Vue.js](https://vuejs.org/) - The Progressive JavaScript Framework
+- [Firebase](https://firebase.google.com/) - Backend and hosting
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Lucide Icons](https://lucide.dev/) - Beautiful & consistent icons
+- All contributors who helped improve this project
+
+## 📞 Support
+
+This is a template project provided as-is. Support is not actively provided, but you can:
+
+- 📖 **Documentation**: Check [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for comprehensive guides
+- 🔍 **Self-Help**: Review [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
+- 📚 **Learning**: Explore [NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md) for detailed explanations
+
+**Note:** Issues and discussions are not monitored. For your own fork, you'll need to troubleshoot independently or hire developers.
+
+## 🗺️ Potential Enhancements
+
+If you fork this project, consider adding:
+
+- [ ] Email notifications for member updates
+- [ ] Advanced analytics dashboard
+- [ ] Multi-language support
+- [ ] Dark mode theme
+- [ ] Mobile app (React Native)
+- [ ] API for external integrations
+- [ ] Member self-service portal
+- [ ] Automated report generation
+- [ ] Payment integration for membership fees
+- [ ] Event management and registration
+
+## ⭐ Found This Useful?
+
+If this template helped your organization, consider giving it a ⭐ on GitHub to help others discover it!
+
+---
+
+**Made with ❤️ for club administrators everywhere**
 
 ## Recommended Browser Setup
 
