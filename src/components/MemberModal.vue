@@ -188,6 +188,8 @@ const handleSave = async () => {
   // Format data
   const memberData = {
     ...formData.value,
+    fullName: formData.value.fullName.toUpperCase(),
+    schoolEmail: formData.value.schoolEmail.toLowerCase(),
     telegramHandle: formatTelegramHandle(formData.value.telegramHandle),
     phoneNumber: formatPhoneNumber(formData.value.phoneNumber),
   };
@@ -209,9 +211,7 @@ const handleSave = async () => {
 
 <template>
   <div class="fixed inset-0 z-50 overflow-y-auto">
-    <div
-      class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0"
-    >
+    <div class="flex items-center justify-center min-h-screen p-2 sm:p-4">
       <!-- Background overlay -->
       <div
         class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
@@ -220,25 +220,26 @@ const handleSave = async () => {
 
       <!-- Modal panel -->
       <div
-        class="inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl"
+        class="relative w-full max-w-4xl my-4 sm:my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl sm:rounded-2xl max-h-[95vh] flex flex-col"
       >
         <!-- Header -->
         <div
-          class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50"
+          class="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 flex-shrink-0"
         >
-          <h3 class="text-xl font-bold text-gray-900">
+          <h3 class="text-lg sm:text-xl font-bold text-gray-900">
             {{ isEditMode ? "Edit Member" : "Add New Member" }}
           </h3>
           <button
             @click="emit('close')"
             class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
           >
-            <X :size="24" />
+            <X :size="20" class="sm:hidden" />
+            <X :size="24" class="hidden sm:block" />
           </button>
         </div>
 
         <!-- Content -->
-        <div class="px-6 py-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+        <div class="px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto flex-1">
           <form @submit.prevent="handleSave" class="space-y-8">
             <!-- Compulsory Fields Section -->
             <div>
@@ -304,8 +305,8 @@ const handleSave = async () => {
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                   >
                     <option value="Undergraduate">Undergraduate</option>
-                    <option value="Postgraduate">Postgraduate</option>
-                    <option value="Graduated">Graduated</option>
+                    <option value="Alumni">Alumni</option>
+                    <option value="Exchange Student">Exchange Student</option>
                   </select>
                 </div>
 
@@ -748,7 +749,7 @@ const handleSave = async () => {
 
         <!-- Footer -->
         <div
-          class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50"
+          class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0"
         >
           <button
             @click="emit('close')"

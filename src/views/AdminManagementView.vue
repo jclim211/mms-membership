@@ -126,19 +126,21 @@ const currentUserEmail = computed(() => authStore.user?.email);
     <!-- Header -->
     <header class="bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <button
-              @click="router.push('/dashboard')"
-              class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft :size="20" />
-              <span>Back to Dashboard</span>
-            </button>
-          </div>
-          <div class="flex items-center gap-3">
-            <Shield :size="24" class="text-indigo-600" />
-            <h1 class="text-2xl font-bold text-gray-900">Admin Management</h1>
+        <div
+          class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+        >
+          <button
+            @click="router.push('/dashboard')"
+            class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft :size="20" />
+            <span class="text-sm sm:text-base">Back to Dashboard</span>
+          </button>
+          <div class="flex items-center gap-2 sm:gap-3">
+            <Shield :size="20" class="sm:w-6 sm:h-6 text-indigo-600" />
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
+              Admin Management
+            </h1>
           </div>
         </div>
       </div>
@@ -195,25 +197,27 @@ const currentUserEmail = computed(() => authStore.user?.email);
 
       <!-- Add New Admin Card -->
       <div
-        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6"
+        class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6"
       >
         <div class="flex items-center gap-2 mb-4">
           <UserPlus :size="20" class="text-indigo-600" />
-          <h2 class="text-lg font-semibold text-gray-900">Add New Admin</h2>
+          <h2 class="text-base sm:text-lg font-semibold text-gray-900">
+            Add New Admin
+          </h2>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex flex-col sm:flex-row gap-3">
           <input
             v-model="newAdminEmail"
             type="email"
-            placeholder="Enter email address (e.g., admin@example.com)"
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Enter email address"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             @keyup.enter="handleApproveAdmin"
           />
           <button
             @click="handleApproveAdmin"
             :disabled="loading || !newAdminEmail"
-            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap text-sm"
           >
             <UserPlus :size="18" />
             <span>{{ loading ? "Adding..." : "Add Admin" }}</span>
@@ -248,100 +252,116 @@ const currentUserEmail = computed(() => authStore.user?.email);
           </p>
         </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+        <div v-else>
+          <!-- Mobile scroll hint -->
+          <div
+            class="block sm:hidden px-4 py-2 bg-gray-50 border-b border-gray-200"
+          >
+            <p class="text-xs text-gray-500 text-center">
+              ← Scroll horizontally to see all columns →
+            </p>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th
+                    class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  >
+                    Email
+                  </th>
+                  <th
+                    class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  >
+                    Approved By
+                  </th>
+                  <th
+                    class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  >
+                    Approved At
+                  </th>
+                  <th
+                    class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr
+                  v-for="admin in admins"
+                  :key="admin.email"
+                  class="hover:bg-gray-50"
+                  :class="{ 'bg-indigo-50': admin.email === currentUserEmail }"
                 >
-                  Email
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Approved By
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Approved At
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr
-                v-for="admin in admins"
-                :key="admin.email"
-                class="hover:bg-gray-50"
-                :class="{ 'bg-indigo-50': admin.email === currentUserEmail }"
-              >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-gray-900">{{
-                      admin.email
+                  <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-xs sm:text-sm font-medium text-gray-900"
+                        >{{ admin.email }}</span
+                      >
+                      <span
+                        v-if="admin.email === currentUserEmail"
+                        class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded"
+                      >
+                        You
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <span class="text-xs sm:text-sm text-gray-600">{{
+                      admin.approvedBy || "N/A"
                     }}</span>
+                  </td>
+                  <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <span class="text-xs sm:text-sm text-gray-600">{{
+                      formatDate(admin.approvedAt)
+                    }}</span>
+                  </td>
+                  <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     <span
-                      v-if="admin.email === currentUserEmail"
-                      class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded"
+                      v-if="admin.approved"
+                      class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded"
                     >
-                      You
+                      <CheckCircle :size="14" />
+                      <span class="hidden sm:inline">Active</span>
+                      <span class="sm:hidden">✓</span>
                     </span>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600">{{
-                    admin.approvedBy || "N/A"
-                  }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600">{{
-                    formatDate(admin.approvedAt)
-                  }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    v-if="admin.approved"
-                    class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded"
+                    <span
+                      v-else
+                      class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded"
+                    >
+                      <XCircle :size="14" />
+                      <span class="hidden sm:inline">Inactive</span>
+                      <span class="sm:hidden">✗</span>
+                    </span>
+                  </td>
+                  <td
+                    class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right"
                   >
-                    <CheckCircle :size="14" />
-                    Active
-                  </span>
-                  <span
-                    v-else
-                    class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded"
-                  >
-                    <XCircle :size="14" />
-                    Inactive
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right">
-                  <button
-                    v-if="admin.email !== currentUserEmail"
-                    @click="confirmDelete = admin.email"
-                    :disabled="loading"
-                    class="text-red-600 hover:text-red-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 ml-auto"
-                  >
-                    <Trash2 :size="16" />
-                    <span class="text-sm">Remove</span>
-                  </button>
-                  <span v-else class="text-sm text-gray-400">
-                    (Cannot remove yourself)
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <button
+                      v-if="admin.email !== currentUserEmail"
+                      @click="confirmDelete = admin.email"
+                      :disabled="loading"
+                      class="text-red-600 hover:text-red-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 ml-auto"
+                    >
+                      <Trash2 :size="16" />
+                      <span class="text-xs sm:text-sm">Remove</span>
+                    </button>
+                    <span v-else class="text-xs sm:text-sm text-gray-400">
+                      (Cannot remove yourself)
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

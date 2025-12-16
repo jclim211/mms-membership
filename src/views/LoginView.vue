@@ -47,13 +47,15 @@ const handleGoogleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-light-grey">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+  <div class="min-h-screen flex items-center justify-center bg-light-grey p-4">
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-md">
       <!-- Header -->
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">MMS Admin Portal</h1>
+      <div class="text-center mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          MMS Admin Portal
+        </h1>
         <div
-          class="inline-flex items-center gap-2 px-4 py-2 bg-navy/10 text-navy rounded-full text-sm font-medium"
+          class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-navy/10 text-navy rounded-full text-xs sm:text-sm font-medium"
         >
           <Lock :size="16" />
           <span>Admin Access Only</span>

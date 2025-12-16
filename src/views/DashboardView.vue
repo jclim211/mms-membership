@@ -166,44 +166,57 @@ const getNextSubsidyRate = (member) => {
   <div class="min-h-screen bg-light-grey">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex justify-between items-center">
+      <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div
+          class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4"
+        >
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
               Membership Management System
             </h1>
             <p class="text-sm text-gray-600 mt-1">Club Admin Dashboard</p>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="text-right">
-              <p class="text-sm font-medium text-gray-700">
+          <div
+            class="flex flex-col sm:flex-row items-start sm:items-center gap-3"
+          >
+            <div class="text-left sm:text-right">
+              <p
+                class="text-sm font-medium text-gray-700 truncate max-w-[200px]"
+              >
                 {{ authStore.user?.email }}
               </p>
               <p class="text-xs text-gray-500">Administrator</p>
             </div>
-            <button
-              @click="router.push('/admin-management')"
-              class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-            >
-              <Shield :size="18" />
-              <span>Admin Management</span>
-            </button>
-            <button
-              @click="handleLogout"
-              class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-            >
-              <LogOut :size="18" />
-              <span>Logout</span>
-            </button>
+            <div class="flex gap-2 w-full sm:w-auto">
+              <button
+                @click="router.push('/admin-management')"
+                class="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm flex-1 sm:flex-initial"
+              >
+                <Shield :size="18" />
+                <span class="hidden sm:inline">Admin Management</span>
+                <span class="sm:hidden">Admin</span>
+              </button>
+              <button
+                @click="handleLogout"
+                class="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm flex-1 sm:flex-initial"
+              >
+                <LogOut :size="18" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Stats Row -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
+      >
+        <div
+          class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200"
+        >
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600">Total Members</p>
@@ -233,18 +246,20 @@ const getNextSubsidyRate = (member) => {
           </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div
+          class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200"
+        >
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600">
-                Scholarship Eligible
+                Ordinary B Members
               </p>
               <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ memberStore.scholarshipEligible }}
+                {{ memberStore.ordinaryBMembers }}
               </p>
             </div>
-            <div class="p-3 bg-emerald/10 rounded-lg">
-              <Award :size="24" class="text-emerald" />
+            <div class="p-3 bg-blue-100 rounded-lg">
+              <CheckCircle :size="24" class="text-blue-600" />
             </div>
           </div>
         </div>
@@ -252,12 +267,11 @@ const getNextSubsidyRate = (member) => {
 
       <!-- Action Bar -->
       <div
-        class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6"
+        class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 mb-6"
       >
-        <div
-          class="flex flex-col md:flex-row gap-4 md:items-center md:justify-between"
-        >
-          <div class="flex-1 flex gap-3">
+        <div class="space-y-4">
+          <!-- Search and Filter Row -->
+          <div class="flex gap-3">
             <!-- Search -->
             <div class="flex-1 relative">
               <div
@@ -268,18 +282,18 @@ const getNextSubsidyRate = (member) => {
               <input
                 v-model="memberStore.searchQuery"
                 type="text"
-                placeholder="Search by name or campus ID..."
-                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                placeholder="Search by name, ID, or email..."
+                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm"
               />
             </div>
 
             <!-- Filter Button -->
             <button
               @click="showFilterPanel = true"
-              class="flex items-center gap-2 px-4 py-2 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors relative"
+              class="flex items-center gap-2 px-3 sm:px-4 py-2 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors relative whitespace-nowrap"
             >
               <Filter :size="20" />
-              <span class="font-medium">Filters</span>
+              <span class="font-medium hidden sm:inline">Filters</span>
               <span
                 v-if="activeFiltersCount > 0"
                 class="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
@@ -289,25 +303,28 @@ const getNextSubsidyRate = (member) => {
             </button>
           </div>
 
-          <div class="flex gap-3">
+          <!-- Action Buttons Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               @click="handleExport"
-              class="flex items-center gap-2 px-4 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors font-medium"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors font-medium text-sm"
             >
               <Download :size="18" />
-              <span>Export All</span>
+              <span class="hidden sm:inline">Export All</span>
+              <span class="sm:hidden">Export All</span>
             </button>
             <button
               @click="exportTelegramNotAdded"
-              class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm"
               title="Export Telegram handles not yet added to group"
             >
               <Download :size="18" />
-              <span>Export TG Not Added</span>
+              <span class="hidden sm:inline">Export TG Not Added</span>
+              <span class="sm:hidden">TG Export</span>
             </button>
             <button
               @click="openAddModal"
-              class="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy/90 text-white rounded-lg transition-colors font-medium"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-navy hover:bg-navy/90 text-white rounded-lg transition-colors font-medium text-sm"
             >
               <Plus :size="18" />
               <span>Add Member</span>
@@ -316,56 +333,89 @@ const getNextSubsidyRate = (member) => {
         </div>
       </div>
 
+      <!-- Results Count -->
+      <div
+        v-if="
+          memberStore.searchQuery ||
+          memberStore.membershipFilter !== 'all' ||
+          memberStore.studentStatusFilter !== 'all' ||
+          memberStore.yearFilter !== 'all' ||
+          memberStore.schoolFilter !== 'all' ||
+          memberStore.trackFilter !== 'all'
+        "
+        class="mb-4"
+      >
+        <p class="text-sm text-gray-600">
+          Showing
+          <span class="font-semibold text-gray-900">{{
+            memberStore.filteredMembers.length
+          }}</span>
+          of
+          <span class="font-semibold text-gray-900">{{
+            memberStore.totalMembers
+          }}</span>
+          members
+        </p>
+      </div>
+
       <!-- Data Table -->
       <div
         class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
       >
+        <!-- Mobile scroll hint -->
+        <div
+          class="block sm:hidden px-4 py-2 bg-gray-50 border-b border-gray-200"
+        >
+          <p class="text-xs text-gray-500 text-center">
+            ← Scroll horizontally to see all columns →
+          </p>
+        </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Campus ID
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Full Name
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Admit Year
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Status
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   School
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Track
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Membership
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Next Subsidy
                 </th>
                 <th
-                  class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   Actions
                 </th>
@@ -391,44 +441,49 @@ const getNextSubsidyRate = (member) => {
                 :key="member.id"
                 class="hover:bg-gray-50"
               >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="font-mono text-sm text-gray-900">{{
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span class="font-mono text-xs sm:text-sm text-gray-900">{{
                     member.campusId
                   }}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm font-medium text-gray-900">{{
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span class="text-xs sm:text-sm font-medium text-gray-900">{{
                     member.fullName
                   }}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600">{{
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span class="text-xs sm:text-sm text-gray-600">{{
                     member.admitYear
                   }}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600">{{ member.degree }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600">{{ member.school }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600">{{
-                    member.track || "-"
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span class="text-xs sm:text-sm text-gray-600">{{
+                    member.degree
                   }}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   <span
-                    class="inline-flex px-3 py-1 text-xs font-medium rounded-full"
+                    class="text-xs sm:text-sm text-gray-600 max-w-[100px] sm:max-w-none truncate block"
+                    >{{ member.school }}</span
+                  >
+                </td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span class="text-xs sm:text-sm text-gray-600">{{
+                    member.tracks || "-"
+                  }}</span>
+                </td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span
+                    class="inline-flex px-2 sm:px-3 py-1 text-xs font-medium rounded-full"
                     :class="getMembershipBadgeColor(member.membershipType)"
                   >
                     {{ member.membershipType }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center gap-2">
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <div class="flex items-center gap-1 sm:gap-2">
                     <span
-                      class="text-lg font-bold"
+                      class="text-base sm:text-lg font-bold"
                       :class="getSubsidyRateColor(getNextSubsidyRate(member))"
                     >
                       {{ getNextSubsidyRate(member) }}%
@@ -446,9 +501,9 @@ const getNextSubsidyRate = (member) => {
                   </div>
                 </td>
                 <td
-                  class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                  class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium"
                 >
-                  <div class="flex justify-end gap-2">
+                  <div class="flex justify-end gap-1 sm:gap-2">
                     <button
                       @click="openEditModal(member)"
                       class="p-2 text-navy hover:bg-navy/10 rounded-lg transition-colors"
@@ -582,7 +637,7 @@ const getNextSubsidyRate = (member) => {
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
             >
               <option value="all">Any Status</option>
-              <option value="Current Student">Current Student</option>
+              <option value="Undergraduate">Undergraduate</option>
               <option value="Alumni">Alumni</option>
               <option value="Exchange Student">Exchange Student</option>
             </select>

@@ -23,7 +23,8 @@ export const useMemberStore = defineStore("members", () => {
       filtered = filtered.filter(
         (member) =>
           member.fullName?.toLowerCase().includes(query) ||
-          member.campusId?.toLowerCase().includes(query)
+          member.campusId?.toLowerCase().includes(query) ||
+          member.schoolEmail?.toLowerCase().includes(query)
       );
     }
 
@@ -37,7 +38,7 @@ export const useMemberStore = defineStore("members", () => {
     // Apply student status filter
     if (studentStatusFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.studentStatus === studentStatusFilter.value
+        (member) => member.degree === studentStatusFilter.value
       );
     }
 
@@ -69,7 +70,14 @@ export const useMemberStore = defineStore("members", () => {
   const totalMembers = computed(() => members.value.length);
 
   const ordinaryAMembers = computed(
-    () => members.value.filter((m) => m.membershipType === "Ordinary A").length
+    () =>
+      members.value.filter(
+        (m) => m.membershipType === "Ordinary A" || m.membershipType === "Exco"
+      ).length
+  );
+
+  const ordinaryBMembers = computed(
+    () => members.value.filter((m) => m.membershipType === "Ordinary B").length
   );
 
   const scholarshipEligible = computed(
@@ -146,6 +154,7 @@ export const useMemberStore = defineStore("members", () => {
     filteredMembers,
     totalMembers,
     ordinaryAMembers,
+    ordinaryBMembers,
     scholarshipEligible,
     fetchMembers,
     addMember,
