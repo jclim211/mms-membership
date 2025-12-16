@@ -53,6 +53,21 @@ const clearAllFilters = () => {
   memberStore.trackFilter = "all";
 };
 
+// Dynamic filter options from actual data
+const availableYears = computed(() => {
+  const years = [
+    ...new Set(memberStore.members.map((m) => m.admitYear).filter(Boolean)),
+  ];
+  return years.sort((a, b) => b - a); // Sort descending
+});
+
+const availableSchools = computed(() => {
+  const schools = [
+    ...new Set(memberStore.members.map((m) => m.school).filter(Boolean)),
+  ];
+  return schools.sort();
+});
+
 onMounted(async () => {
   await memberStore.fetchMembers();
 });
@@ -135,6 +150,12 @@ const handleDeleteMember = async () => {
 };
 
 const getNextSubsidyRate = (member) => {
+  // If manual override is set, use it
+  if (member.subsidyOverride !== null && member.subsidyOverride !== undefined) {
+    return member.subsidyOverride;
+  }
+
+  // Otherwise calculate based on membership type and history
   const subsidyHistory =
     member.ismAttendance?.map((ism) => ism.subsidyUsed) || [];
   return calculateNextSubsidyRate(member.membershipType, subsidyHistory);
@@ -405,12 +426,24 @@ const getNextSubsidyRate = (member) => {
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="text-lg font-bold"
-                    :class="getSubsidyRateColor(getNextSubsidyRate(member))"
-                  >
-                    {{ getNextSubsidyRate(member) }}%
-                  </span>
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="text-lg font-bold"
+                      :class="getSubsidyRateColor(getNextSubsidyRate(member))"
+                    >
+                      {{ getNextSubsidyRate(member) }}%
+                    </span>
+                    <span
+                      v-if="
+                        member.subsidyOverride !== null &&
+                        member.subsidyOverride !== undefined
+                      "
+                      class="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded font-semibold"
+                      title="Manual Override Active"
+                    >
+                      M
+                    </span>
+                  </div>
                 </td>
                 <td
                   class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
@@ -529,6 +562,7 @@ const getNextSubsidyRate = (member) => {
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
             >
               <option value="all">All Membership Types</option>
+              <option value="Exco">Exco</option>
               <option value="Ordinary A">Ordinary A</option>
               <option value="Ordinary B">Ordinary B</option>
               <option value="Associate">Associate</option>
@@ -564,14 +598,9 @@ const getNextSubsidyRate = (member) => {
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
             >
               <option value="all">Any Year</option>
-              <option value="2021">2021</option>
-              <option value="2022">2022</option>
-              <option value="2023">2023</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
-              <option value="2026">2026</option>
-              <option value="2027">2027</option>
-              <option value="2028">2028</option>
+              <option v-for="year in availableYears" :key="year" :value="year">
+                {{ year }}
+              </option>
             </select>
           </div>
 
@@ -585,12 +614,13 @@ const getNextSubsidyRate = (member) => {
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
             >
               <option value="all">All Schools</option>
-              <option value="SOA">School of Accountancy (SOA)</option>
-              <option value="SOE">School of Economics (SOE)</option>
-              <option value="SOB">School of Business (SOB)</option>
-              <option value="SCIS">School of Computing (SCIS)</option>
-              <option value="SOSS">School of Social Sciences (SOSS)</option>
-              <option value="SOL">School of Law (SOL)</option>
+              <option
+                v-for="school in availableSchools"
+                :key="school"
+                :value="school"
+              >
+                {{ school }}
+              </option>
             </select>
           </div>
 
@@ -604,12 +634,8 @@ const getNextSubsidyRate = (member) => {
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
             >
               <option value="all">All Tracks</option>
-              <option value="Accountancy">Accountancy</option>
-              <option value="Business">Business</option>
-              <option value="Computing">Computing</option>
-              <option value="Economics">Economics</option>
-              <option value="Law">Law</option>
-              <option value="Social Sciences">Social Sciences</option>
+              <option value="ITT">ITT</option>
+              <option value="MBOT">MBOT</option>
             </select>
           </div>
         </div>

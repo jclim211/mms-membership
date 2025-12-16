@@ -3,15 +3,21 @@
  * and past subsidy usage history.
  *
  * Algorithm:
+ * - Exco members: Always 95% (until downgraded to Ordinary A or B)
  * - Associate members: Always 10%
  * - Ordinary B members: 70% if not used, otherwise 10%
  * - Ordinary A members: Check tiers in order (90%, 70%, 50%), return first unused, otherwise 10%
  *
- * @param {string} membershipType - The membership type ('Associate', 'Ordinary B', 'Ordinary A')
+ * @param {string} membershipType - The membership type ('Exco', 'Associate', 'Ordinary B', 'Ordinary A')
  * @param {number[]} subsidyHistory - Array of subsidy percentages already used
- * @returns {number} The next subsidy percentage (90, 70, 50, or 10)
+ * @returns {number} The next subsidy percentage (95, 90, 70, 50, or 10)
  */
 export function calculateNextSubsidyRate(membershipType, subsidyHistory = []) {
+  // Exco members always get 95%
+  if (membershipType === "Exco") {
+    return 95;
+  }
+
   // Associate members always get 10%
   if (membershipType === "Associate") {
     return 10;
@@ -91,6 +97,8 @@ export function isValidEmail(email) {
  */
 export function getMembershipBadgeColor(type) {
   switch (type) {
+    case "Exco":
+      return "bg-purple-600 text-white";
     case "Ordinary A":
       return "bg-navy text-white";
     case "Ordinary B":
@@ -108,6 +116,7 @@ export function getMembershipBadgeColor(type) {
  * @returns {string} Tailwind CSS classes
  */
 export function getSubsidyRateColor(rate) {
+  if (rate >= 95) return "text-purple-600 font-bold";
   if (rate >= 90) return "text-emerald font-bold";
   if (rate >= 70) return "text-blue-600 font-semibold";
   if (rate >= 50) return "text-yellow-600";

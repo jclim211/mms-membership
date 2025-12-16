@@ -40,6 +40,7 @@ const formData = ref({
   reasonForOrdinaryB: props.member?.reasonForOrdinaryB || "",
   dynamicFields: props.member?.dynamicFields || [],
   addedToTelegram: props.member?.addedToTelegram || false,
+  subsidyOverride: props.member?.subsidyOverride || null,
 });
 
 const errors = ref({});
@@ -72,6 +73,12 @@ const isScholarshipEligible = computed(() => {
 
 // Calculate next subsidy rate
 const nextSubsidyRate = computed(() => {
+  // If manual override is set, use it
+  if (formData.value.subsidyOverride !== null) {
+    return formData.value.subsidyOverride;
+  }
+
+  // Otherwise calculate based on membership type and history
   const subsidyHistory = formData.value.ismAttendance.map(
     (ism) => ism.subsidyUsed
   );
@@ -311,6 +318,7 @@ const handleSave = async () => {
                     v-model="formData.membershipType"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                   >
+                    <option value="Exco">Exco</option>
                     <option value="Ordinary A">Ordinary A</option>
                     <option value="Ordinary B">Ordinary B</option>
                     <option value="Associate">Associate</option>
@@ -429,19 +437,60 @@ const handleSave = async () => {
 
               <!-- Current Next Subsidy Display -->
               <div
-                class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                class="mb-4 p-4 border rounded-lg"
+                :class="
+                  formData.subsidyOverride !== null
+                    ? 'bg-purple-50 border-purple-200'
+                    : 'bg-blue-50 border-blue-200'
+                "
               >
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium text-gray-700"
-                    >Next Subsidy Rate:</span
-                  >
-                  <span class="text-2xl font-bold text-navy"
+                  <span class="text-sm font-medium text-gray-700">
+                    Next Subsidy Rate:
+                    <span
+                      v-if="formData.subsidyOverride !== null"
+                      class="ml-2 px-2 py-0.5 bg-purple-600 text-white text-xs rounded-full"
+                      >Manual Override</span
+                    >
+                  </span>
+                  <span
+                    class="text-2xl font-bold"
+                    :class="
+                      formData.subsidyOverride !== null
+                        ? 'text-purple-600'
+                        : 'text-navy'
+                    "
                     >{{ nextSubsidyRate }}%</span
                   >
                 </div>
                 <p class="text-xs text-gray-600 mt-1">
-                  This rate will be automatically applied to the next ISM
-                  attendance
+                  {{
+                    formData.subsidyOverride !== null
+                      ? "Manual override is active - this rate will be used for all future ISM attendance"
+                      : "This rate will be automatically applied to the next ISM attendance"
+                  }}
+                </p>
+              </div>
+
+              <!-- Manual Subsidy Override -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Manual Subsidy Override
+                </label>
+                <select
+                  v-model="formData.subsidyOverride"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                >
+                  <option :value="null">Auto-calculate</option>
+                  <option :value="95">95% (Contributions)</option>
+                  <option :value="90">90%</option>
+                  <option :value="70">70%</option>
+                  <option :value="50">50%</option>
+                  <option :value="10">10%</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">
+                  Override automatic calculation for special cases (e.g.,
+                  contributions)
                 </p>
               </div>
 
