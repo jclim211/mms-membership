@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   where,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -26,6 +27,33 @@ export const memberService = {
       return { members, error: null };
     } catch (error) {
       return { members: [], error: error.message };
+    }
+  },
+
+  // Subscribe to real-time member updates
+  subscribeToMembers(callback) {
+    try {
+      const q = query(collection(db, MEMBERS_COLLECTION), orderBy("fullName"));
+
+      // onSnapshot returns an unsubscribe function
+      const unsubscribe = onSnapshot(
+        q,
+        (querySnapshot) => {
+          const members = [];
+          querySnapshot.forEach((doc) => {
+            members.push({ id: doc.id, ...doc.data() });
+          });
+          callback({ members, error: null });
+        },
+        (error) => {
+          callback({ members: [], error: error.message });
+        }
+      );
+
+      return unsubscribe;
+    } catch (error) {
+      callback({ members: [], error: error.message });
+      return () => {}; // Return empty unsubscribe function
     }
   },
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import { useMemberStore } from "../stores/memberStore";
@@ -28,6 +28,8 @@ import {
   Upload,
   ChevronUp,
   ChevronDown,
+  HelpCircle,
+  Radio,
 } from "lucide-vue-next";
 import MemberModal from "../components/MemberModal.vue";
 import BulkImportModal from "../components/BulkImportModal.vue";
@@ -53,6 +55,7 @@ const activeFiltersCount = computed(() => {
   if (memberStore.yearFilter !== "all") count++;
   if (memberStore.schoolFilter !== "all") count++;
   if (memberStore.trackFilter !== "all") count++;
+  if (memberStore.ncsCompletionFilter !== "all") count++;
   return count;
 });
 
@@ -62,6 +65,7 @@ const clearAllFilters = () => {
   memberStore.yearFilter = "all";
   memberStore.schoolFilter = "all";
   memberStore.trackFilter = "all";
+  memberStore.ncsCompletionFilter = "all";
 };
 
 // Dynamic filter options from actual data
@@ -78,6 +82,44 @@ const availableSchools = computed(() => {
   ];
   return schools.sort();
 });
+
+// Calculate NCS progress for a member
+const getNCSProgress = (member) => {
+  const tracks = member.tracks || [];
+  const hasBothTracks = tracks.includes("ITT") && tracks.includes("MBOT");
+  const hasAnyTrack = tracks.includes("ITT") || tracks.includes("MBOT");
+
+  if (!hasAnyTrack) {
+    return "-";
+  }
+
+  const requiredNCS = hasBothTracks ? 5 : 3;
+  const ncsCompleted = member.ncsAttended || 0;
+
+  return `${ncsCompleted}/${requiredNCS}`;
+};
+
+// Get color class for NCS progress
+const getNCSProgressColor = (member) => {
+  const tracks = member.tracks || [];
+  const hasBothTracks = tracks.includes("ITT") && tracks.includes("MBOT");
+  const hasAnyTrack = tracks.includes("ITT") || tracks.includes("MBOT");
+
+  if (!hasAnyTrack) {
+    return "text-gray-400";
+  }
+
+  const requiredNCS = hasBothTracks ? 5 : 3;
+  const ncsCompleted = member.ncsAttended || 0;
+
+  if (ncsCompleted >= requiredNCS) {
+    return "text-green-600 font-semibold";
+  } else if (ncsCompleted >= requiredNCS - 1) {
+    return "text-yellow-600 font-medium";
+  } else {
+    return "text-red-600";
+  }
+};
 
 // Sorted members
 const sortedMembers = computed(() => {
@@ -140,8 +182,14 @@ const formatDate = (dateString) => {
   );
 };
 
-onMounted(async () => {
-  await memberStore.fetchMembers();
+onMounted(() => {
+  // Start real-time sync when component mounts
+  memberStore.startRealtimeSync();
+});
+
+onUnmounted(() => {
+  // Clean up listener when component unmounts
+  memberStore.stopRealtimeSync();
 });
 
 const handleLogout = async () => {
@@ -240,19 +288,74 @@ const getNextSubsidyRate = (member) => {
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div
-          class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4"
-        >
-          <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
-              Membership Management System
-            </h1>
-            <p class="text-sm text-gray-600 mt-1">Club Admin Dashboard</p>
+        <!-- Mobile Layout: Two rows -->
+        <div class="lg:hidden space-y-3">
+          <!-- Row 1: Logo, Title, and Email -->
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <img
+                src="/logo.png"
+                alt="MMS Logo"
+                class="h-10 w-10 object-contain flex-shrink-0"
+              />
+              <div class="min-w-0 flex-1">
+                <h1 class="text-base font-bold text-gray-900 truncate">MMS</h1>
+                <p class="text-xs text-gray-600">Admin Dashboard</p>
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <p
+                class="text-xs font-medium text-gray-700 truncate max-w-[120px]"
+              >
+                {{ authStore.user?.email }}
+              </p>
+              <p class="text-[10px] text-gray-500">Admin</p>
+            </div>
           </div>
-          <div
-            class="flex flex-col sm:flex-row items-start sm:items-center gap-3"
-          >
-            <div class="text-left sm:text-right">
+
+          <!-- Row 2: Buttons spread across full width -->
+          <div class="grid grid-cols-3 gap-2">
+            <button
+              @click="router.push('/admin-management')"
+              class="flex items-center justify-center gap-1 px-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-xs"
+            >
+              <Shield :size="16" />
+              <span>Admin</span>
+            </button>
+            <button
+              @click="router.push('/help')"
+              class="flex items-center justify-center gap-1 px-2 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors text-xs"
+            >
+              <HelpCircle :size="16" />
+              <span>Help</span>
+            </button>
+            <button
+              @click="handleLogout"
+              class="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs"
+            >
+              <LogOut :size="16" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Desktop Layout: Single row -->
+        <div class="hidden lg:flex lg:justify-between lg:items-center">
+          <div class="flex items-center gap-4">
+            <img
+              src="/logo.png"
+              alt="MMS Logo"
+              class="h-12 w-12 object-contain"
+            />
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">
+                MMS Membership Management System
+              </h1>
+              <p class="text-sm text-gray-600 mt-1">Club Admin Dashboard</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-right">
               <p
                 class="text-sm font-medium text-gray-700 truncate max-w-[200px]"
               >
@@ -260,18 +363,24 @@ const getNextSubsidyRate = (member) => {
               </p>
               <p class="text-xs text-gray-500">Administrator</p>
             </div>
-            <div class="flex gap-2 w-full sm:w-auto">
+            <div class="flex gap-2">
               <button
                 @click="router.push('/admin-management')"
-                class="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm flex-1 sm:flex-initial"
+                class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm"
               >
                 <Shield :size="18" />
-                <span class="hidden sm:inline">Admin Management</span>
-                <span class="sm:hidden">Admin</span>
+                <span>Admin Management</span>
+              </button>
+              <button
+                @click="router.push('/help')"
+                class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors text-sm"
+              >
+                <HelpCircle :size="18" />
+                <span>Help</span>
               </button>
               <button
                 @click="handleLogout"
-                class="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm flex-1 sm:flex-initial"
+                class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
               >
                 <LogOut :size="18" />
                 <span>Logout</span>
@@ -303,7 +412,9 @@ const getNextSubsidyRate = (member) => {
           </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div
+          class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200"
+        >
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600">
@@ -335,6 +446,63 @@ const getNextSubsidyRate = (member) => {
               <CheckCircle :size="24" class="text-blue-600" />
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Real-Time Sync Status Banner -->
+      <div
+        v-if="memberStore.realtimeEnabled"
+        class="bg-emerald-50 border-l-4 border-emerald-400 rounded-lg p-4 mb-4 shadow-sm"
+      >
+        <div class="flex items-start gap-3">
+          <div class="relative flex-shrink-0 mt-0.5">
+            <Radio :size="20" class="text-emerald-600" />
+            <span
+              class="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-ping"
+            ></span>
+            <span
+              class="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full"
+            ></span>
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-emerald-800">
+              🔄 Real-Time Sync Active
+            </p>
+            <p class="text-sm text-emerald-700 mt-1">
+              Data automatically refreshes when changes are made.
+              <span v-if="memberStore.lastSyncTime" class="text-xs">
+                Last synced: {{ formatDate(memberStore.lastSyncTime) }}
+              </span>
+            </p>
+          </div>
+          <button
+            @click="memberStore.toggleRealtimeSync"
+            class="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+          >
+            Disable
+          </button>
+        </div>
+      </div>
+
+      <!-- Manual Mode Banner -->
+      <div
+        v-else
+        class="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4 mb-4 shadow-sm"
+      >
+        <div class="flex items-start gap-3">
+          <Radio :size="20" class="text-gray-500 flex-shrink-0 mt-0.5" />
+          <div class="flex-1">
+            <p class="text-sm font-medium text-gray-800">Manual Refresh Mode</p>
+            <p class="text-sm text-gray-600 mt-1">
+              Real-time sync is disabled. Refresh manually to see updates.
+            </p>
+          </div>
+          <button
+            @click="memberStore.toggleRealtimeSync"
+            class="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+          >
+            Enable Sync
+          </button>
         </div>
       </div>
 
@@ -394,7 +562,7 @@ const getNextSubsidyRate = (member) => {
           </div>
 
           <!-- Action Buttons Row -->
-          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               @click="handleExport"
               class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors font-medium text-sm"
@@ -413,20 +581,6 @@ const getNextSubsidyRate = (member) => {
               <span class="sm:hidden">TG Export</span>
             </button>
             <button
-              @click="
-                () => {
-                  downloadTemplate();
-                  showBulkImportHelp = true;
-                }
-              "
-              class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium text-sm"
-              title="Download Excel template for bulk import"
-            >
-              <FileSpreadsheet :size="18" />
-              <span class="hidden sm:inline">Download Template</span>
-              <span class="sm:hidden">Template</span>
-            </button>
-            <button
               @click="showBulkImportModal = true"
               class="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium text-sm"
               title="Bulk import members from Excel"
@@ -437,7 +591,7 @@ const getNextSubsidyRate = (member) => {
             </button>
             <button
               @click="openAddModal"
-              class="flex items-center justify-center gap-2 px-4 py-2 bg-navy hover:bg-navy/90 text-white rounded-lg transition-colors font-medium text-sm col-span-2 sm:col-span-1"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-navy hover:bg-navy/90 text-white rounded-lg transition-colors font-medium text-sm"
             >
               <Plus :size="18" />
               <span>Add Member</span>
@@ -454,7 +608,8 @@ const getNextSubsidyRate = (member) => {
           memberStore.studentStatusFilter !== 'all' ||
           memberStore.yearFilter !== 'all' ||
           memberStore.schoolFilter !== 'all' ||
-          memberStore.trackFilter !== 'all'
+          memberStore.trackFilter !== 'all' ||
+          memberStore.ncsCompletionFilter !== 'all'
         "
         class="mb-4"
       >
@@ -488,12 +643,12 @@ const getNextSubsidyRate = (member) => {
             <thead class="bg-gray-50">
               <tr>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Campus ID
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   <button
                     @click="toggleSort('fullName')"
@@ -518,7 +673,7 @@ const getNextSubsidyRate = (member) => {
                   </button>
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   <button
                     @click="toggleSort('admitYear')"
@@ -543,32 +698,32 @@ const getNextSubsidyRate = (member) => {
                   </button>
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   School
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Track
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Membership
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                >
+                  NCS Progress
+                </th>
+                <th
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Next Subsidy
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   <button
                     @click="toggleSort('createdAt')"
@@ -593,7 +748,7 @@ const getNextSubsidyRate = (member) => {
                   </button>
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Actions
                 </th>
@@ -601,7 +756,7 @@ const getNextSubsidyRate = (member) => {
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-if="memberStore.loading" class="hover:bg-gray-50">
-                <td colspan="10" class="px-6 py-8 text-center text-gray-500">
+                <td colspan="10" class="px-6 py-8 text- text-gray-500">
                   Loading members...
                 </td>
               </tr>
@@ -635,11 +790,6 @@ const getNextSubsidyRate = (member) => {
                   }}</span>
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <span class="text-xs sm:text-sm text-gray-600">{{
-                    member.degree
-                  }}</span>
-                </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   <span
                     class="text-xs sm:text-sm text-gray-600 max-w-[100px] sm:max-w-none truncate block"
                     >{{ member.school }}</span
@@ -658,6 +808,14 @@ const getNextSubsidyRate = (member) => {
                     :class="getMembershipBadgeColor(member.membershipType)"
                   >
                     {{ member.membershipType }}
+                  </span>
+                </td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span
+                    class="text-base sm:text-lg font-bold"
+                    :class="getNCSProgressColor(member)"
+                  >
+                    {{ getNCSProgress(member) }}
                   </span>
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
@@ -686,9 +844,9 @@ const getNextSubsidyRate = (member) => {
                   </span>
                 </td>
                 <td
-                  class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium"
+                  class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-left text-sm font-medium"
                 >
-                  <div class="flex justify-end gap-1 sm:gap-2">
+                  <div class="flex justify-start gap-1 sm:gap-2">
                     <button
                       @click="openEditModal(member)"
                       class="p-2 text-navy hover:bg-navy/10 rounded-lg transition-colors"
@@ -889,6 +1047,21 @@ const getNextSubsidyRate = (member) => {
               <option value="all">All Tracks</option>
               <option value="ITT">ITT</option>
               <option value="MBOT">MBOT</option>
+            </select>
+          </div>
+
+          <!-- NCS Completion -->
+          <div>
+            <label class="text-sm font-semibold text-gray-700 mb-3 block">
+              NCS Completion
+            </label>
+            <select
+              v-model="memberStore.ncsCompletionFilter"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            >
+              <option value="all">All Members</option>
+              <option value="completed">Completed</option>
+              <option value="not-completed">Not Completed</option>
             </select>
           </div>
         </div>

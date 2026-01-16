@@ -36,6 +36,8 @@ const formData = ref({
   ismAttendance: props.member?.ismAttendance || [],
   ncsAttended: props.member?.ncsAttended || 0,
   issAttended: props.member?.issAttended || 0,
+  ncsEvents: props.member?.ncsEvents || [],
+  issEvents: props.member?.issEvents || [],
   scholarshipAwarded: props.member?.scholarshipAwarded || false,
   reasonForOrdinaryB: props.member?.reasonForOrdinaryB || "",
   dynamicFields: props.member?.dynamicFields || [],
@@ -47,6 +49,10 @@ const errors = ref({});
 const isSaving = ref(false);
 const showAddISM = ref(false);
 const newISMEvent = ref({ eventName: "", subsidyUsed: 0 });
+const showAddNCS = ref(false);
+const newNCSEvent = ref("");
+const showAddISS = ref(false);
+const newISSEvent = ref("");
 const newDynamicField = ref({ key: "", value: "" });
 
 // Schools list
@@ -148,6 +154,64 @@ const removeISMAttendance = (index) => {
   formData.value.ismAttendance.splice(index, 1);
 };
 
+// Add NCS event
+const addNCSEvent = () => {
+  if (!newNCSEvent.value) {
+    return;
+  }
+
+  formData.value.ncsEvents.push({
+    eventName: newNCSEvent.value,
+    date: new Date().toISOString(),
+  });
+
+  // Increment counter
+  formData.value.ncsAttended = (formData.value.ncsAttended || 0) + 1;
+
+  // Reset form
+  newNCSEvent.value = "";
+  showAddNCS.value = false;
+};
+
+// Remove NCS event
+const removeNCSEvent = (index) => {
+  formData.value.ncsEvents.splice(index, 1);
+  // Decrement counter
+  formData.value.ncsAttended = Math.max(
+    0,
+    (formData.value.ncsAttended || 0) - 1
+  );
+};
+
+// Add ISS event
+const addISSEvent = () => {
+  if (!newISSEvent.value) {
+    return;
+  }
+
+  formData.value.issEvents.push({
+    eventName: newISSEvent.value,
+    date: new Date().toISOString(),
+  });
+
+  // Increment counter
+  formData.value.issAttended = (formData.value.issAttended || 0) + 1;
+
+  // Reset form
+  newISSEvent.value = "";
+  showAddISS.value = false;
+};
+
+// Remove ISS event
+const removeISSEvent = (index) => {
+  formData.value.issEvents.splice(index, 1);
+  // Decrement counter
+  formData.value.issAttended = Math.max(
+    0,
+    (formData.value.issAttended || 0) - 1
+  );
+};
+
 // Add dynamic field
 const addDynamicField = () => {
   if (!newDynamicField.value.key || !newDynamicField.value.value) {
@@ -192,6 +256,8 @@ const handleSave = async () => {
     schoolEmail: formData.value.schoolEmail.toLowerCase(),
     telegramHandle: formatTelegramHandle(formData.value.telegramHandle),
     phoneNumber: formatPhoneNumber(formData.value.phoneNumber),
+    // Clear subsidyOverride so it reverts to automatic calculation
+    subsidyOverride: null,
   };
 
   let result;
@@ -470,7 +536,7 @@ const handleSave = async () => {
                 <p class="text-xs text-gray-600 mt-1">
                   {{
                     formData.subsidyOverride !== null
-                      ? "Manual override is active - this rate will be used for all future ISM attendance"
+                      ? "⚠️ Temporary manual override active - will revert to automatic after save"
                       : "This rate will be automatically applied to the next ISM attendance"
                   }}
                 </p>
@@ -492,9 +558,19 @@ const handleSave = async () => {
                   <option :value="50">50%</option>
                   <option :value="10">10%</option>
                 </select>
-                <p class="text-xs text-gray-500 mt-1">
-                  Override automatic calculation for special cases (e.g.,
-                  contributions)
+                <p
+                  class="text-xs mt-1"
+                  :class="
+                    formData.subsidyOverride !== null
+                      ? 'text-purple-600 font-medium'
+                      : 'text-gray-500'
+                  "
+                >
+                  {{
+                    formData.subsidyOverride !== null
+                      ? "⚠️ Temporary override for current edit only - will revert to automatic calculation after save"
+                      : "Override automatic calculation for special cases (e.g., contributions)"
+                  }}
                 </p>
               </div>
 
@@ -629,7 +705,169 @@ const handleSave = async () => {
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                   />
                 </div>
+              </div>
 
+              <!-- NCS Event Tracking -->
+              <div class="md:col-span-2 mt-4">
+                <h5 class="text-sm font-semibold text-gray-900 mb-3">
+                  NCS Event Details
+                </h5>
+
+                <!-- Past NCS Events -->
+                <div
+                  v-if="formData.ncsEvents.length > 0"
+                  class="mb-4 space-y-2"
+                >
+                  <p class="text-sm font-medium text-gray-700 mb-2">
+                    Past NCS Events:
+                  </p>
+                  <div
+                    v-for="(event, index) in formData.ncsEvents"
+                    :key="index"
+                    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div>
+                      <p class="font-medium text-gray-900">
+                        {{ event.eventName }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      @click="removeNCSEvent(index)"
+                      class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 :size="18" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Add NCS Event -->
+                <div v-if="!showAddNCS">
+                  <button
+                    type="button"
+                    @click="showAddNCS = true"
+                    class="flex items-center gap-2 px-4 py-2 text-navy border border-navy rounded-lg hover:bg-navy/5 transition-colors"
+                  >
+                    <Plus :size="18" />
+                    <span>Add NCS Event</span>
+                  </button>
+                </div>
+
+                <div
+                  v-else
+                  class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3"
+                >
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                      >NCS Event Name</label
+                    >
+                    <input
+                      v-model="newNCSEvent"
+                      type="text"
+                      placeholder="e.g., Tanker Charterting Workshop 2025"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    />
+                  </div>
+                  <div class="flex gap-2">
+                    <button
+                      type="button"
+                      @click="addNCSEvent"
+                      class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors"
+                    >
+                      Add Event
+                    </button>
+                    <button
+                      type="button"
+                      @click="showAddNCS = false"
+                      class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ISS Event Tracking -->
+              <div class="md:col-span-2 mt-4">
+                <h5 class="text-sm font-semibold text-gray-900 mb-3">
+                  ISS Event Details
+                </h5>
+
+                <!-- Past ISS Events -->
+                <div
+                  v-if="formData.issEvents.length > 0"
+                  class="mb-4 space-y-2"
+                >
+                  <p class="text-sm font-medium text-gray-700 mb-2">
+                    Past ISS Events:
+                  </p>
+                  <div
+                    v-for="(event, index) in formData.issEvents"
+                    :key="index"
+                    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div>
+                      <p class="font-medium text-gray-900">
+                        {{ event.eventName }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      @click="removeISSEvent(index)"
+                      class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 :size="18" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Add ISS Event -->
+                <div v-if="!showAddISS">
+                  <button
+                    type="button"
+                    @click="showAddISS = true"
+                    class="flex items-center gap-2 px-4 py-2 text-navy border border-navy rounded-lg hover:bg-navy/5 transition-colors"
+                  >
+                    <Plus :size="18" />
+                    <span>Add ISS Event</span>
+                  </button>
+                </div>
+
+                <div
+                  v-else
+                  class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3"
+                >
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                      >ISS Event Name</label
+                    >
+                    <input
+                      v-model="newISSEvent"
+                      type="text"
+                      placeholder="e.g., Sustainability Workshop"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    />
+                  </div>
+                  <div class="flex gap-2">
+                    <button
+                      type="button"
+                      @click="addISSEvent"
+                      class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors"
+                    >
+                      Add Event
+                    </button>
+                    <button
+                      type="button"
+                      @click="showAddISS = false"
+                      class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                 <!-- Scholarship Logic Display -->
                 <div
                   class="md:col-span-2 p-4 rounded-lg border"

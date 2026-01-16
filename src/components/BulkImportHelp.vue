@@ -251,11 +251,68 @@ const emit = defineEmits(["close"]);
                   NCS Attended & ISS Attended
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
-                  Number of events attended. Defaults to 0 if blank.
+                  Number of events attended. Auto-calculated from event names if
+                  provided. Defaults to 0 if blank.
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Example:</span>
                   <code class="ml-2 text-indigo-600 font-mono">3</code>
+                </div>
+              </div>
+
+              <!-- NCS Events -->
+              <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  NCS Events (comma-separated)
+                </h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  List of NCS event names attended. Comma-separated. The system
+                  will automatically count these events.
+                </p>
+                <div class="bg-white rounded p-2 text-sm space-y-2">
+                  <div>
+                    <span class="text-gray-500">Single event:</span>
+                    <code class="ml-2 text-indigo-600">NCS Singapore 2024</code>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Multiple events:</span>
+                    <code class="ml-2 text-indigo-600 block mt-1">
+                      NCS Singapore 2024, NCS Hong Kong 2024, NCS Malaysia 2023
+                    </code>
+                  </div>
+                  <div class="text-xs text-gray-600 mt-2">
+                    <strong>Note:</strong> Event names will be tracked
+                    individually, and the # NCS Attended counter will be updated
+                    automatically.
+                  </div>
+                </div>
+              </div>
+
+              <!-- ISS Events -->
+              <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  ISS Events (comma-separated)
+                </h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  List of ISS event names attended. Comma-separated. The system
+                  will automatically count these events.
+                </p>
+                <div class="bg-white rounded p-2 text-sm space-y-2">
+                  <div>
+                    <span class="text-gray-500">Single event:</span>
+                    <code class="ml-2 text-indigo-600">ISS Tokyo 2024</code>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Multiple events:</span>
+                    <code class="ml-2 text-indigo-600 block mt-1">
+                      ISS Tokyo 2024, ISS Seoul 2024, ISS Bangkok 2023
+                    </code>
+                  </div>
+                  <div class="text-xs text-gray-600 mt-2">
+                    <strong>Note:</strong> Event names will be tracked
+                    individually, and the # ISS Attended counter will be updated
+                    automatically.
+                  </div>
                 </div>
               </div>
 

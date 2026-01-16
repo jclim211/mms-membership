@@ -162,8 +162,10 @@ Your Club Membership Management Portal is now fully built and ready to use. This
 - [x] **Optional Fields Section**:
 
   - Reason for Ordinary B (text area, always visible)
-  - NCS Attended counter
-  - ISS Attended counter
+  - NCS Attended counter (auto-calculated from events)
+  - ISS Attended counter (auto-calculated from events)
+  - NCS Event Tracking (add/remove individual events with names)
+  - ISS Event Tracking (add/remove individual events with names)
   - Scholarship eligibility indicator (auto-calculated)
   - Scholarship awarded checkbox
   - ISM Signup status
@@ -209,12 +211,14 @@ Your Club Membership Management Portal is now fully built and ready to use. This
   - Case-insensitive school/membership/status mapping
   - Duplicate Campus ID detection (within file and database)
   - ISM Attendance parsing (EventName:SubsidyRate format)
+  - NCS Events parsing (comma-separated event names)
+  - ISS Events parsing (comma-separated event names)
 - [x] Preview with error display by row
 - [x] Progress tracking during import
 - [x] Detailed success/failure reporting
 - [x] Automatic name uppercase conversion
 - [x] Automatic email lowercase conversion
-- [x] Support for 15 fields including Reason for Ordinary B
+- [x] Support for 17 fields including NCS/ISS event tracking
 - [x] Bulk Import Help modal with comprehensive guide
 
 ### 7. Data Validation ✅

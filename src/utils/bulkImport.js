@@ -19,6 +19,8 @@ export function downloadTemplate() {
       "ISM Attendance": "ISM Beijing 2024:90, ISM Shanghai 2024:70",
       "NCS Attended": 0,
       "ISS Attended": 0,
+      "NCS Events (comma-separated)": "NCS Singapore 2024, NCS Hong Kong 2024",
+      "ISS Events (comma-separated)": "ISS Tokyo 2024, ISS Seoul 2024",
       "Scholarship Awarded": "FALSE",
       "Reason for Ordinary B": "",
     },
@@ -43,6 +45,8 @@ export function downloadTemplate() {
     { wch: 40 }, // ISM Attendance
     { wch: 12 }, // NCS Attended
     { wch: 12 }, // ISS Attended
+    { wch: 40 }, // NCS Events
+    { wch: 40 }, // ISS Events
     { wch: 18 }, // Scholarship Awarded
     { wch: 30 }, // Reason for Ordinary B
   ];
@@ -227,6 +231,40 @@ function validateAndTransformData(data) {
     const ncsAttended = parseInt(row["NCS Attended"]) || 0;
     const issAttended = parseInt(row["ISS Attended"]) || 0;
 
+    // Parse NCS Events (optional)
+    // Format: "EventName1, EventName2, EventName3"
+    let ncsEvents = [];
+    if (row["NCS Events (comma-separated)"]) {
+      const ncsString = row["NCS Events (comma-separated)"].toString().trim();
+      if (ncsString) {
+        ncsEvents = ncsString
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name)
+          .map((eventName) => ({
+            eventName,
+            date: new Date().toISOString(),
+          }));
+      }
+    }
+
+    // Parse ISS Events (optional)
+    // Format: "EventName1, EventName2, EventName3"
+    let issEvents = [];
+    if (row["ISS Events (comma-separated)"]) {
+      const issString = row["ISS Events (comma-separated)"].toString().trim();
+      if (issString) {
+        issEvents = issString
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name)
+          .map((eventName) => ({
+            eventName,
+            date: new Date().toISOString(),
+          }));
+      }
+    }
+
     // Parse ISM Attendance (optional)
     // Format: "EventName1:subsidyRate1, EventName2:subsidyRate2"
     let ismAttendance = [];
@@ -271,6 +309,8 @@ function validateAndTransformData(data) {
       contributionPaid,
       ncsAttended,
       issAttended,
+      ncsEvents,
+      issEvents,
       scholarshipAwarded,
       reasonForOrdinaryB: row["Reason for Ordinary B"] || "",
       dynamicFields: [],

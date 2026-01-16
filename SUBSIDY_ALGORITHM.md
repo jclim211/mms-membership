@@ -187,6 +187,26 @@ const subsidyHistory = member.ismAttendance.map((ism) => ism.subsidyUsed);
 - Updates in real-time as ISM attendance is added
 - Displays the exact rate that will be applied to the next event
 
+### Manual Subsidy Override (Temporary)
+
+**Purpose**: Allows admins to preview how different subsidy rates would affect a member during editing.
+
+**Behavior**:
+
+- Available in the Member Modal when editing a member
+- Admin can select a custom rate: 95%, 90%, 70%, 50%, or 10%
+- The override is **temporary** and only applies during the current edit session
+- When the member is saved, `subsidyOverride` is automatically cleared (set to `null`)
+- After save, the system reverts to automatic calculation based on membership type and history
+
+**Use Cases**:
+
+- Preview how a specific subsidy rate would look for a member
+- Temporary testing of different rates during editing
+- **Not for permanent overrides** - the system always uses automatic calculation after save
+
+**Important**: If you need to permanently override a rate for special circumstances, you must modify the member's membership type or ISM attendance history instead.
+
 ### Adding ISM Attendance
 
 When admin clicks "Add ISM Attendance":

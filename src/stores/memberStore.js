@@ -12,6 +12,10 @@ export const useMemberStore = defineStore("members", () => {
   const yearFilter = ref("all");
   const schoolFilter = ref("all");
   const trackFilter = ref("all");
+  const ncsCompletionFilter = ref("all");
+  const realtimeEnabled = ref(true); // Toggle for real-time sync
+  const lastSyncTime = ref(null); // Track last sync time
+  let unsubscribe = null; // Store the unsubscribe function
 
   // Computed: Filtered members based on search and filters
   const filteredMembers = computed(() => {
@@ -70,6 +74,24 @@ export const useMemberStore = defineStore("members", () => {
       );
     }
 
+    // Apply NCS completion filter
+    if (ncsCompletionFilter.value !== "all") {
+      filtered = filtered.filter((member) => {
+        const tracks = member.tracks || [];
+        const hasBothTracks = tracks.includes("ITT") && tracks.includes("MBOT");
+        const hasAnyTrack = tracks.includes("ITT") || tracks.includes("MBOT");
+        const requiredNCS = hasBothTracks ? 5 : hasAnyTrack ? 3 : 0;
+        const ncsCompleted = member.ncsAttended || 0;
+
+        if (ncsCompletionFilter.value === "completed") {
+          return requiredNCS > 0 && ncsCompleted >= requiredNCS;
+        } else if (ncsCompletionFilter.value === "not-completed") {
+          return requiredNCS > 0 && ncsCompleted < requiredNCS;
+        }
+        return true;
+      });
+    }
+
     return filtered;
   });
 
@@ -97,6 +119,46 @@ export const useMemberStore = defineStore("members", () => {
   );
 
   // Actions
+  const startRealtimeSync = () => {
+    // Stop existing subscription if any
+    if (unsubscribe) {
+      unsubscribe();
+    }
+
+    loading.value = true;
+    error.value = null;
+
+    // Subscribe to real-time updates
+    unsubscribe = memberService.subscribeToMembers((result) => {
+      if (result.error) {
+        error.value = result.error;
+      } else {
+        members.value = result.members;
+        lastSyncTime.value = new Date();
+      }
+      loading.value = false;
+    });
+
+    realtimeEnabled.value = true;
+  };
+
+  const stopRealtimeSync = () => {
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
+    }
+    realtimeEnabled.value = false;
+  };
+
+  const toggleRealtimeSync = () => {
+    if (realtimeEnabled.value) {
+      stopRealtimeSync();
+    } else {
+      startRealtimeSync();
+    }
+  };
+
+  // Manual fetch (for when real-time is disabled)
   const fetchMembers = async () => {
     loading.value = true;
     error.value = null;
@@ -105,6 +167,7 @@ export const useMemberStore = defineStore("members", () => {
       error.value = result.error;
     } else {
       members.value = result.members;
+      lastSyncTime.value = new Date();
     }
     loading.value = false;
   };
@@ -114,7 +177,10 @@ export const useMemberStore = defineStore("members", () => {
     error.value = null;
     const result = await memberService.addMember(memberData);
     if (!result.error) {
-      await fetchMembers();
+      // Real-time listener will auto-update, but refresh manually if disabled
+      if (!realtimeEnabled.value) {
+        await fetchMembers();
+      }
     } else {
       error.value = result.error;
     }
@@ -127,7 +193,10 @@ export const useMemberStore = defineStore("members", () => {
     error.value = null;
     const result = await memberService.updateMember(memberId, memberData);
     if (!result.error) {
-      await fetchMembers();
+      // Real-time listener will auto-update, but refresh manually if disabled
+      if (!realtimeEnabled.value) {
+        await fetchMembers();
+      }
     } else {
       error.value = result.error;
     }
@@ -140,7 +209,10 @@ export const useMemberStore = defineStore("members", () => {
     error.value = null;
     const result = await memberService.deleteMember(memberId);
     if (!result.error) {
-      await fetchMembers();
+      // Real-time listener will auto-update, but refresh manually if disabled
+      if (!realtimeEnabled.value) {
+        await fetchMembers();
+      }
     } else {
       error.value = result.error;
     }
@@ -158,11 +230,17 @@ export const useMemberStore = defineStore("members", () => {
     yearFilter,
     schoolFilter,
     trackFilter,
+    ncsCompletionFilter,
+    realtimeEnabled,
+    lastSyncTime,
     filteredMembers,
     totalMembers,
     ordinaryAMembers,
     ordinaryBMembers,
     scholarshipEligible,
+    startRealtimeSync,
+    stopRealtimeSync,
+    toggleRealtimeSync,
     fetchMembers,
     addMember,
     updateMember,

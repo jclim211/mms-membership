@@ -1,6 +1,10 @@
 <script setup>
 import { ref } from "vue";
-import { parseExcelFile, bulkImportMembers } from "../utils/bulkImport";
+import {
+  parseExcelFile,
+  bulkImportMembers,
+  downloadTemplate,
+} from "../utils/bulkImport";
 import { useMemberStore } from "../stores/memberStore";
 import { memberService } from "../services/memberService";
 import {
@@ -156,8 +160,23 @@ const handleClose = () => {
                 Upload Excel File
               </h3>
               <p class="text-sm text-gray-600 mb-6">
-                Select an Excel file (.xlsx) containing member data
+                <strong>Important:</strong> Please download and use our template
+                to ensure proper data formatting
               </p>
+
+              <!-- Download Template Button -->
+              <div class="mb-8">
+                <button
+                  @click="downloadTemplate"
+                  class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg transition-all font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <FileSpreadsheet :size="20" />
+                  Download Excel Template
+                </button>
+                <p class="text-xs text-gray-500 mt-2">
+                  💡 Start with our template to avoid errors
+                </p>
+              </div>
 
               <!-- File Input -->
               <div class="max-w-md mx-auto">

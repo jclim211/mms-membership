@@ -15,6 +15,14 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
       .map((ism) => `${ism.subsidyUsed}%`)
       .join("; ");
 
+    // Flatten NCS events
+    const ncsEvents = member.ncsEvents || [];
+    const ncsNames = ncsEvents.map((event) => event.eventName).join("; ");
+
+    // Flatten ISS events
+    const issEvents = member.issEvents || [];
+    const issNames = issEvents.map((event) => event.eventName).join("; ");
+
     // Flatten tracks
     const tracks = Array.isArray(member.tracks)
       ? member.tracks.join(", ")
@@ -47,7 +55,9 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
       "ISM Subsidies Used": ismSubsidies,
       "Total ISM Count": ismAttendance.length,
       "NCS Attended": member.ncsAttended || 0,
+      "NCS Events": ncsNames,
       "ISS Attended": member.issAttended || 0,
+      "ISS Events": issNames,
       "Scholarship Eligible":
         member.membershipType === "Ordinary A" && !member.scholarshipAwarded
           ? "YES"
@@ -80,7 +90,9 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
     { wch: 20 }, // ISM Subsidies Used
     { wch: 12 }, // Total ISM Count
     { wch: 12 }, // NCS Attended
+    { wch: 30 }, // NCS Events
     { wch: 12 }, // ISS Attended
+    { wch: 30 }, // ISS Events
     { wch: 18 }, // Scholarship Eligible
     { wch: 18 }, // Scholarship Awarded
     { wch: 25 }, // Reason for Ordinary B
