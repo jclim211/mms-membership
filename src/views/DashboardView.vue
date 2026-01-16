@@ -454,9 +454,9 @@ const getNextSubsidyRate = (member) => {
         v-if="memberStore.realtimeEnabled"
         class="bg-emerald-50 border-l-4 border-emerald-400 rounded-lg p-4 mb-4 shadow-sm"
       >
-        <div class="flex items-start gap-3">
+        <div class="flex items-start gap-2 sm:gap-3">
           <div class="relative flex-shrink-0 mt-0.5">
-            <Radio :size="20" class="text-emerald-600" />
+            <Radio :size="18" class="text-emerald-600" />
             <span
               class="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-ping"
             ></span>
@@ -464,20 +464,23 @@ const getNextSubsidyRate = (member) => {
               class="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full"
             ></span>
           </div>
-          <div class="flex-1">
-            <p class="text-sm font-medium text-emerald-800">
+          <div class="flex-1 min-w-0">
+            <p class="text-xs sm:text-sm font-medium text-emerald-800">
               🔄 Real-Time Sync Active
             </p>
-            <p class="text-sm text-emerald-700 mt-1">
-              Data automatically refreshes when changes are made.
-              <span v-if="memberStore.lastSyncTime" class="text-xs">
+            <p class="text-xs sm:text-sm text-emerald-700 mt-1">
+              Data auto-refreshes when changes are made.
+              <span
+                v-if="memberStore.lastSyncTime"
+                class="block sm:inline text-[10px] sm:text-xs mt-1 sm:mt-0"
+              >
                 Last synced: {{ formatDate(memberStore.lastSyncTime) }}
               </span>
             </p>
           </div>
           <button
             @click="memberStore.toggleRealtimeSync"
-            class="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+            class="flex-shrink-0 text-xs px-2 sm:px-3 py-1 bg-white hover:bg-gray-50 text-emerald-700 border border-emerald-300 font-medium rounded transition-colors whitespace-nowrap shadow-sm"
           >
             Disable
           </button>
@@ -489,19 +492,21 @@ const getNextSubsidyRate = (member) => {
         v-else
         class="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4 mb-4 shadow-sm"
       >
-        <div class="flex items-start gap-3">
-          <Radio :size="20" class="text-gray-500 flex-shrink-0 mt-0.5" />
-          <div class="flex-1">
-            <p class="text-sm font-medium text-gray-800">Manual Refresh Mode</p>
-            <p class="text-sm text-gray-600 mt-1">
+        <div class="flex items-start gap-2 sm:gap-3">
+          <Radio :size="18" class="text-gray-500 flex-shrink-0 mt-0.5" />
+          <div class="flex-1 min-w-0">
+            <p class="text-xs sm:text-sm font-medium text-gray-800">
+              Manual Refresh Mode
+            </p>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1">
               Real-time sync is disabled. Refresh manually to see updates.
             </p>
           </div>
           <button
             @click="memberStore.toggleRealtimeSync"
-            class="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+            class="flex-shrink-0 text-xs px-2 sm:px-3 py-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium rounded transition-colors whitespace-nowrap shadow-sm"
           >
-            Enable Sync
+            Enable
           </button>
         </div>
       </div>
