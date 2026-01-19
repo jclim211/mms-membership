@@ -208,6 +208,238 @@ const router = useRouter();
         </div>
       </div>
 
+      <!-- Event Management -->
+      <div
+        class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
+      >
+        <div class="flex items-center gap-3 mb-4">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <Calendar :size="24" class="text-purple-600" />
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">Event Management</h3>
+        </div>
+        <p class="text-gray-600 mb-4">
+          Manage events and track attendance for ISM, ISS, and NCS programs:
+        </p>
+        <div class="space-y-6">
+          <!-- Creating Events -->
+          <div class="border-l-4 border-purple-600 pl-4">
+            <div class="flex items-start gap-3 mb-2">
+              <Plus :size="20" class="text-purple-600 mt-1 flex-shrink-0" />
+              <div>
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  Creating Events
+                </h4>
+                <p class="text-sm text-gray-600 mb-2">
+                  Create events for different programs:
+                </p>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                  <li>Navigate to Event Management page from the dashboard</li>
+                  <li>
+                    Select the event type tab:
+                    <strong>ISM</strong> (Industry Study Mission),
+                    <strong>ISS</strong> (Industry Speaker Seminar), or
+                    <strong>NCS</strong> (Non-Credit Seminar)
+                  </li>
+                  <li>
+                    Click <strong>Create Event</strong> button and fill in event
+                    name and date
+                  </li>
+                  <li>
+                    <strong>Note:</strong> Event type cannot be changed after
+                    creation
+                  </li>
+                  <li>
+                    NCS events require students to attend both sessions for
+                    completion
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Managing Attendance -->
+          <div class="border-l-4 border-emerald pl-4">
+            <div class="flex items-start gap-3 mb-2">
+              <Users :size="20" class="text-emerald mt-1 flex-shrink-0" />
+              <div>
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  Managing Attendance
+                </h4>
+                <p class="text-sm text-gray-600 mb-2">
+                  Track who attended events:
+                </p>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                  <li>
+                    Click <strong>Mark Attendance</strong> on any event to open
+                    the attendance modal
+                  </li>
+                  <li>Check or uncheck members who attended the event</li>
+                  <li>
+                    For NCS events, mark both Session 1 and Session 2 - only
+                    members who complete both sessions will have the event count
+                    toward their NCS completion
+                  </li>
+                  <li>Use the search bar to quickly find specific members</li>
+                  <li>
+                    Attendance is automatically synced to member profiles when
+                    saved
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bulk Import Attendance -->
+          <div class="border-l-4 border-purple-600 pl-4">
+            <div class="flex items-start gap-3 mb-2">
+              <Upload :size="20" class="text-purple-600 mt-1 flex-shrink-0" />
+              <div>
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  Bulk Import Attendance
+                </h4>
+                <p class="text-sm text-gray-600 mb-2">
+                  Import attendance from Excel for faster data entry:
+                </p>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                  <li>
+                    Click <strong>Bulk Import</strong> button on any event
+                  </li>
+                  <li>
+                    Download the Excel template using the
+                    <strong>Download Template</strong> button
+                  </li>
+                  <li>Fill in Campus IDs in the template (one per row)</li>
+                  <li>
+                    For NCS events, use separate columns for Session 1 and
+                    Session 2
+                  </li>
+                  <li>
+                    Upload the completed file - the system will validate and
+                    show which members were found or not found
+                  </li>
+                  <li>Review the results and save to update member records</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editing and Deleting Events -->
+          <div class="border-l-4 border-blue-600 pl-4">
+            <div class="flex items-start gap-3 mb-2">
+              <Edit2 :size="20" class="text-blue-600 mt-1 flex-shrink-0" />
+              <div>
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  Editing & Deleting Events
+                </h4>
+                <p class="text-sm text-gray-600 mb-2">
+                  Modify or remove events:
+                </p>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                  <li>Click the edit icon to update event name or date</li>
+                  <li>Event type cannot be changed after creation</li>
+                  <li>Click the trash icon to delete an event</li>
+                  <li>
+                    <strong>Important:</strong> Deleting an event removes it
+                    from the system but does NOT remove attendance records from
+                    member profiles
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ordinary A Declaration & NCS Logic -->
+      <div
+        class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
+      >
+        <div class="flex items-center gap-3 mb-4">
+          <div class="p-2 bg-amber-100 rounded-lg">
+            <CheckCircle :size="24" class="text-amber-600" />
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">
+            Ordinary A & NCS Counting
+          </h3>
+        </div>
+        <p class="text-gray-600 mb-4">
+          Understanding how Ordinary A status affects NCS event counting:
+        </p>
+        <div class="space-y-4">
+          <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h4 class="font-semibold text-amber-900 mb-2">Declaration Date</h4>
+            <p class="text-sm text-amber-800 mb-2">
+              The <strong>Ordinary A Declaration Date</strong> marks when a
+              member officially became an Ordinary A member. This date
+              determines which NCS events count toward their graduation
+              requirements.
+            </p>
+            <ul class="text-sm text-amber-800 space-y-1 ml-4 list-disc">
+              <li>
+                <strong>Automatic Setting:</strong> The system automatically
+                sets this date when you upgrade a member to "Ordinary A" or
+                create a new Ordinary A member.
+              </li>
+              <li>
+                <strong>Counting Rule:</strong> Only NCS events attended
+                <strong>on or after</strong> this declaration date will count.
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="font-semibold text-gray-900 mb-2">
+              Grandfathering Rule
+            </h4>
+            <p class="text-sm text-gray-600 mb-2">
+              For existing Ordinary A members who were in the system before this
+              feature was introduced:
+            </p>
+            <ul class="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+              <li>
+                If a member has <strong>no declaration date</strong> set, they
+                are considered "grandfathered".
+              </li>
+              <li>
+                <strong>All</strong> their past NCS events count toward
+                requirements, regardless of when they were attended.
+              </li>
+              <li>
+                In the member profile, this is shown as
+                <span class="text-amber-600 font-medium"
+                  >"Not set (grandfathered member)"</span
+                >.
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="font-semibold text-gray-900 mb-2">Visual Indicators</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              When viewing a member's past NCS events, you'll see badges
+              indicating validity:
+            </p>
+            <div class="flex gap-4 mt-2">
+              <div class="flex items-center gap-2">
+                <span
+                  class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-medium rounded-full border border-emerald-200"
+                  >✓ COUNTS</span
+                >
+                <span class="text-xs text-gray-500">- Event counts</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full border border-gray-200"
+                  >✗ DOESN'T COUNT</span
+                >
+                <span class="text-xs text-gray-500">- Before declaration</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Understanding the Dashboard -->
       <div
         class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"

@@ -60,18 +60,20 @@ export const memberService = {
   // Add a new member
   async addMember(memberData) {
     try {
-      // Check for duplicate Campus ID
-      const q = query(
-        collection(db, MEMBERS_COLLECTION),
-        where("campusId", "==", memberData.campusId)
-      );
-      const existingMembers = await getDocs(q);
+      // Check for duplicate Campus ID (only if not empty)
+      if (memberData.campusId) {
+        const q = query(
+          collection(db, MEMBERS_COLLECTION),
+          where("campusId", "==", memberData.campusId)
+        );
+        const existingMembers = await getDocs(q);
 
-      if (!existingMembers.empty) {
-        return {
-          id: null,
-          error: "A member with this Campus ID already exists",
-        };
+        if (!existingMembers.empty) {
+          return {
+            id: null,
+            error: "A member with this Campus ID already exists",
+          };
+        }
       }
 
       const docRef = await addDoc(collection(db, MEMBERS_COLLECTION), {

@@ -13,9 +13,33 @@ export const useMemberStore = defineStore("members", () => {
   const schoolFilter = ref("all");
   const trackFilter = ref("all");
   const ncsCompletionFilter = ref("all");
+  const incompleteFilter = ref("all");
   const realtimeEnabled = ref(true); // Toggle for real-time sync
   const lastSyncTime = ref(null); // Track last sync time
   let unsubscribe = null; // Store the unsubscribe function
+
+  // Helper: Calculate valid NCS count based on declaration date
+  const getValidNCSCount = (member) => {
+    // If member is not Ordinary A, count all NCS events
+    if (member.membershipType !== "Ordinary A") {
+      return member.ncsAttended || 0;
+    }
+
+    // If no declaration date (grandfathered), count all NCS events
+    if (!member.ordinaryADeclarationDate) {
+      return member.ncsAttended || 0;
+    }
+
+    // Count only NCS events attended after declaration date
+    const declarationDate = new Date(member.ordinaryADeclarationDate);
+    const ncsEvents = member.ncsEvents || [];
+    const validCount = ncsEvents.filter((event) => {
+      const eventDate = new Date(event.date);
+      return eventDate >= declarationDate;
+    }).length;
+
+    return validCount;
+  };
 
   // Computed: Filtered members based on search and filters
   const filteredMembers = computed(() => {
@@ -81,12 +105,37 @@ export const useMemberStore = defineStore("members", () => {
         const hasBothTracks = tracks.includes("ITT") && tracks.includes("MBOT");
         const hasAnyTrack = tracks.includes("ITT") || tracks.includes("MBOT");
         const requiredNCS = hasBothTracks ? 5 : hasAnyTrack ? 3 : 0;
-        const ncsCompleted = member.ncsAttended || 0;
+        const ncsCompleted = getValidNCSCount(member);
 
         if (ncsCompletionFilter.value === "completed") {
           return requiredNCS > 0 && ncsCompleted >= requiredNCS;
         } else if (ncsCompletionFilter.value === "not-completed") {
           return requiredNCS > 0 && ncsCompleted < requiredNCS;
+        }
+        return true;
+      });
+    }
+
+    // Apply Profile Completion filter
+    if (incompleteFilter.value !== "all") {
+      filtered = filtered.filter((member) => {
+        // Check for required fields (same logic as DashboardView)
+        const requiredFields = [
+          member.campusId,
+          member.fullName,
+          member.schoolEmail,
+          member.admitYear,
+          member.school,
+          member.membershipType,
+        ];
+        const hasMissingFields = requiredFields.some((field) => !field);
+        const hasTracks = member.tracks && member.tracks.length > 0;
+        const isProfileIncomplete = hasMissingFields || !hasTracks;
+
+        if (incompleteFilter.value === "incomplete") {
+          return isProfileIncomplete || member.isIncomplete === true;
+        } else if (incompleteFilter.value === "complete") {
+          return !isProfileIncomplete && !member.isIncomplete;
         }
         return true;
       });
@@ -231,6 +280,7 @@ export const useMemberStore = defineStore("members", () => {
     schoolFilter,
     trackFilter,
     ncsCompletionFilter,
+    incompleteFilter,
     realtimeEnabled,
     lastSyncTime,
     filteredMembers,

@@ -9,6 +9,7 @@ export function downloadTemplate() {
       "Campus ID": "01234567",
       "Full Name": "JOHN DOE",
       "School Email": "johndoe@email.com",
+      "Personal Email": "john.doe@gmail.com",
       "Admit Year": 2024,
       "Membership Type": "Ordinary A",
       "Student Status": "Undergraduate",
@@ -22,6 +23,7 @@ export function downloadTemplate() {
       "NCS Events (comma-separated)": "NCS Singapore 2024, NCS Hong Kong 2024",
       "ISS Events (comma-separated)": "ISS Tokyo 2024, ISS Seoul 2024",
       "Scholarship Awarded": "FALSE",
+      "Scholarship Year": "",
       "Reason for Ordinary B": "",
     },
   ];
@@ -35,6 +37,7 @@ export function downloadTemplate() {
     { wch: 12 }, // Campus ID
     { wch: 20 }, // Full Name
     { wch: 25 }, // School Email
+    { wch: 25 }, // Personal Email
     { wch: 12 }, // Admit Year
     { wch: 15 }, // Membership Type
     { wch: 15 }, // Student Status
@@ -48,6 +51,7 @@ export function downloadTemplate() {
     { wch: 40 }, // NCS Events
     { wch: 40 }, // ISS Events
     { wch: 18 }, // Scholarship Awarded
+    { wch: 15 }, // Scholarship Year
     { wch: 30 }, // Reason for Ordinary B
   ];
 
@@ -227,6 +231,15 @@ function validateAndTransformData(data) {
     const contributionPaid = parseBooleanField(row["Contribution Paid"]);
     const scholarshipAwarded = parseBooleanField(row["Scholarship Awarded"]);
 
+    // Parse scholarship year (optional)
+    let scholarshipYear = null;
+    if (row["Scholarship Year"]) {
+      const year = parseInt(row["Scholarship Year"]);
+      if (!isNaN(year) && year >= 2015 && year <= 2030) {
+        scholarshipYear = year;
+      }
+    }
+
     // Parse attendance fields (optional)
     const ncsAttended = parseInt(row["NCS Attended"]) || 0;
     const issAttended = parseInt(row["ISS Attended"]) || 0;
@@ -297,6 +310,7 @@ function validateAndTransformData(data) {
       campusId: row["Campus ID"]?.toString() || "",
       fullName: (row["Full Name"] || "").toUpperCase(),
       schoolEmail: (row["School Email"] || "").toLowerCase(),
+      personalEmail: (row["Personal Email"] || "").toLowerCase(),
       admitYear: parseInt(admitYear),
       membershipType,
       degree: studentStatus,
@@ -312,6 +326,7 @@ function validateAndTransformData(data) {
       ncsEvents,
       issEvents,
       scholarshipAwarded,
+      scholarshipYear,
       reasonForOrdinaryB: row["Reason for Ordinary B"] || "",
       dynamicFields: [],
       addedToTelegram: false,

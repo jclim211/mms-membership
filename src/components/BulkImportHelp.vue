@@ -180,6 +180,19 @@ const emit = defineEmits(["close"]);
                 </div>
               </div>
 
+              <!-- Personal Email -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">Personal Email</h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  Optional personal email for post-graduation communication.
+                  Will be automatically converted to lowercase.
+                </p>
+                <div class="bg-white rounded p-2 text-sm">
+                  <span class="text-gray-500">Example:</span>
+                  <code class="ml-2 text-indigo-600">john.doe@gmail.com</code>
+                </div>
+              </div>
+
               <!-- Contact Info -->
               <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">
@@ -328,6 +341,24 @@ const emit = defineEmits(["close"]);
                   <span class="text-gray-500">Valid options:</span>
                   <code class="ml-2 text-indigo-600">YES</code>,
                   <code class="ml-1 text-indigo-600">NO</code>
+                </div>
+              </div>
+
+              <!-- Scholarship Year -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  Scholarship Year
+                </h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  Year when scholarship was awarded. Optional. Leave blank if
+                  not applicable or unknown.
+                </p>
+                <div class="bg-white rounded p-2 text-sm">
+                  <span class="text-gray-500">Example:</span>
+                  <code class="ml-2 text-indigo-600 font-mono">2024</code>
+                  <span class="text-gray-400 text-xs ml-2"
+                    >(Valid range: 2015-2030)</span
+                  >
                 </div>
               </div>
 

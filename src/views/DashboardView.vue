@@ -1,8 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "../stores/authStore";
 import { useMemberStore } from "../stores/memberStore";
+import { useAuthStore } from "../stores/authStore";
+import { useEventStore } from "../stores/eventStore";
 import { exportToExcel } from "../utils/exportExcel";
 import { downloadTemplate } from "../utils/bulkImport";
 import {
@@ -30,14 +31,68 @@ import {
   ChevronDown,
   HelpCircle,
   Radio,
+  Calendar,
+  AlertTriangle,
 } from "lucide-vue-next";
 import MemberModal from "../components/MemberModal.vue";
 import BulkImportModal from "../components/BulkImportModal.vue";
 import BulkImportHelp from "../components/BulkImportHelp.vue";
 
-const router = useRouter();
-const authStore = useAuthStore();
 const memberStore = useMemberStore();
+const authStore = useAuthStore();
+const eventStore = useEventStore();
+const router = useRouter();
+
+/* 
+  ═══════════════════════════════════════════════════════════════════════
+  INCOMPLETE MEMBER TRACKING - MEMBERSTORE SETUP REQUIRED
+  ═══════════════════════════════════════════════════════════════════════
+  
+  ADD TO YOUR MEMBERSTORE FILE (../stores/memberStore.js or .ts):
+  
+  1. In your state/refs section, ADD:
+     ────────────────────────────────────────
+     const incompleteFilter = ref("all");
+     
+  2. In your filteredMembers computed property, ADD this filter block:
+     ────────────────────────────────────────
+     // Profile Completion Filter
+     if (incompleteFilter.value === "incomplete") {
+       filtered = filtered.filter(member => {
+         const requiredFields = [
+           member.campusId,
+           member.fullName,
+           member.schoolEmail,
+           member.admitYear,
+           member.school,
+           member.membershipType,
+         ];
+         const hasMissingFields = requiredFields.some(field => !field);
+         const hasTracks = member.tracks && member.tracks.length > 0;
+         return hasMissingFields || !hasTracks;
+       });
+     } else if (incompleteFilter.value === "complete") {
+       filtered = filtered.filter(member => {
+         const requiredFields = [
+           member.campusId,
+           member.fullName,
+           member.schoolEmail,
+           member.admitYear,
+           member.school,
+           member.membershipType,
+         ];
+         const hasMissingFields = requiredFields.some(field => !field);
+         const hasTracks = member.tracks && member.tracks.length > 0;
+         return !hasMissingFields && hasTracks;
+       });
+     }
+     
+  3. In your return statement, ADD:
+     ────────────────────────────────────────
+     incompleteFilter,
+     
+  ═══════════════════════════════════════════════════════════════════════
+*/
 
 const showMemberModal = ref(false);
 const showBulkImportModal = ref(false);
@@ -56,6 +111,7 @@ const activeFiltersCount = computed(() => {
   if (memberStore.schoolFilter !== "all") count++;
   if (memberStore.trackFilter !== "all") count++;
   if (memberStore.ncsCompletionFilter !== "all") count++;
+  if (memberStore.incompleteFilter !== "all") count++;
   return count;
 });
 
@@ -66,6 +122,7 @@ const clearAllFilters = () => {
   memberStore.schoolFilter = "all";
   memberStore.trackFilter = "all";
   memberStore.ncsCompletionFilter = "all";
+  memberStore.incompleteFilter = "all";
 };
 
 // Dynamic filter options from actual data
@@ -83,6 +140,49 @@ const availableSchools = computed(() => {
   return schools.sort();
 });
 
+// Check if a member profile is incomplete
+const isIncomplete = (member) => {
+  const requiredFields = [
+    member.campusId,
+    member.fullName,
+    member.schoolEmail,
+    member.admitYear,
+    member.school,
+    member.membershipType,
+  ];
+
+  // Check if any required field is missing
+  const hasMissingFields = requiredFields.some((field) => !field);
+
+  // Check if tracks array is empty or missing
+  const hasTracks = member.tracks && member.tracks.length > 0;
+
+  return hasMissingFields || !hasTracks;
+};
+
+// Calculate valid NCS count based on declaration date
+const getValidNCSCount = (member) => {
+  // If member is not Ordinary A, count all NCS events
+  if (member.membershipType !== "Ordinary A") {
+    return member.ncsAttended || 0;
+  }
+
+  // If no declaration date (grandfathered), count all NCS events
+  if (!member.ordinaryADeclarationDate) {
+    return member.ncsAttended || 0;
+  }
+
+  // Count only NCS events attended after declaration date
+  const declarationDate = new Date(member.ordinaryADeclarationDate);
+  const ncsEvents = member.ncsEvents || [];
+  const validCount = ncsEvents.filter((event) => {
+    const eventDate = new Date(event.date);
+    return eventDate >= declarationDate;
+  }).length;
+
+  return validCount;
+};
+
 // Calculate NCS progress for a member
 const getNCSProgress = (member) => {
   const tracks = member.tracks || [];
@@ -94,7 +194,7 @@ const getNCSProgress = (member) => {
   }
 
   const requiredNCS = hasBothTracks ? 5 : 3;
-  const ncsCompleted = member.ncsAttended || 0;
+  const ncsCompleted = getValidNCSCount(member);
 
   return `${ncsCompleted}/${requiredNCS}`;
 };
@@ -110,7 +210,7 @@ const getNCSProgressColor = (member) => {
   }
 
   const requiredNCS = hasBothTracks ? 5 : 3;
-  const ncsCompleted = member.ncsAttended || 0;
+  const ncsCompleted = getValidNCSCount(member);
 
   if (ncsCompleted >= requiredNCS) {
     return "text-green-600 font-semibold";
@@ -265,7 +365,12 @@ const openDeleteModal = (member) => {
 
 const handleDeleteMember = async () => {
   if (confirmDelete.value) {
-    await memberStore.deleteMember(confirmDelete.value.id);
+    const memberId = confirmDelete.value.id;
+    await memberStore.deleteMember(memberId);
+
+    // Also remove from all events
+    await eventStore.removeMemberFromAllEvents(memberId);
+
     confirmDelete.value = null;
   }
 };
@@ -314,13 +419,20 @@ const getNextSubsidyRate = (member) => {
           </div>
 
           <!-- Row 2: Buttons spread across full width -->
-          <div class="grid grid-cols-3 gap-2">
+          <div class="grid grid-cols-4 gap-2">
             <button
               @click="router.push('/admin-management')"
               class="flex items-center justify-center gap-1 px-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-xs"
             >
               <Shield :size="16" />
               <span>Admin</span>
+            </button>
+            <button
+              @click="router.push('/events')"
+              class="flex items-center justify-center gap-1 px-2 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-xs"
+            >
+              <Calendar :size="16" />
+              <span>Events</span>
             </button>
             <button
               @click="router.push('/help')"
@@ -370,6 +482,13 @@ const getNextSubsidyRate = (member) => {
               >
                 <Shield :size="18" />
                 <span>Admin Management</span>
+              </button>
+              <button
+                @click="router.push('/events')"
+                class="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm"
+              >
+                <Calendar :size="18" />
+                <span>Events</span>
               </button>
               <button
                 @click="router.push('/help')"
@@ -553,7 +672,7 @@ const getNextSubsidyRate = (member) => {
             <!-- Filter Button -->
             <button
               @click="showFilterPanel = true"
-              class="flex items-center gap-2 px-3 sm:px-4 py-2 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors relative whitespace-nowrap"
+              class="flex items-center gap-2 px-3 sm:px-4 py-1 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors relative whitespace-nowrap"
             >
               <Filter :size="20" />
               <span class="font-medium hidden sm:inline">Filters</span>
@@ -614,7 +733,8 @@ const getNextSubsidyRate = (member) => {
           memberStore.yearFilter !== 'all' ||
           memberStore.schoolFilter !== 'all' ||
           memberStore.trackFilter !== 'all' ||
-          memberStore.ncsCompletionFilter !== 'all'
+          memberStore.ncsCompletionFilter !== 'all' ||
+          memberStore.incompleteFilter !== 'all'
         "
         class="mb-4"
       >
@@ -785,9 +905,20 @@ const getNextSubsidyRate = (member) => {
                   }}</span>
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <span class="text-xs sm:text-sm font-medium text-gray-900">{{
-                    member.fullName
-                  }}</span>
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="text-xs sm:text-sm font-medium text-gray-900"
+                      >{{ member.fullName }}</span
+                    >
+                    <span
+                      v-if="isIncomplete(member)"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full"
+                      title="Profile incomplete - missing required information"
+                    >
+                      <AlertTriangle :size="12" />
+                      Incomplete
+                    </span>
+                  </div>
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   <span class="text-xs sm:text-sm text-gray-600">{{
@@ -852,6 +983,14 @@ const getNextSubsidyRate = (member) => {
                   class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-left text-sm font-medium"
                 >
                   <div class="flex justify-start gap-1 sm:gap-2">
+                    <button
+                      v-if="isIncomplete(member)"
+                      @click="openEditModal(member)"
+                      class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                      title="Complete Profile"
+                    >
+                      <AlertTriangle :size="18" />
+                    </button>
                     <button
                       @click="openEditModal(member)"
                       class="p-2 text-navy hover:bg-navy/10 rounded-lg transition-colors"
@@ -1067,6 +1206,24 @@ const getNextSubsidyRate = (member) => {
               <option value="all">All Members</option>
               <option value="completed">Completed</option>
               <option value="not-completed">Not Completed</option>
+            </select>
+          </div>
+
+          <!-- Profile Completion -->
+          <div>
+            <label
+              class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3"
+            >
+              <AlertTriangle :size="18" class="text-orange-600" />
+              Profile Completion
+            </label>
+            <select
+              v-model="memberStore.incompleteFilter"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            >
+              <option value="all">All Profiles</option>
+              <option value="incomplete">Incomplete Profiles</option>
+              <option value="complete">Complete Profiles</option>
             </select>
           </div>
         </div>

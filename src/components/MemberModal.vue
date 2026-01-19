@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useMemberStore } from "../stores/memberStore";
+import { useEventStore } from "../stores/eventStore";
 import {
   formatTelegramHandle,
   formatPhoneNumber,
@@ -18,6 +19,7 @@ const props = defineProps({
 
 const emit = defineEmits(["close"]);
 const memberStore = useMemberStore();
+const eventStore = useEventStore();
 
 const isEditMode = computed(() => !!props.member);
 
@@ -27,33 +29,56 @@ const formData = ref({
   fullName: props.member?.fullName || "",
   admitYear: props.member?.admitYear || new Date().getFullYear(),
   membershipType: props.member?.membershipType || "Ordinary A",
-  tracks: props.member?.tracks || [],
+  tracks: props.member?.tracks ? [...props.member.tracks] : [],
   degree: props.member?.degree || "Undergraduate",
   school: props.member?.school || "",
   schoolEmail: props.member?.schoolEmail || "",
+  personalEmail: props.member?.personalEmail || "",
   telegramHandle: props.member?.telegramHandle || "",
   phoneNumber: props.member?.phoneNumber || "",
-  ismAttendance: props.member?.ismAttendance || [],
+  ismAttendance: props.member?.ismAttendance
+    ? [...props.member.ismAttendance]
+    : [],
   ncsAttended: props.member?.ncsAttended || 0,
   issAttended: props.member?.issAttended || 0,
-  ncsEvents: props.member?.ncsEvents || [],
-  issEvents: props.member?.issEvents || [],
+  ncsEvents: props.member?.ncsEvents ? [...props.member.ncsEvents] : [],
+  issEvents: props.member?.issEvents ? [...props.member.issEvents] : [],
   scholarshipAwarded: props.member?.scholarshipAwarded || false,
+  scholarshipYear: props.member?.scholarshipYear || null,
   reasonForOrdinaryB: props.member?.reasonForOrdinaryB || "",
-  dynamicFields: props.member?.dynamicFields || [],
+  dynamicFields: props.member?.dynamicFields
+    ? props.member.dynamicFields.map((f) => ({ ...f }))
+    : [],
   addedToTelegram: props.member?.addedToTelegram || false,
   subsidyOverride: props.member?.subsidyOverride || null,
+  ordinaryADeclarationDate: props.member?.ordinaryADeclarationDate || null,
 });
 
 const errors = ref({});
 const isSaving = ref(false);
 const showAddISM = ref(false);
-const newISMEvent = ref({ eventName: "", subsidyUsed: 0 });
+const newISMEvent = ref({ eventName: "", subsidyUsed: 0, date: "" });
 const showAddNCS = ref(false);
-const newNCSEvent = ref("");
+const newNCSEvent = ref({ eventName: "", date: "" });
 const showAddISS = ref(false);
-const newISSEvent = ref("");
+const newISSEvent = ref({ eventName: "", date: "" });
 const newDynamicField = ref({ key: "", value: "" });
+
+// Track original membership type to detect transitions
+const originalMembershipType = ref(props.member?.membershipType || null);
+
+// Track if form has changes
+const hasChanges = ref(false);
+const initialFormData = JSON.stringify(formData.value);
+
+// Watch for any changes to form data
+watch(
+  formData,
+  () => {
+    hasChanges.value = JSON.stringify(formData.value) !== initialFormData;
+  },
+  { deep: true }
+);
 
 // Schools list
 const schools = [
@@ -68,6 +93,37 @@ const schools = [
 
 // Tracks list
 const tracksOptions = ["ITT", "MBOT"];
+
+// Get unique event names from all members for autocomplete
+const existingISMEvents = computed(() => {
+  const events = new Set();
+  memberStore.members.forEach((member) => {
+    member.ismAttendance?.forEach((ism) => {
+      if (ism.eventName) events.add(ism.eventName);
+    });
+  });
+  return Array.from(events).sort();
+});
+
+const existingNCSEvents = computed(() => {
+  const events = new Set();
+  memberStore.members.forEach((member) => {
+    member.ncsEvents?.forEach((event) => {
+      if (event.eventName) events.add(event.eventName);
+    });
+  });
+  return Array.from(events).sort();
+});
+
+const existingISSEvents = computed(() => {
+  const events = new Set();
+  memberStore.members.forEach((member) => {
+    member.issEvents?.forEach((event) => {
+      if (event.eventName) events.add(event.eventName);
+    });
+  });
+  return Array.from(events).sort();
+});
 
 // Calculate scholarship eligibility
 const isScholarshipEligible = computed(() => {
@@ -104,6 +160,49 @@ watch(
   }
 );
 
+// Check if an NCS event counts toward graduation requirements
+const doesNCSEventCount = (ncsEvent) => {
+  // If no declaration date (grandfathered), all events count
+  if (!formData.value.ordinaryADeclarationDate) {
+    return true;
+  }
+
+  // If member is not Ordinary A, all events count
+  if (formData.value.membershipType !== "Ordinary A") {
+    return true;
+  }
+
+  // Compare event date with declaration date
+  const eventDate = new Date(ncsEvent.date);
+  const declarationDate = new Date(formData.value.ordinaryADeclarationDate);
+
+  return eventDate >= declarationDate;
+};
+
+// Format date for display
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+// Handle close with confirmation if there are unsaved changes
+const handleClose = () => {
+  if (hasChanges.value) {
+    const confirmed = window.confirm(
+      "You have unsaved changes. Are you sure you want to close without saving?"
+    );
+    if (!confirmed) {
+      return;
+    }
+  }
+  emit("close");
+};
+
 // Validate form
 const validateForm = () => {
   errors.value = {};
@@ -137,15 +236,18 @@ const addISMAttendance = () => {
 
   // Calculate the subsidy for this event based on current next subsidy rate
   const subsidyToUse = nextSubsidyRate.value;
+  const eventDate = newISMEvent.value.date
+    ? new Date(newISMEvent.value.date).toISOString()
+    : new Date().toISOString();
 
   formData.value.ismAttendance.push({
     eventName: newISMEvent.value.eventName,
     subsidyUsed: subsidyToUse,
-    date: new Date().toISOString(),
+    date: eventDate,
   });
 
   // Reset form
-  newISMEvent.value = { eventName: "", subsidyUsed: 0 };
+  newISMEvent.value = { eventName: "", subsidyUsed: 0, date: "" };
   showAddISM.value = false;
 };
 
@@ -156,20 +258,24 @@ const removeISMAttendance = (index) => {
 
 // Add NCS event
 const addNCSEvent = () => {
-  if (!newNCSEvent.value) {
+  if (!newNCSEvent.value.eventName) {
     return;
   }
 
+  const eventDate = newNCSEvent.value.date
+    ? new Date(newNCSEvent.value.date).toISOString()
+    : new Date().toISOString();
+
   formData.value.ncsEvents.push({
-    eventName: newNCSEvent.value,
-    date: new Date().toISOString(),
+    eventName: newNCSEvent.value.eventName,
+    date: eventDate,
   });
 
   // Increment counter
   formData.value.ncsAttended = (formData.value.ncsAttended || 0) + 1;
 
   // Reset form
-  newNCSEvent.value = "";
+  newNCSEvent.value = { eventName: "", date: "" };
   showAddNCS.value = false;
 };
 
@@ -185,20 +291,24 @@ const removeNCSEvent = (index) => {
 
 // Add ISS event
 const addISSEvent = () => {
-  if (!newISSEvent.value) {
+  if (!newISSEvent.value.eventName) {
     return;
   }
 
+  const eventDate = newISSEvent.value.date
+    ? new Date(newISSEvent.value.date).toISOString()
+    : new Date().toISOString();
+
   formData.value.issEvents.push({
-    eventName: newISSEvent.value,
-    date: new Date().toISOString(),
+    eventName: newISSEvent.value.eventName,
+    date: eventDate,
   });
 
   // Increment counter
   formData.value.issAttended = (formData.value.issAttended || 0) + 1;
 
   // Reset form
-  newISSEvent.value = "";
+  newISSEvent.value = { eventName: "", date: "" };
   showAddISS.value = false;
 };
 
@@ -260,9 +370,146 @@ const handleSave = async () => {
     subsidyOverride: null,
   };
 
+  // Handle Ordinary A declaration date
+  if (isEditMode.value) {
+    // Check if membership type is transitioning to Ordinary A
+    const isTransitioningToOrdinaryA =
+      formData.value.membershipType === "Ordinary A" &&
+      originalMembershipType.value !== "Ordinary A" &&
+      !formData.value.ordinaryADeclarationDate;
+
+    if (isTransitioningToOrdinaryA) {
+      // Set declaration date for transitions
+      memberData.ordinaryADeclarationDate = new Date().toISOString();
+    }
+  } else {
+    // New member: if Ordinary A, set declaration date
+    if (formData.value.membershipType === "Ordinary A") {
+      memberData.ordinaryADeclarationDate = new Date().toISOString();
+    }
+  }
+
   let result;
   if (isEditMode.value) {
     result = await memberStore.updateMember(props.member.id, memberData);
+
+    // Check for removed events and sync with EventStore
+    if (!result.error) {
+      const originalNCS = props.member.ncsEvents || [];
+      const newNCS = formData.value.ncsEvents || [];
+      const removedNCS = originalNCS.filter(
+        (orig) => !newNCS.some((newE) => newE.eventName === orig.eventName)
+      );
+
+      const originalISS = props.member.issEvents || [];
+      const newISS = formData.value.issEvents || [];
+      const removedISS = originalISS.filter(
+        (orig) => !newISS.some((newE) => newE.eventName === orig.eventName)
+      );
+
+      const originalISM = props.member.ismAttendance || [];
+      const newISM = formData.value.ismAttendance || [];
+      const removedISM = originalISM.filter(
+        (orig) => !newISM.some((newE) => newE.eventName === orig.eventName)
+      );
+
+      if (
+        removedNCS.length > 0 ||
+        removedISS.length > 0 ||
+        removedISM.length > 0
+      ) {
+        // Ensure events are loaded
+        if (eventStore.events.length === 0) {
+          await eventStore.fetchEvents();
+        }
+
+        // Process NCS removals
+        for (const removed of removedNCS) {
+          const event = eventStore.events.find(
+            (e) => e.name === removed.eventName && e.type === "NCS"
+          );
+          if (event) {
+            await eventStore.removeAttendee(event.id, props.member.id);
+          }
+        }
+
+        // Process ISS removals
+        for (const removed of removedISS) {
+          const event = eventStore.events.find(
+            (e) => e.name === removed.eventName && e.type === "ISS"
+          );
+          if (event) {
+            await eventStore.removeAttendee(event.id, props.member.id);
+          }
+        }
+
+        // Process ISM removals
+        for (const removed of removedISM) {
+          const event = eventStore.events.find(
+            (e) => e.name === removed.eventName && e.type === "ISM"
+          );
+          if (event) {
+            await eventStore.removeAttendee(event.id, props.member.id);
+          }
+        }
+      }
+
+      // Check for ADDED events and sync with EventStore
+      const addedNCS = newNCS.filter(
+        (newE) => !originalNCS.some((orig) => orig.eventName === newE.eventName)
+      );
+      const addedISS = newISS.filter(
+        (newE) => !originalISS.some((orig) => orig.eventName === newE.eventName)
+      );
+      const addedISM = newISM.filter(
+        (newE) => !originalISM.some((orig) => orig.eventName === newE.eventName)
+      );
+
+      if (addedNCS.length > 0 || addedISS.length > 0 || addedISM.length > 0) {
+        // Ensure events are loaded (if not already loaded by removal block)
+        if (eventStore.events.length === 0) {
+          await eventStore.fetchEvents();
+        }
+
+        // Process NCS additions
+        for (const added of addedNCS) {
+          const event = eventStore.events.find(
+            (e) => e.name === added.eventName && e.type === "NCS"
+          );
+          if (event) {
+            await eventStore.addAttendee(event.id, props.member.id, {
+              attended: true,
+              session1: true,
+              session2: true,
+            });
+          }
+        }
+
+        // Process ISS additions
+        for (const added of addedISS) {
+          const event = eventStore.events.find(
+            (e) => e.name === added.eventName && e.type === "ISS"
+          );
+          if (event) {
+            await eventStore.addAttendee(event.id, props.member.id, {
+              attended: true,
+            });
+          }
+        }
+
+        // Process ISM additions
+        for (const added of addedISM) {
+          const event = eventStore.events.find(
+            (e) => e.name === added.eventName && e.type === "ISM"
+          );
+          if (event) {
+            await eventStore.addAttendee(event.id, props.member.id, {
+              attended: true,
+            });
+          }
+        }
+      }
+    }
   } else {
     result = await memberStore.addMember(memberData);
   }
@@ -284,7 +531,7 @@ const handleSave = async () => {
       <!-- Background overlay -->
       <div
         class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-        @click="emit('close')"
+        @click="handleClose"
       ></div>
 
       <!-- Modal panel -->
@@ -299,7 +546,7 @@ const handleSave = async () => {
             {{ isEditMode ? "Edit Member" : "Add New Member" }}
           </h3>
           <button
-            @click="emit('close')"
+            @click="handleClose"
             class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <X :size="20" class="sm:hidden" />
@@ -420,7 +667,7 @@ const handleSave = async () => {
                 </div>
 
                 <!-- School Email -->
-                <div class="md:col-span-2">
+                <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     School Email <span class="text-red-500">*</span>
                   </label>
@@ -435,6 +682,22 @@ const handleSave = async () => {
                     class="mt-1 text-sm text-red-500"
                   >
                     {{ errors.schoolEmail }}
+                  </p>
+                </div>
+
+                <!-- Personal Email -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Personal Email
+                  </label>
+                  <input
+                    v-model="formData.personalEmail"
+                    type="email"
+                    placeholder="Optional"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                  />
+                  <p class="mt-1 text-xs text-gray-500">
+                    For communication after graduation
                   </p>
                 </div>
 
@@ -495,6 +758,41 @@ const handleSave = async () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- Ordinary A Declaration Date -->
+            <div
+              v-if="formData.membershipType === 'Ordinary A'"
+              class="md:col-span-2 mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+            >
+              <label class="block text-sm font-medium text-gray-900 mb-2">
+                Ordinary A Declaration Date
+              </label>
+              <input
+                v-if="formData.ordinaryADeclarationDate"
+                :value="formatDate(formData.ordinaryADeclarationDate)"
+                type="text"
+                disabled
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 cursor-not-allowed"
+              />
+              <div
+                v-else
+                class="w-full px-3 py-2 border border-amber-300 bg-amber-50 rounded-lg text-amber-900 font-medium"
+              >
+                Not set (grandfathered member)
+              </div>
+              <p class="mt-2 text-xs text-blue-800">
+                <span v-if="formData.ordinaryADeclarationDate">
+                  <strong>Declaration Date:</strong> When member was upgraded to
+                  Ordinary A. Only NCS events attended after this date count
+                  toward graduation requirements.
+                </span>
+                <span v-else class="text-amber-800 font-medium">
+                  <strong>⚠️ Grandfathered Member:</strong> No declaration date
+                  set. All NCS events count toward graduation requirements
+                  regardless of when attended.
+                </span>
+              </p>
             </div>
 
             <!-- ISM Attendance & Subsidy Section -->
@@ -587,11 +885,16 @@ const handleSave = async () => {
                   :key="index"
                   class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                 >
-                  <div>
+                  <div class="flex-1">
                     <p class="font-medium text-gray-900">{{ ism.eventName }}</p>
-                    <p class="text-sm text-gray-600">
-                      Subsidy: {{ ism.subsidyUsed }}%
-                    </p>
+                    <div class="flex items-center gap-4 mt-1">
+                      <p class="text-sm text-gray-600">
+                        Subsidy: {{ ism.subsidyUsed }}%
+                      </p>
+                      <p class="text-sm text-gray-500">
+                        {{ formatDate(ism.date) }}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -626,9 +929,37 @@ const handleSave = async () => {
                   <input
                     v-model="newISMEvent.eventName"
                     type="text"
+                    list="ism-events-list"
                     placeholder="e.g., ISM Beijing 2024"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                   />
+                  <datalist id="ism-events-list">
+                    <option
+                      v-for="event in existingISMEvents"
+                      :key="event"
+                      :value="event"
+                    />
+                  </datalist>
+                  <p class="mt-1 text-xs text-gray-500">
+                    {{
+                      existingISMEvents.length > 0
+                        ? "Select from existing events or type a new one"
+                        : "Type event name"
+                    }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2"
+                    >Event Date (Optional)</label
+                  >
+                  <input
+                    v-model="newISMEvent.date"
+                    type="date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                  />
+                  <p class="mt-1 text-xs text-gray-500">
+                    Leave blank to use current date
+                  </p>
                 </div>
                 <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p class="text-sm text-gray-700">
@@ -724,11 +1055,39 @@ const handleSave = async () => {
                   <div
                     v-for="(event, index) in formData.ncsEvents"
                     :key="index"
-                    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    class="flex items-center justify-between p-3 rounded-lg border"
+                    :class="
+                      doesNCSEventCount(event)
+                        ? 'bg-emerald-50 border-emerald-200'
+                        : 'bg-gray-50 border-gray-300'
+                    "
                   >
-                    <div>
-                      <p class="font-medium text-gray-900">
-                        {{ event.eventName }}
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <p class="font-medium text-gray-900">
+                          {{ event.eventName }}
+                        </p>
+                        <span
+                          v-if="doesNCSEventCount(event)"
+                          class="px-2 py-0.5 text-xs font-semibold bg-emerald-600 text-white rounded-full"
+                        >
+                          ✓ COUNTS
+                        </span>
+                        <span
+                          v-else
+                          class="px-2 py-0.5 text-xs font-semibold bg-gray-400 text-white rounded-full"
+                        >
+                          ✗ DOESN'T COUNT
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-500 mt-1">
+                        {{ formatDate(event.date) }}
+                      </p>
+                      <p
+                        v-if="!doesNCSEventCount(event)"
+                        class="text-xs text-gray-600 mt-1"
+                      >
+                        Attended before Ordinary A declaration date
                       </p>
                     </div>
                     <button
@@ -762,11 +1121,39 @@ const handleSave = async () => {
                       >NCS Event Name</label
                     >
                     <input
-                      v-model="newNCSEvent"
+                      v-model="newNCSEvent.eventName"
                       type="text"
-                      placeholder="e.g., Tanker Charterting Workshop 2025"
+                      list="ncs-events-list"
+                      placeholder="e.g., Tanker Chartering Workshop 2025"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                     />
+                    <datalist id="ncs-events-list">
+                      <option
+                        v-for="event in existingNCSEvents"
+                        :key="event"
+                        :value="event"
+                      />
+                    </datalist>
+                    <p class="mt-1 text-xs text-gray-500">
+                      {{
+                        existingNCSEvents.length > 0
+                          ? "Select from existing events or type a new one"
+                          : "Type event name"
+                      }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                      >Event Date (Optional)</label
+                    >
+                    <input
+                      v-model="newNCSEvent.date"
+                      type="date"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">
+                      Leave blank to use current date
+                    </p>
                   </div>
                   <div class="flex gap-2">
                     <button
@@ -806,9 +1193,12 @@ const handleSave = async () => {
                     :key="index"
                     class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
-                    <div>
+                    <div class="flex-1">
                       <p class="font-medium text-gray-900">
                         {{ event.eventName }}
+                      </p>
+                      <p class="text-sm text-gray-500 mt-1">
+                        {{ formatDate(event.date) }}
                       </p>
                     </div>
                     <button
@@ -842,11 +1232,39 @@ const handleSave = async () => {
                       >ISS Event Name</label
                     >
                     <input
-                      v-model="newISSEvent"
+                      v-model="newISSEvent.eventName"
                       type="text"
-                      placeholder="e.g., Sustainability Workshop"
+                      list="iss-events-list"
+                      placeholder="e.g., ISS Networking Night 2025"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                     />
+                    <datalist id="iss-events-list">
+                      <option
+                        v-for="event in existingISSEvents"
+                        :key="event"
+                        :value="event"
+                      />
+                    </datalist>
+                    <p class="mt-1 text-xs text-gray-500">
+                      {{
+                        existingISSEvents.length > 0
+                          ? "Select from existing events or type a new one"
+                          : "Type event name"
+                      }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                      >Event Date (Optional)</label
+                    >
+                    <input
+                      v-model="newISSEvent.date"
+                      type="date"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">
+                      Leave blank to use current date
+                    </p>
                   </div>
                   <div class="flex gap-2">
                     <button
@@ -866,35 +1284,37 @@ const handleSave = async () => {
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                <!-- Scholarship Logic Display -->
-                <div
-                  class="md:col-span-2 p-4 rounded-lg border"
-                  :class="
-                    isScholarshipEligible
-                      ? 'bg-emerald/10 border-emerald'
-                      : 'bg-gray-50 border-gray-200'
-                  "
-                >
-                  <div class="flex items-center gap-2 mb-2">
-                    <component
-                      :is="isScholarshipEligible ? CheckCircle2 : AlertCircle"
-                      :size="20"
-                      :class="
-                        isScholarshipEligible ? 'text-emerald' : 'text-gray-500'
-                      "
-                    />
-                    <span
-                      class="font-medium"
-                      :class="
-                        isScholarshipEligible ? 'text-emerald' : 'text-gray-700'
-                      "
-                    >
-                      Scholarship Eligible:
-                      {{ isScholarshipEligible ? "YES" : "NO" }}
-                    </span>
-                  </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+              <!-- Scholarship Logic Display -->
+              <div
+                class="md:col-span-2 p-4 rounded-lg border"
+                :class="
+                  isScholarshipEligible
+                    ? 'bg-emerald/10 border-emerald'
+                    : 'bg-gray-50 border-gray-200'
+                "
+              >
+                <div class="flex items-center gap-2 mb-2">
+                  <component
+                    :is="isScholarshipEligible ? CheckCircle2 : AlertCircle"
+                    :size="20"
+                    :class="
+                      isScholarshipEligible ? 'text-emerald' : 'text-gray-500'
+                    "
+                  />
+                  <span
+                    class="font-medium"
+                    :class="
+                      isScholarshipEligible ? 'text-emerald' : 'text-gray-700'
+                    "
+                  >
+                    Scholarship Eligible:
+                    {{ isScholarshipEligible ? "YES" : "NO" }}
+                  </span>
+                </div>
+                <div class="space-y-3">
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input
                       v-model="formData.scholarshipAwarded"
@@ -905,6 +1325,29 @@ const handleSave = async () => {
                       >Scholarship has been awarded</span
                     >
                   </label>
+
+                  <!-- Scholarship Year (shows when awarded) -->
+                  <div v-if="formData.scholarshipAwarded" class="ml-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      Year Awarded
+                    </label>
+                    <select
+                      v-model.number="formData.scholarshipYear"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    >
+                      <option :value="null">Not specified</option>
+                      <option
+                        v-for="year in [
+                          2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018,
+                          2017, 2016, 2015,
+                        ]"
+                        :key="year"
+                        :value="year"
+                      >
+                        {{ year }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>

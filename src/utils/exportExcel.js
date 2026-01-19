@@ -43,8 +43,12 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
       "Student Status": member.degree || "",
       School: member.school || "",
       "Membership Type": member.membershipType || "",
+      "Ordinary A Declaration Date": member.ordinaryADeclarationDate
+        ? new Date(member.ordinaryADeclarationDate).toLocaleDateString("en-GB")
+        : "",
       Tracks: tracks,
       "School Email": member.schoolEmail || "",
+      "Personal Email": member.personalEmail || "",
       "Telegram Handle": member.telegramHandle || "",
       "Added to TG Group": member.addedToTelegram ? "YES" : "NO",
       "Phone Number": member.phoneNumber || "",
@@ -63,6 +67,7 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
           ? "YES"
           : "NO",
       "Scholarship Awarded": member.scholarshipAwarded ? "YES" : "NO",
+      "Scholarship Year": member.scholarshipYear || "",
       "Reason for Ordinary B": member.reasonForOrdinaryB || "",
       "Dynamic Fields": dynamicFieldsStr,
       "Created At": member.createdAt || "",
@@ -83,7 +88,9 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
     { wch: 15 }, // Membership Type
     { wch: 15 }, // Tracks
     { wch: 25 }, // School Email
+    { wch: 25 }, // Personal Email
     { wch: 15 }, // Telegram Handle
+    { wch: 15 }, // Added to TG Group
     { wch: 15 }, // Phone Number
     { wch: 15 }, // Next Subsidy Rate
     { wch: 30 }, // ISM Events Attended
@@ -95,6 +102,7 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
     { wch: 30 }, // ISS Events
     { wch: 18 }, // Scholarship Eligible
     { wch: 18 }, // Scholarship Awarded
+    { wch: 15 }, // Scholarship Year
     { wch: 25 }, // Reason for Ordinary B
     { wch: 30 }, // Dynamic Fields
     { wch: 20 }, // Created At
