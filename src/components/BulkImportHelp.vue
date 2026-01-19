@@ -1,5 +1,10 @@
 <script setup>
 import { X, Info, CheckCircle, AlertCircle } from "lucide-vue-next";
+import {
+  SCHOOLS,
+  MEMBERSHIP_TYPES,
+  STUDENT_STATUSES,
+} from "../utils/constants";
 
 const emit = defineEmits(["close"]);
 </script>
@@ -105,13 +110,9 @@ const emit = defineEmits(["close"]);
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Valid options:</span>
                   <ul class="mt-2 ml-4 space-y-1 text-gray-700">
-                    <li>• Accountancy</li>
-                    <li>• Business</li>
-                    <li>• Economics</li>
-                    <li>• Computing & Information Systems</li>
-                    <li>• Law</li>
-                    <li>• Social Sciences</li>
-                    <li>• College of Integrative Studies</li>
+                    <li v-for="school in SCHOOLS" :key="school">
+                      • {{ school }}
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -134,10 +135,13 @@ const emit = defineEmits(["close"]);
                 <p class="text-sm text-gray-700 mb-2">Type of membership.</p>
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Valid options:</span>
-                  <code class="ml-2 text-indigo-600">Exco</code>,
-                  <code class="ml-1 text-indigo-600">Ordinary A</code>,
-                  <code class="ml-1 text-indigo-600">Ordinary B</code>,
-                  <code class="ml-1 text-indigo-600">Associate</code>
+                  <span v-for="(type, index) in MEMBERSHIP_TYPES" :key="type">
+                    <code
+                      class="text-indigo-600"
+                      :class="index === 0 ? 'ml-2' : 'ml-1'"
+                      >{{ type }}</code
+                    >{{ index < MEMBERSHIP_TYPES.length - 1 ? "," : "" }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -160,9 +164,16 @@ const emit = defineEmits(["close"]);
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Valid options:</span>
-                  <code class="ml-2 text-indigo-600">Undergraduate</code>,
-                  <code class="ml-1 text-indigo-600">Postgraduate</code>,
-                  <code class="ml-1 text-indigo-600">Graduated</code>
+                  <span
+                    v-for="(status, index) in STUDENT_STATUSES"
+                    :key="status"
+                  >
+                    <code
+                      class="text-indigo-600"
+                      :class="index === 0 ? 'ml-2' : 'ml-1'"
+                      >{{ status }}</code
+                    >{{ index < STUDENT_STATUSES.length - 1 ? "," : "" }}
+                  </span>
                 </div>
               </div>
 

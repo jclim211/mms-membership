@@ -319,6 +319,11 @@ const router = useRouter();
                     show which members were found or not found
                   </li>
                   <li>Review the results and save to update member records</li>
+                  <li>
+                    <strong>Note:</strong> New members created via bulk import
+                    default to <strong>Associate</strong> membership. You can
+                    upgrade them later if needed.
+                  </li>
                 </ul>
               </div>
             </div>

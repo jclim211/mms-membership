@@ -1,4 +1,12 @@
 import * as XLSX from "xlsx";
+import {
+  MEMBERSHIP_TYPE_MAP,
+  MEMBERSHIP_TYPES,
+  SCHOOL_NAME_MAP,
+  STUDENT_STATUS_MAP,
+  STUDENT_STATUSES,
+  SUBSIDY_RATES,
+} from "./constants";
 
 /**
  * Generate and download Excel template for bulk member upload
@@ -144,24 +152,13 @@ function validateAndTransformData(data) {
     // Validate and normalize membership type (case-insensitive)
     let membershipType = null;
     if (rawMembershipType) {
-      const membershipTypeMap = {
-        exco: "Exco",
-        "ordinary a": "Ordinary A",
-        "ordinary b": "Ordinary B",
-        associate: "Associate",
-      };
       membershipType =
-        membershipTypeMap[rawMembershipType.toLowerCase().trim()] ||
+        MEMBERSHIP_TYPE_MAP[rawMembershipType.toLowerCase().trim()] ||
         rawMembershipType;
-      const validMembershipTypes = [
-        "Exco",
-        "Ordinary A",
-        "Ordinary B",
-        "Associate",
-      ];
-      if (!validMembershipTypes.includes(membershipType)) {
+
+      if (!MEMBERSHIP_TYPES.includes(membershipType)) {
         errors.push(
-          `Invalid Membership Type. Must be one of: ${validMembershipTypes.join(
+          `Invalid Membership Type. Must be one of: ${MEMBERSHIP_TYPES.join(
             ", "
           )}`
         );
@@ -169,38 +166,18 @@ function validateAndTransformData(data) {
     }
 
     // Validate and normalize student status (case-insensitive)
-    const statusMap = {
-      undergraduate: "Undergraduate",
-      postgraduate: "Postgraduate",
-      graduated: "Graduated",
-    };
     const studentStatus =
-      statusMap[rawStudentStatus.toLowerCase().trim()] || rawStudentStatus;
-    const validStatuses = ["Undergraduate", "Postgraduate", "Graduated"];
-    if (!validStatuses.includes(studentStatus)) {
+      STUDENT_STATUS_MAP[rawStudentStatus.toLowerCase().trim()] ||
+      rawStudentStatus;
+
+    if (!STUDENT_STATUSES.includes(studentStatus)) {
       errors.push(
-        `Invalid Student Status. Must be one of: ${validStatuses.join(", ")}`
+        `Invalid Student Status. Must be one of: ${STUDENT_STATUSES.join(", ")}`
       );
     }
 
     // Validate and normalize school (case-insensitive)
-    const schoolMap = {
-      accountancy: "Accountancy",
-      business: "Business",
-      economics: "Economics",
-      "computing & information systems": "Computing & Information Systems",
-      "computing and information systems": "Computing & Information Systems",
-      computing: "Computing & Information Systems",
-      cis: "Computing & Information Systems",
-      scis: "Computing & Information Systems",
-      law: "Law",
-      "social sciences": "Social Sciences",
-      soss: "Social Sciences",
-      "college of integrative studies": "College of Integrative Studies",
-      cis: "College of Integrative Studies",
-      integrative: "College of Integrative Studies",
-    };
-    const school = schoolMap[rawSchool.toLowerCase().trim()] || rawSchool;
+    const school = SCHOOL_NAME_MAP[rawSchool.toLowerCase().trim()] || rawSchool;
 
     // Parse tracks
     let tracks = [];
@@ -220,8 +197,7 @@ function validateAndTransformData(data) {
       subsidyValue !== ""
     ) {
       const parsedSubsidy = parseInt(subsidyValue);
-      const validSubsidies = [95, 90, 70, 50, 10];
-      if (validSubsidies.includes(parsedSubsidy)) {
+      if (SUBSIDY_RATES.includes(parsedSubsidy)) {
         subsidyOverride = parsedSubsidy;
       }
     }

@@ -18,27 +18,33 @@ export const useMemberStore = defineStore("members", () => {
   const lastSyncTime = ref(null); // Track last sync time
   let unsubscribe = null; // Store the unsubscribe function
 
+  // Helper: Check if an NCS event counts based on declaration date
+  const isNCSEventValid = (member, event) => {
+    // If member is not Ordinary A, all events count
+    if (member.membershipType !== "Ordinary A") {
+      return true;
+    }
+
+    // If no declaration date (grandfathered), count all
+    if (!member.ordinaryADeclarationDate) {
+      return true;
+    }
+
+    // Parse dates and reset time to midnight for accurate day comparison
+    const eventDate = new Date(event.date);
+    eventDate.setHours(0, 0, 0, 0);
+
+    const declarationDate = new Date(member.ordinaryADeclarationDate);
+    declarationDate.setHours(0, 0, 0, 0);
+
+    return eventDate >= declarationDate;
+  };
+
   // Helper: Calculate valid NCS count based on declaration date
   const getValidNCSCount = (member) => {
-    // If member is not Ordinary A, count all NCS events
-    if (member.membershipType !== "Ordinary A") {
-      return member.ncsAttended || 0;
-    }
-
-    // If no declaration date (grandfathered), count all NCS events
-    if (!member.ordinaryADeclarationDate) {
-      return member.ncsAttended || 0;
-    }
-
-    // Count only NCS events attended after declaration date
-    const declarationDate = new Date(member.ordinaryADeclarationDate);
-    const ncsEvents = member.ncsEvents || [];
-    const validCount = ncsEvents.filter((event) => {
-      const eventDate = new Date(event.date);
-      return eventDate >= declarationDate;
-    }).length;
-
-    return validCount;
+    if (!member.ncsEvents) return 0;
+    return member.ncsEvents.filter((event) => isNCSEventValid(member, event))
+      .length;
   };
 
   // Computed: Filtered members based on search and filters
@@ -295,5 +301,7 @@ export const useMemberStore = defineStore("members", () => {
     addMember,
     updateMember,
     deleteMember,
+    getValidNCSCount,
+    isNCSEventValid,
   };
 });

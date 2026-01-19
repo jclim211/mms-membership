@@ -160,29 +160,6 @@ const isIncomplete = (member) => {
   return hasMissingFields || !hasTracks;
 };
 
-// Calculate valid NCS count based on declaration date
-const getValidNCSCount = (member) => {
-  // If member is not Ordinary A, count all NCS events
-  if (member.membershipType !== "Ordinary A") {
-    return member.ncsAttended || 0;
-  }
-
-  // If no declaration date (grandfathered), count all NCS events
-  if (!member.ordinaryADeclarationDate) {
-    return member.ncsAttended || 0;
-  }
-
-  // Count only NCS events attended after declaration date
-  const declarationDate = new Date(member.ordinaryADeclarationDate);
-  const ncsEvents = member.ncsEvents || [];
-  const validCount = ncsEvents.filter((event) => {
-    const eventDate = new Date(event.date);
-    return eventDate >= declarationDate;
-  }).length;
-
-  return validCount;
-};
-
 // Calculate NCS progress for a member
 const getNCSProgress = (member) => {
   const tracks = member.tracks || [];
@@ -194,12 +171,12 @@ const getNCSProgress = (member) => {
   }
 
   const requiredNCS = hasBothTracks ? 5 : 3;
-  const ncsCompleted = getValidNCSCount(member);
+  const ncsCompleted = memberStore.getValidNCSCount(member);
 
   return `${ncsCompleted}/${requiredNCS}`;
 };
 
-// Get color class for NCS progress
+// Get color for NCS progress
 const getNCSProgressColor = (member) => {
   const tracks = member.tracks || [];
   const hasBothTracks = tracks.includes("ITT") && tracks.includes("MBOT");
@@ -210,15 +187,12 @@ const getNCSProgressColor = (member) => {
   }
 
   const requiredNCS = hasBothTracks ? 5 : 3;
-  const ncsCompleted = getValidNCSCount(member);
+  const ncsCompleted = memberStore.getValidNCSCount(member);
 
   if (ncsCompleted >= requiredNCS) {
-    return "text-green-600 font-semibold";
-  } else if (ncsCompleted >= requiredNCS - 1) {
-    return "text-yellow-600 font-medium";
-  } else {
-    return "text-red-600";
+    return "text-emerald";
   }
+  return "text-gray-900";
 };
 
 // Sorted members

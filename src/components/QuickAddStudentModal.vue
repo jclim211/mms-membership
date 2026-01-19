@@ -41,7 +41,7 @@ const handleSave = () => {
     isIncomplete: true, // Mark as incomplete
     // Set minimal defaults
     admitYear: new Date().getFullYear(),
-    membershipType: "Ordinary B", // Default for quick add
+    membershipType: "Associate", // Default for quick add
     degree: "Undergraduate",
     school: "Unknown", // To be completed later
     tracks: [],

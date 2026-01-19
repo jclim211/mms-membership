@@ -190,7 +190,7 @@ const handleImport = async () => {
           schoolEmail: row.email,
           isIncomplete: true,
           admitYear: new Date().getFullYear(),
-          membershipType: "Ordinary B",
+          membershipType: "Associate",
           degree: "Undergraduate",
           school: "Unknown",
           tracks: [],
@@ -383,7 +383,7 @@ const existingStudentsCount = computed(() => {
                 email (case-insensitive).
               </p>
               <p class="text-sm text-blue-800 mt-1">
-                <strong>New Students:</strong> Created as "Ordinary B" members.
+                <strong>New Students:</strong> Created as "Associate" members.
                 If they should be "Ordinary A", upgrade them individually in the
                 member list to automatically set their
                 <strong>Declaration Date</strong>.

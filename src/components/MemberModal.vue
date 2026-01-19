@@ -80,19 +80,13 @@ watch(
   { deep: true }
 );
 
+import { SCHOOLS, TRACKS } from "../utils/constants";
+
 // Schools list
-const schools = [
-  "Accountancy",
-  "Business",
-  "Economics",
-  "Computing & Information Systems",
-  "Law",
-  "Social Sciences",
-  "College of Integrative Studies",
-];
+const schools = SCHOOLS;
 
 // Tracks list
-const tracksOptions = ["ITT", "MBOT"];
+const tracksOptions = TRACKS;
 
 // Get unique event names from all members for autocomplete
 const existingISMEvents = computed(() => {
@@ -161,22 +155,9 @@ watch(
 );
 
 // Check if an NCS event counts toward graduation requirements
+// Check if an NCS event counts toward graduation requirements
 const doesNCSEventCount = (ncsEvent) => {
-  // If no declaration date (grandfathered), all events count
-  if (!formData.value.ordinaryADeclarationDate) {
-    return true;
-  }
-
-  // If member is not Ordinary A, all events count
-  if (formData.value.membershipType !== "Ordinary A") {
-    return true;
-  }
-
-  // Compare event date with declaration date
-  const eventDate = new Date(ncsEvent.date);
-  const declarationDate = new Date(formData.value.ordinaryADeclarationDate);
-
-  return eventDate >= declarationDate;
+  return memberStore.isNCSEventValid(formData.value, ncsEvent);
 };
 
 // Format date for display
