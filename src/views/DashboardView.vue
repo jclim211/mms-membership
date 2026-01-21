@@ -10,7 +10,9 @@ import {
   calculateNextSubsidyRate,
   getMembershipBadgeColor,
   getSubsidyRateColor,
+  getStudentStatusBadge,
 } from "../utils/helpers";
+import { STUDENT_STATUSES } from "../utils/constants";
 import {
   LogOut,
   Search,
@@ -101,7 +103,13 @@ const editingMember = ref(null);
 const confirmDelete = ref(null);
 const showFilterPanel = ref(false);
 const sortField = ref("createdAt");
+
 const sortOrder = ref("asc");
+
+// Pagination State
+const currentPage = ref(1);
+const itemsPerPage = ref(25);
+const itemsPerPageOptions = [10, 25, 50, 100];
 
 const activeFiltersCount = computed(() => {
   let count = 0;
@@ -191,8 +199,10 @@ const getNCSProgressColor = (member) => {
 
   if (ncsCompleted >= requiredNCS) {
     return "text-emerald";
+  } else if (ncsCompleted > 0) {
+    return "text-amber-600";
   }
-  return "text-gray-900";
+  return "text-gray-400";
 };
 
 // Sorted members
@@ -278,7 +288,7 @@ const handleExport = () => {
     ...member,
     nextSubsidyRate: calculateNextSubsidyRate(
       member.membershipType,
-      member.ismAttendance?.map((ism) => ism.subsidyUsed) || []
+      member.ismAttendance?.map((ism) => ism.subsidyUsed) || [],
     ),
   }));
   exportToExcel(membersWithSubsidy);
@@ -287,7 +297,7 @@ const handleExport = () => {
 const exportTelegramNotAdded = () => {
   // Filter members not added to Telegram and have Telegram handles
   const notAdded = memberStore.members.filter(
-    (member) => !member.addedToTelegram && member.telegramHandle
+    (member) => !member.addedToTelegram && member.telegramHandle,
   );
 
   if (notAdded.length === 0) {
@@ -342,9 +352,6 @@ const handleDeleteMember = async () => {
     const memberId = confirmDelete.value.id;
     await memberStore.deleteMember(memberId);
 
-    // Also remove from all events
-    await eventStore.removeMemberFromAllEvents(memberId);
-
     confirmDelete.value = null;
   }
 };
@@ -360,6 +367,65 @@ const getNextSubsidyRate = (member) => {
     member.ismAttendance?.map((ism) => ism.subsidyUsed) || [];
   return calculateNextSubsidyRate(member.membershipType, subsidyHistory);
 };
+
+// --- PAGINATION LOGIC ---
+
+// Compute total pages
+const totalPages = computed(() => {
+  return Math.max(
+    1,
+    Math.ceil(sortedMembers.value.length / itemsPerPage.value),
+  );
+});
+
+// Get members for current page
+const paginatedMembers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return sortedMembers.value.slice(start, end);
+});
+
+// Start index for display (1-based)
+const paginationStart = computed(() => {
+  if (sortedMembers.value.length === 0) return 0;
+  return (currentPage.value - 1) * itemsPerPage.value + 1;
+});
+
+// End index for display
+const paginationEnd = computed(() => {
+  return Math.min(
+    currentPage.value * itemsPerPage.value,
+    sortedMembers.value.length,
+  );
+});
+
+// Change page
+const setPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
+  }
+};
+
+// Watch for filter/sort changes to reset to page 1
+import { watch } from "vue";
+watch(
+  [
+    () => memberStore.searchQuery,
+    () => memberStore.membershipFilter,
+    () => memberStore.studentStatusFilter,
+    () => memberStore.yearFilter,
+    () => memberStore.schoolFilter,
+    () => memberStore.trackFilter,
+    () => memberStore.ncsCompletionFilter,
+    () => memberStore.incompleteFilter,
+    sortField,
+    sortOrder,
+    itemsPerPage,
+  ],
+  () => {
+    currentPage.value = 1;
+  },
+);
 </script>
 
 <template>
@@ -714,14 +780,20 @@ const getNextSubsidyRate = (member) => {
       >
         <p class="text-sm text-gray-600">
           Showing
-          <span class="font-semibold text-gray-900">{{
-            memberStore.filteredMembers.length
-          }}</span>
+          <span class="font-semibold text-gray-900"
+            >{{ paginationStart }}-{{ paginationEnd }}</span
+          >
           of
           <span class="font-semibold text-gray-900">{{
-            memberStore.totalMembers
+            sortedMembers.length
           }}</span>
           members
+          <span
+            v-if="memberStore.totalMembers !== sortedMembers.length"
+            class="text-gray-500"
+          >
+            (filtered from {{ memberStore.totalMembers }} total)
+          </span>
         </p>
       </div>
 
@@ -869,9 +941,9 @@ const getNextSubsidyRate = (member) => {
               </tr>
               <tr
                 v-else
-                v-for="member in sortedMembers"
+                v-for="member in paginatedMembers"
                 :key="member.id"
-                class="hover:bg-gray-50"
+                class="hover:bg-gray-50 transition-colors"
               >
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   <span class="font-mono text-xs sm:text-sm text-gray-900">{{
@@ -884,6 +956,23 @@ const getNextSubsidyRate = (member) => {
                       class="text-xs sm:text-sm font-medium text-gray-900"
                       >{{ member.fullName }}</span
                     >
+                    <!-- Student Status Pill -->
+                    <span
+                      v-if="member.studentStatus || member.degree"
+                      class="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full border"
+                      :class="
+                        getStudentStatusBadge(
+                          member.studentStatus || member.degree,
+                        ).color
+                      "
+                      :title="member.studentStatus || member.degree"
+                    >
+                      {{
+                        getStudentStatusBadge(
+                          member.studentStatus || member.degree,
+                        ).label
+                      }}
+                    </span>
                     <span
                       v-if="isIncomplete(member)"
                       class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full"
@@ -986,74 +1075,121 @@ const getNextSubsidyRate = (member) => {
           </table>
         </div>
       </div>
-    </div>
 
-    <!-- Member Modal -->
-    <MemberModal
-      v-if="showMemberModal"
-      :member="editingMember"
-      @close="showMemberModal = false"
-    />
+      <!-- Member Modal -->
+      <MemberModal
+        v-if="showMemberModal"
+        :member="editingMember"
+        @close="showMemberModal = false"
+      />
 
-    <!-- Bulk Import Modal -->
-    <BulkImportModal
-      v-if="showBulkImportModal"
-      @close="showBulkImportModal = false"
-      @imported="showBulkImportModal = false"
-    />
+      <!-- Bulk Import Modal -->
+      <BulkImportModal
+        v-if="showBulkImportModal"
+        @close="showBulkImportModal = false"
+        @imported="showBulkImportModal = false"
+      />
 
-    <!-- Bulk Import Help Modal -->
-    <BulkImportHelp
-      v-if="showBulkImportHelp"
-      @close="showBulkImportHelp = false"
-    />
+      <!-- Bulk Import Help Modal -->
+      <BulkImportHelp
+        v-if="showBulkImportHelp"
+        @close="showBulkImportHelp = false"
+      />
 
-    <!-- Delete Confirmation Modal -->
-    <div
-      v-if="confirmDelete"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      @click.self="confirmDelete = null"
-    >
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <div class="flex items-start gap-4">
-          <div
-            class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center"
-          >
-            <AlertCircle :size="20" class="text-red-600" />
-          </div>
-          <div class="flex-1">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">
-              Delete Member
-            </h3>
-            <p class="text-sm text-gray-600 mb-1">
-              Are you sure you want to delete
-              <strong>{{ confirmDelete?.fullName }}</strong
-              >?
-            </p>
-            <p class="text-sm text-gray-500 mb-4">
-              This action cannot be undone. All member data, ISM attendance
-              records, and subsidy history will be permanently deleted.
-            </p>
-            <div class="flex justify-end gap-3">
-              <button
-                @click="confirmDelete = null"
-                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                @click="handleDeleteMember"
-                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-              >
-                <Trash2 :size="16" />
-                <span>Delete Member</span>
-              </button>
+      <!-- Delete Confirmation Modal -->
+      <div
+        v-if="confirmDelete"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        @click.self="confirmDelete = null"
+      >
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center"
+            >
+              <AlertCircle :size="20" class="text-red-600" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                Delete Member
+              </h3>
+              <p class="text-sm text-gray-600 mb-1">
+                Are you sure you want to delete
+                <strong>{{ confirmDelete?.fullName }}</strong
+                >?
+              </p>
+              <p class="text-sm text-gray-500 mb-4">
+                This action cannot be undone. All member data, ISM attendance
+                records, and subsidy history will be permanently deleted.
+              </p>
+              <div class="flex justify-end gap-3">
+                <button
+                  @click="confirmDelete = null"
+                  class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="handleDeleteMember"
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                >
+                  <Trash2 :size="16" />
+                  <span>Delete Member</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
+      <!-- Pagination Controls -->
+      <div
+        class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200 relative z-10"
+      >
+        <!-- Rows per page -->
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+          <span>Rows per page:</span>
+          <select
+            v-model="itemsPerPage"
+            class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-navy focus:border-navy"
+          >
+            <option
+              v-for="option in itemsPerPageOptions"
+              :key="option"
+              :value="option"
+            >
+              {{ option }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center gap-2">
+          <button
+            @click="setPage(currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="p-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Previous Page"
+          >
+            <ChevronUp :size="16" class="rotate-[-90deg]" />
+          </button>
+
+          <span class="text-sm text-gray-700 min-w-[80px] text-center">
+            Page <span class="font-medium">{{ currentPage }}</span> of
+            <span class="font-medium">{{ totalPages }}</span>
+          </span>
+
+          <button
+            @click="setPage(currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="p-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Next Page"
+          >
+            <ChevronUp :size="16" class="rotate-90" />
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- Filter Panel -->
     <div
       v-if="showFilterPanel"
@@ -1111,9 +1247,13 @@ const getNextSubsidyRate = (member) => {
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
             >
               <option value="all">Any Status</option>
-              <option value="Undergraduate">Undergraduate</option>
-              <option value="Alumni">Alumni</option>
-              <option value="Exchange Student">Exchange Student</option>
+              <option
+                v-for="status in STUDENT_STATUSES"
+                :key="status"
+                :value="status"
+              >
+                {{ status }}
+              </option>
             </select>
           </div>
 

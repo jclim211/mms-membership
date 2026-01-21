@@ -20,7 +20,12 @@ export const MEMBERSHIP_TYPES = [
   "Associate",
 ];
 
-export const STUDENT_STATUSES = ["Undergraduate", "Postgraduate", "Graduated"];
+export const STUDENT_STATUSES = [
+  "Undergraduate",
+  "Postgraduate",
+  "Alumni",
+  "Exchange Student",
+];
 
 export const TRACKS = ["ITT", "MBOT"];
 
@@ -65,5 +70,72 @@ export const MEMBERSHIP_TYPE_MAP = {
 export const STUDENT_STATUS_MAP = {
   undergraduate: "Undergraduate",
   postgraduate: "Postgraduate",
-  graduated: "Graduated",
+  graduated: "Alumni",
+  alumni: "Alumni",
+  exchange: "Exchange Student",
+  "exchange student": "Exchange Student",
 };
+
+/**
+ * Degree programs mapping as per user requirement.
+ */
+export const DEGREE_PROGRAMS = [
+  {
+    school: "Accountancy",
+    degree: "Accountancy",
+    shorthand: "BAcc",
+  },
+  {
+    school: "Business",
+    degree: "Business Management",
+    shorthand: "BBM",
+  },
+  {
+    school: "Computing & Information Systems",
+    degree: "Computing & Law",
+    shorthand: "BSc (CL)",
+  },
+  {
+    school: "Computing & Information Systems",
+    degree: "Computer Science",
+    shorthand: "BSc (CS)",
+  },
+  {
+    school: "Computing & Information Systems",
+    degree: "Information Systems",
+    shorthand: "BSc (IS)",
+  },
+  {
+    school: "Computing & Information Systems",
+    degree: "Software Engineering",
+    shorthand: "BSc (SE)",
+  },
+  {
+    school: "Economics",
+    degree: "Economics",
+    shorthand: "BSc (Econ)",
+  },
+  {
+    school: "College of Integrative Studies",
+    degree: "Integrative Studies",
+    shorthand: "CIS",
+  },
+  {
+    school: "Law",
+    degree: "Law",
+    shorthand: "LLB",
+  },
+  {
+    school: "Social Sciences",
+    degree: "Politics, Law & Economics",
+    shorthand: "BSocSc (PLE)",
+  },
+  {
+    school: "Social Sciences",
+    degree: "Social Sciences",
+    shorthand: "BSocSc",
+  },
+];
+
+// Simple list of degree names for dropdowns
+export const DEGREE_OPTIONS = DEGREE_PROGRAMS.map((p) => p.degree).sort();

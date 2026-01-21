@@ -96,6 +96,7 @@ const openAttendanceModal = (event) => {
 
 const openDeleteModal = (event) => {
   confirmDelete.value = event;
+  deleteFromRecords.value = false; // Reset default
 };
 
 const handleSaveEvent = async (eventData) => {
@@ -122,7 +123,7 @@ const handleSaveEvent = async (eventData) => {
 const handleSaveAttendance = async (attendance) => {
   const result = await eventStore.updateAttendance(
     selectedEvent.value.id,
-    attendance
+    attendance,
   );
 
   if (!result.error) {
@@ -148,7 +149,7 @@ const updateMemberRecords = async (event, attendance) => {
       if (event.type === "ISM") {
         const ismAttendance = member.ismAttendance || [];
         const exists = ismAttendance.some(
-          (ism) => ism.eventName === event.name
+          (ism) => ism.eventName === event.name,
         );
 
         if (!exists) {
@@ -199,11 +200,11 @@ const updateMemberRecords = async (event, attendance) => {
           const exists = ncsEvents.some((e) => e.eventName === event.name);
           if (exists) {
             updatedData.ncsEvents = ncsEvents.filter(
-              (e) => e.eventName !== event.name
+              (e) => e.eventName !== event.name,
             );
             updatedData.ncsAttended = Math.max(
               0,
-              (member.ncsAttended || 0) - 1
+              (member.ncsAttended || 0) - 1,
             );
           }
         }
@@ -213,12 +214,12 @@ const updateMemberRecords = async (event, attendance) => {
       if (event.type === "ISM") {
         const ismAttendance = member.ismAttendance || [];
         const exists = ismAttendance.some(
-          (ism) => ism.eventName === event.name
+          (ism) => ism.eventName === event.name,
         );
 
         if (exists) {
           updatedData.ismAttendance = ismAttendance.filter(
-            (ism) => ism.eventName !== event.name
+            (ism) => ism.eventName !== event.name,
           );
         }
       } else if (event.type === "ISS") {
@@ -227,7 +228,7 @@ const updateMemberRecords = async (event, attendance) => {
 
         if (exists) {
           updatedData.issEvents = issEvents.filter(
-            (e) => e.eventName !== event.name
+            (e) => e.eventName !== event.name,
           );
           updatedData.issAttended = Math.max(0, (member.issAttended || 0) - 1);
         }
@@ -237,7 +238,7 @@ const updateMemberRecords = async (event, attendance) => {
 
         if (exists) {
           updatedData.ncsEvents = ncsEvents.filter(
-            (e) => e.eventName !== event.name
+            (e) => e.eventName !== event.name,
           );
           updatedData.ncsAttended = Math.max(0, (member.ncsAttended || 0) - 1);
         }
@@ -251,13 +252,20 @@ const updateMemberRecords = async (event, attendance) => {
   }
 };
 
+const deleteFromRecords = ref(false);
+
 const handleDeleteEvent = async () => {
   if (confirmDelete.value) {
+    if (deleteFromRecords.value) {
+      await memberStore.removeEventFromAllMembers(confirmDelete.value);
+    }
+
     const result = await eventStore.deleteEvent(confirmDelete.value.id);
     if (result.error) {
       alert(result.error);
     }
     confirmDelete.value = null;
+    deleteFromRecords.value = false; // Reset checkbox
   }
 };
 
@@ -269,7 +277,7 @@ const openBulkImportModal = (event) => {
 const handleBulkImportSave = async (attendance) => {
   const result = await eventStore.updateAttendance(
     selectedEvent.value.id,
-    attendance
+    attendance,
   );
 
   if (!result.error) {
@@ -337,8 +345,8 @@ const handleBulkImportSave = async (attendance) => {
                   tab === "ISM"
                     ? eventStore.ismEvents.length
                     : tab === "ISS"
-                    ? eventStore.issEvents.length
-                    : eventStore.ncsEvents.length
+                      ? eventStore.issEvents.length
+                      : eventStore.ncsEvents.length
                 }}
               </span>
             </button>
@@ -503,6 +511,27 @@ const handleBulkImportSave = async (attendance) => {
               This will remove the event from the system. Member attendance
               records will not be affected.
             </p>
+            <div class="mb-4">
+              <label
+                class="flex items-center gap-2 cursor-pointer p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                <input
+                  v-model="deleteFromRecords"
+                  type="checkbox"
+                  class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span class="text-sm text-gray-700"
+                  >Also remove this event from all member records?</span
+                >
+              </label>
+              <p
+                v-if="deleteFromRecords"
+                class="text-xs text-red-500 mt-1 pl-2"
+              >
+                ⚠️ This will affect attendance counts and subsidies for all
+                attendees.
+              </p>
+            </div>
             <div class="flex justify-end gap-3">
               <button
                 @click="confirmDelete = null"
@@ -515,7 +544,9 @@ const handleBulkImportSave = async (attendance) => {
                 class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
               >
                 <Trash2 :size="16" />
-                <span>Delete Event</span>
+                <span>{{
+                  deleteFromRecords ? "Delete Everywhere" : "Delete Event"
+                }}</span>
               </button>
             </div>
           </div>

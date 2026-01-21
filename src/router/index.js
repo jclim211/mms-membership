@@ -39,9 +39,12 @@ const router = createRouter({
     },
     {
       path: "/events",
-      name: "events",
       component: EventsView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: "/:pathMatch(.*)*",
+      redirect: "/dashboard",
     },
   ],
 });

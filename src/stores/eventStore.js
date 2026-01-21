@@ -12,15 +12,15 @@ export const useEventStore = defineStore("events", () => {
 
   // Computed: Filter events by type
   const ismEvents = computed(() =>
-    events.value.filter((event) => event.type === "ISM")
+    events.value.filter((event) => event.type === "ISM"),
   );
 
   const issEvents = computed(() =>
-    events.value.filter((event) => event.type === "ISS")
+    events.value.filter((event) => event.type === "ISS"),
   );
 
   const ncsEvents = computed(() =>
-    events.value.filter((event) => event.type === "NCS")
+    events.value.filter((event) => event.type === "NCS"),
   );
 
   // Actions
@@ -155,7 +155,7 @@ export const useEventStore = defineStore("events", () => {
     const result = await eventService.addAttendee(
       eventId,
       memberId,
-      attendanceData
+      attendanceData,
     );
     if (!result.error) {
       if (!realtimeEnabled.value) {
@@ -172,13 +172,17 @@ export const useEventStore = defineStore("events", () => {
     loading.value = true;
     error.value = null;
 
-    if (!realtimeEnabled.value && events.value.length === 0) {
+    // Ensure we have events loaded
+    if (events.value.length === 0) {
       await fetchEvents();
     }
 
     const promises = [];
     for (const event of events.value) {
-      if (event.attendance && event.attendance[memberId]) {
+      if (
+        event.attendance &&
+        Object.prototype.hasOwnProperty.call(event.attendance, memberId)
+      ) {
         promises.push(eventService.removeAttendee(event.id, memberId));
       }
     }
@@ -191,6 +195,7 @@ export const useEventStore = defineStore("events", () => {
         .map((e) => e.error)
         .join(", ")}`;
     } else {
+      // If successful and not in realtime mode, refresh local state
       if (!realtimeEnabled.value) {
         await fetchEvents();
       }

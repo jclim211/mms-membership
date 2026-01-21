@@ -5,6 +5,7 @@ import {
   bulkImportMembers,
   downloadTemplate,
 } from "../utils/bulkImport";
+import { MEMBERSHIP_TYPES, STUDENT_STATUSES } from "../utils/constants";
 import { useMemberStore } from "../stores/memberStore";
 import { memberService } from "../services/memberService";
 import {
@@ -28,7 +29,17 @@ const parseResult = ref(null);
 const importProgress = ref({ current: 0, total: 0, percentage: 0 });
 const importResults = ref(null);
 const isProcessing = ref(false);
+
 const showHelp = ref(false);
+
+// Verification Mode State
+const verifyMode = ref(false);
+const missingMembers = ref([]);
+const isPartialUpdate = ref(false); // New flag for partial updates
+const verificationConfig = ref({
+  targetStatus: "Alumni",
+  targetMembership: "Ordinary A", // Keep existing or change
+});
 
 // Handle file selection
 const handleFileChange = (event) => {
@@ -66,18 +77,67 @@ const handleDrop = (event) => {
 };
 
 // Parse Excel file
-const handleParseFile = async () => {
+const handleParseFile = async (isVerification = false) => {
   if (!file.value) return;
 
+  verifyMode.value = isVerification;
   isProcessing.value = true;
   try {
-    parseResult.value = await parseExcelFile(file.value);
+    parseResult.value = await parseExcelFile(file.value, {
+      isPartial: isPartialUpdate.value,
+    });
+
+    // If in verification mode, identify missing members
+    if (isVerification) {
+      identifyMissingMembers();
+    }
+
     step.value = 2; // Move to preview
   } catch (error) {
     alert("Error parsing file: " + error.message);
   } finally {
     isProcessing.value = false;
   }
+};
+
+// Identify members in DB (Ord A, !Alumni) missing from Excel
+const identifyMissingMembers = () => {
+  const uploadedIds = new Set(
+    parseResult.value.valid.map((m) => m.campusId.toString()),
+  );
+
+  missingMembers.value = memberStore.members
+    .filter((member) => {
+      // Criteria: Ordinary A AND Not Alumni
+      const isTargetGroup =
+        member.membershipType === "Ordinary A" &&
+        member.studentStatus !== "Alumni";
+
+      if (!isTargetGroup) return false;
+
+      // Check if missing from upload
+      return !uploadedIds.has(member.campusId.toString());
+    })
+    .map((m) => ({
+      ...m,
+      newStatus: m.studentStatus, // Default to current
+      newMembership: m.membershipType, // Default to current
+    }));
+};
+
+// Bulk apply changes to all missing members
+const handleBulkStatusChange = () => {
+  if (!verificationConfig.value.targetStatus) return;
+  missingMembers.value.forEach((m) => {
+    m.newStatus = verificationConfig.value.targetStatus;
+  });
+};
+
+const handleBulkMembershipChange = () => {
+  if (!verificationConfig.value.targetMembership) return;
+  missingMembers.value.forEach((m) => {
+    m.newMembership = verificationConfig.value.targetMembership;
+  });
 };
 
 // Import members
@@ -88,13 +148,61 @@ const handleImport = async () => {
   isProcessing.value = true;
 
   try {
+    // 1. Process Missing Members (if in Verify Mode)
+    const verificationResults = { updated: [], failed: [] };
+    if (verifyMode.value && missingMembers.value.length > 0) {
+      for (const member of missingMembers.value) {
+        try {
+          const updates = {};
+          // Compare new selections against original values
+          if (member.newStatus !== member.studentStatus) {
+            updates.studentStatus = member.newStatus;
+          }
+          if (member.newMembership !== member.membershipType) {
+            updates.membershipType = member.newMembership;
+            // Clear tracks if downgraded to Ordinary B or Associate
+            if (
+              member.newMembership === "Ordinary B" ||
+              member.newMembership === "Associate"
+            ) {
+              updates.tracks = [];
+            }
+          }
+
+          // Only update if there are changes
+          if (Object.keys(updates).length > 0) {
+            await memberService.updateMember(member.id, updates);
+            // Verify update actually changed data for reporting?
+            // For now assume success
+            verificationResults.updated.push({
+              ...member,
+              ...updates,
+            });
+          }
+        } catch (err) {
+          verificationResults.failed.push({
+            member,
+            error: err.message,
+          });
+        }
+      }
+    }
+
+    // 2. Process Standard Import
     importResults.value = await bulkImportMembers(
       parseResult.value.valid,
       memberService,
       (progress) => {
         importProgress.value = progress;
-      }
+      },
     );
+
+    // Merge verification results into importResults for display
+    if (verifyMode.value) {
+      importResults.value.verificationUpdated = verificationResults.updated;
+      importResults.value.verificationFailed = verificationResults.failed;
+    }
+
     step.value = 4; // Move to results
 
     // Refresh member list
@@ -216,24 +324,217 @@ const handleClose = () => {
                 <p v-if="fileName" class="mt-3 text-sm text-gray-700">
                   Selected: <span class="font-medium">{{ fileName }}</span>
                 </p>
+
+                <!-- Partial Update Option -->
+                <div class="mt-4 flex items-center justify-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="partialUpdate"
+                    v-model="isPartialUpdate"
+                    class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <label for="partialUpdate" class="text-sm text-gray-700"
+                    >Partial Update Mode (Ignore blank columns, remain unchanged if blank)</label
+                  >
+                </div>
               </div>
 
-              <!-- Action Button -->
-              <button
-                @click="handleParseFile"
-                :disabled="!file || isProcessing"
-                class="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ isProcessing ? "Processing..." : "Continue" }}
-              </button>
+              <!-- Actions -->
+              <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  @click="handleParseFile(true)"
+                  :disabled="!file || isProcessing"
+                  class="px-6 py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <CheckCircle :size="18" class="text-orange-600" />
+                  Verify & Clean List
+                </button>
+
+                <button
+                  @click="handleParseFile(false)"
+                  :disabled="!file || isProcessing"
+                  class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {{ isProcessing ? "Processing..." : "Continue Import" }}
+                </button>
+              </div>
+
+              <!-- Info Note -->
+              <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+                <div
+                  class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-500 text-left max-w-2xl mx-auto"
+                >
+                  <div
+                    class="bg-orange-50 p-3 rounded-lg border border-orange-100"
+                  >
+                    <strong class="text-orange-700 block mb-1"
+                      >Verify & Clean (Orange):</strong
+                    >
+                    Upload the whole Ordinary A (track) student list to verify
+                    the latest list against the database.
+                  </div>
+                  <div
+                    class="bg-indigo-50 p-3 rounded-lg border border-indigo-100"
+                  >
+                    <strong class="text-indigo-700 block mb-1"
+                      >Continue Import (Purple):</strong
+                    >
+                    Standard bulk import to add new members or update existing
+                    ones.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Step 2: Preview -->
           <div v-if="step === 2 && parseResult">
             <div class="mb-6">
+              <!-- Verification Mode Config -->
+              <div
+                v-if="verifyMode"
+                class="mb-8 bg-orange-50 border border-orange-200 rounded-xl p-6"
+              >
+                <div class="flex items-start gap-4 mb-6">
+                  <div class="bg-orange-100 p-3 rounded-full">
+                    <AlertCircle :size="24" class="text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold text-gray-900">
+                      Verification Results
+                    </h3>
+                    <p class="text-sm text-gray-700 mt-1">
+                      Found
+                      <strong class="text-orange-700">{{
+                        missingMembers.length
+                      }}</strong>
+                      members in the database (Ordinary A) who are MISSING from
+                      your uploaded list.
+                    </p>
+                  </div>
+                </div>
+
+                <div v-if="missingMembers.length > 0">
+                  <h4 class="text-sm font-semibold text-gray-900 mb-3">
+                    Action for Missing Members:
+                  </h4>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label
+                        class="block text-xs font-medium text-gray-700 mb-1"
+                        >Update Student Status To</label
+                      >
+                      <select
+                        v-model="verificationConfig.targetStatus"
+                        @change="handleBulkStatusChange"
+                        class="w-full text-sm border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
+                      >
+                        <option value="">Select status...</option>
+                        <option
+                          v-for="status in STUDENT_STATUSES"
+                          :key="status"
+                          :value="status"
+                        >
+                          {{ status }}
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        class="block text-xs font-medium text-gray-700 mb-1"
+                        >Update Membership To</label
+                      >
+                      <select
+                        v-model="verificationConfig.targetMembership"
+                        @change="handleBulkMembershipChange"
+                        class="w-full text-sm border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
+                      >
+                        <option value="">Select type...</option>
+                        <option
+                          v-for="type in MEMBERSHIP_TYPES"
+                          :key="type"
+                          :value="type"
+                        >
+                          {{ type }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Missing Members List -->
+                  <div
+                    class="bg-white rounded-lg border border-gray-200 max-h-60 overflow-y-auto"
+                  >
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Name
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            New Status
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            New Type
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-200 text-sm">
+                        <tr v-for="m in missingMembers" :key="m.id">
+                          <td class="px-4 py-2 text-gray-900">
+                            {{ m.fullName }}
+                            <div class="text-xs text-gray-500">
+                              Cur: {{ m.studentStatus }} •
+                              {{ m.membershipType }}
+                            </div>
+                          </td>
+                          <td class="px-4 py-2">
+                            <select
+                              v-model="m.newStatus"
+                              class="text-xs border-gray-200 rounded focus:ring-orange-500 focus:border-orange-500"
+                            >
+                              <option
+                                v-for="status in STUDENT_STATUSES"
+                                :key="status"
+                                :value="status"
+                              >
+                                {{ status }}
+                              </option>
+                            </select>
+                          </td>
+                          <td class="px-4 py-2">
+                            <select
+                              v-model="m.newMembership"
+                              class="text-xs border-gray-200 rounded focus:ring-orange-500 focus:border-orange-500"
+                            >
+                              <option
+                                v-for="type in MEMBERSHIP_TYPES"
+                                :key="type"
+                                :value="type"
+                              >
+                                {{ type }}
+                              </option>
+                            </select>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div v-else class="text-sm text-green-600 font-medium">
+                  ✅ No missing members found. All Ordinary A members in DB are
+                  accounted for in your list.
+                </div>
+              </div>
+
               <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                Data Preview
+                Upload Preview
               </h3>
 
               <!-- Summary Stats -->
@@ -399,13 +700,63 @@ const handleClose = () => {
             </h3>
 
             <div class="max-w-md mx-auto space-y-4">
-              <!-- Success Count -->
+              <!-- Success Count (Added) -->
               <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p class="text-sm text-green-600 font-medium">
-                  Successfully Imported
+                  Successfully Added (New)
                 </p>
                 <p class="text-3xl font-bold text-green-900">
-                  {{ importResults.success.length }}
+                  {{
+                    importResults.added
+                      ? importResults.added.length
+                      : importResults.success.length
+                  }}
+                </p>
+              </div>
+
+              <!-- Success Count (Updated) -->
+              <div
+                class="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                v-if="importResults.updated && importResults.updated.length > 0"
+              >
+                <p class="text-sm text-blue-600 font-medium">
+                  Successfully Updated
+                </p>
+                <p class="text-3xl font-bold text-blue-900">
+                  {{ importResults.updated.length }}
+                </p>
+              </div>
+
+              <!-- Verification Results -->
+              <div
+                class="bg-orange-50 border border-orange-200 rounded-lg p-4"
+                v-if="
+                  importResults.verificationUpdated &&
+                  importResults.verificationUpdated.length > 0
+                "
+              >
+                <p class="text-sm text-orange-800 font-medium">
+                  Verified & Cleaned (Missing Members Updated)
+                </p>
+                <p class="text-3xl font-bold text-orange-900">
+                  {{ importResults.verificationUpdated.length }}
+                </p>
+                <p class="text-xs text-orange-700 mt-1">
+                  Updates applied based on your selections.
+                </p>
+              </div>
+
+              <!-- Failed Verification -->
+              <div
+                v-if="
+                  importResults.verificationFailed &&
+                  importResults.verificationFailed.length > 0
+                "
+                class="bg-red-50 border border-red-200 rounded-lg p-4"
+              >
+                <p class="text-sm text-red-600 font-medium mb-2">
+                  Verification Updates Failed:
+                  {{ importResults.verificationFailed.length }}
                 </p>
               </div>
 

@@ -33,6 +33,39 @@ const emit = defineEmits(["close"]);
 
         <!-- Content -->
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <!-- New Verification Feature -->
+          <section class="bg-orange-50 border border-orange-100 rounded-xl p-4">
+            <h3
+              class="text-lg font-bold text-orange-800 mb-2 flex items-center gap-2"
+            >
+              <CheckCircle :size="20" />
+              Admin Handover / List Verification
+            </h3>
+            <p class="text-sm text-gray-700 mb-3">
+              Use the <strong>"Verify & Clean Ordinary A List"</strong> button
+              to process student graduations or drop-outs efficiently.
+            </p>
+            <ol
+              class="list-decimal list-inside space-y-2 text-sm text-gray-700 bg-white p-3 rounded-lg border border-orange-100"
+            >
+              <li>
+                Upload your <strong>current list</strong> of Ordinary A members
+                (e.g. from School).
+              </li>
+              <li>The system compares your file against the database.</li>
+              <li>
+                Any Ordinary A members in the database who are
+                <strong>MISSING</strong> from your file are identified as
+                potential alumni/drop-outs.
+              </li>
+              <li>
+                You can <strong>bulk update</strong> these missing members (e.g.
+                change status to "Alumni") in one go.
+              </li>
+              <li>Members present in the file are updated as normal.</li>
+            </ol>
+          </section>
+
           <!-- Overview -->
           <section>
             <h3 class="text-lg font-semibold text-gray-900 mb-3">
@@ -103,10 +136,27 @@ const emit = defineEmits(["close"]);
                 </div>
               </div>
 
+              <!-- First Degree -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">First Degree</h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  Member's primary degree program. Accepts full names or
+                  shorthands (e.g., "Accountancy" or "BAcc").
+                </p>
+                <div class="bg-white rounded p-2 text-sm">
+                  <span class="text-gray-500">Example:</span>
+                  <code class="ml-2 text-indigo-600">BAcc</code>
+                </div>
+              </div>
+
               <!-- School -->
               <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">School</h4>
-                <p class="text-sm text-gray-700 mb-2">Full school name.</p>
+                <p class="text-sm text-gray-700 mb-2">
+                  Full school name.
+                  <strong>Optional if First Degree is valid</strong> (will be
+                  auto-filled).
+                </p>
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Valid options:</span>
                   <ul class="mt-2 ml-4 space-y-1 text-gray-700">
@@ -177,6 +227,18 @@ const emit = defineEmits(["close"]);
                 </div>
               </div>
 
+              <!-- Second Degree -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">Second Degree</h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  Optional second degree.
+                </p>
+                <div class="bg-white rounded p-2 text-sm">
+                  <span class="text-gray-500">Example:</span>
+                  <code class="ml-2 text-indigo-600">Economics</code>
+                </div>
+              </div>
+
               <!-- Tracks -->
               <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">
@@ -224,6 +286,13 @@ const emit = defineEmits(["close"]);
                     <span class="text-gray-500">Phone:</span>
                     <code class="ml-2 text-indigo-600">91234567</code>
                     <span class="text-gray-400 text-xs ml-2">(8 digits)</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Added to Group:</span>
+                    <code class="ml-2 text-indigo-600">1</code>
+                    <span class="text-gray-400 text-xs ml-2"
+                      >(1=Yes, 0=No)</span
+                    >
                   </div>
                 </div>
               </div>
@@ -402,9 +471,10 @@ const emit = defineEmits(["close"]);
               <li class="flex items-start gap-2">
                 <span class="text-red-600 font-bold">•</span>
                 <span
-                  ><strong>Duplicate Campus IDs:</strong> Each Campus ID must be
-                  unique. Duplicates within the file or existing in the database
-                  will be rejected.</span
+                  ><strong>Update Existing Members:</strong> If a Campus ID
+                  already exists in the system, that member's details will be
+                  <strong>updated</strong> with the new information from the
+                  file.</span
                 >
               </li>
               <li class="flex items-start gap-2">

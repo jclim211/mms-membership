@@ -47,6 +47,11 @@ You will need to follow the **[NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md)**
 2. Fill in the Compulsory Fields (Name, ID, School, etc.).
 3. Click **Save**.
 
+   > **Note on Membership & Tracks**:
+   >
+   > - Selecting **ITI** or **MBOT** tracks will automatically upgrade the member to **Ordinary A**.
+   > - You **cannot** be an Ordinary A member without selecting one of these tracks. The system will block the save if you try.
+
 ### Managing Subsidies (ISM)
 
 1. Open a member's profile.
@@ -82,6 +87,7 @@ Instead of manually editing each member, you can use the **Events Page**:
    - You can toggle attendance for existing members.
    - **Quick Add**: If a student isn't in the database, you can "Quick Add" them right there. They will be added as "Associate" members.
 4. **Bulk Attendance Import**: Inside an event, click "Bulk Import" to upload a specific attendance sheet for _just that event_.
+5. **Deleting Events**: You can choose whether to delete the event _only_ from the list, or also remove it from every student's history (cleaning up their profiles).
 
 ---
 

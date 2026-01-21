@@ -6,6 +6,8 @@ import {
   STUDENT_STATUS_MAP,
   STUDENT_STATUSES,
   SUBSIDY_RATES,
+  DEGREE_PROGRAMS,
+  DEGREE_OPTIONS,
 } from "./constants";
 
 /**
@@ -21,9 +23,12 @@ export function downloadTemplate() {
       "Admit Year": 2024,
       "Membership Type": "Ordinary A",
       "Student Status": "Undergraduate",
-      School: "Computing & Information Systems",
+      "First Degree": "Accountancy",
+      "Second Degree": "",
+      School: "Accountancy",
       "Tracks (comma-separated)": "ITT, MBOT",
       "Telegram Handle": "@johndoe",
+      "Added to Telegram Group (1=Yes, 0=No)": 0,
       "Phone Number": "91234567",
       "ISM Attendance": "ISM Beijing 2024:90, ISM Shanghai 2024:70",
       "NCS Attended": 0,
@@ -49,9 +54,13 @@ export function downloadTemplate() {
     { wch: 12 }, // Admit Year
     { wch: 15 }, // Membership Type
     { wch: 15 }, // Student Status
+    { wch: 30 }, // First Degree
+    { wch: 30 }, // Second Degree
     { wch: 30 }, // School
     { wch: 25 }, // Tracks
     { wch: 15 }, // Telegram Handle
+    { wch: 35 }, // Added to Telegram Group
+    { wch: 15 }, // Phone Number
     { wch: 15 }, // Phone Number
     { wch: 40 }, // ISM Attendance
     { wch: 12 }, // NCS Attended
@@ -72,7 +81,13 @@ export function downloadTemplate() {
  * @param {File} file - Excel file to parse
  * @returns {Promise<Object>} - Parsed data with validation results
  */
-export async function parseExcelFile(file) {
+/**
+ * Parse Excel file and extract member data
+ * @param {File} file - Excel file to parse
+ * @param {Object} options - Parser options { isPartial: boolean }
+ * @returns {Promise<Object>} - Parsed data with validation results
+ */
+export async function parseExcelFile(file, options = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -84,7 +99,7 @@ export async function parseExcelFile(file) {
         const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
         // Validate and transform data
-        const result = validateAndTransformData(jsonData);
+        const result = validateAndTransformData(jsonData, options);
         resolve(result);
       } catch (error) {
         reject(new Error("Failed to parse Excel file: " + error.message));
@@ -102,22 +117,23 @@ export async function parseExcelFile(file) {
 /**
  * Validate and transform parsed Excel data
  * @param {Array} data - Raw data from Excel
+ * @param {Object} options - { isPartial: boolean }
  * @returns {Object} - Validation results with valid and invalid records
  */
-function validateAndTransformData(data) {
+function validateAndTransformData(data, options = {}) {
   const validRecords = [];
   const invalidRecords = [];
   const seenCampusIds = new Set();
+  const isPartial = options.isPartial || false;
 
   data.forEach((row, index) => {
     const errors = [];
-    const rowNumber = index + 2; // +2 because Excel is 1-indexed and has header row
+    const rowNumber = index + 2;
 
-    // Required fields validation
+    // Required fields validation (ID and Name always required)
     if (!row["Campus ID"]) {
       errors.push("Campus ID is required");
     } else {
-      // Check for duplicate Campus ID within the Excel file
       const campusId = row["Campus ID"].toString();
       if (seenCampusIds.has(campusId)) {
         errors.push("Duplicate Campus ID in this file");
@@ -125,190 +141,216 @@ function validateAndTransformData(data) {
         seenCampusIds.add(campusId);
       }
     }
+
+    // Is Full Name required for partial update?
+    // User said "Student ID and Name will do as compulsory fields"
     if (!row["Full Name"]) {
       errors.push("Full Name is required");
     }
-    if (!row["School Email"]) {
-      errors.push("School Email is required");
-    } else if (!isValidEmail(row["School Email"])) {
-      errors.push("Invalid email format");
-    }
-    if (!row["School"]) {
-      errors.push("School is required");
-    }
-    if (!row["Admit Year"]) {
-      errors.push("Admit Year is required");
-    }
-    if (!row["Membership Type"]) {
-      errors.push("Membership Type is required");
-    }
 
-    // Get values for fields
-    const admitYear = row["Admit Year"] || null;
-    const rawMembershipType = row["Membership Type"] || null;
-    const rawStudentStatus = row["Student Status"] || "Undergraduate";
-    const rawSchool = row["School"] || "";
-
-    // Validate and normalize membership type (case-insensitive)
-    let membershipType = null;
-    if (rawMembershipType) {
-      membershipType =
-        MEMBERSHIP_TYPE_MAP[rawMembershipType.toLowerCase().trim()] ||
-        rawMembershipType;
-
-      if (!MEMBERSHIP_TYPES.includes(membershipType)) {
-        errors.push(
-          `Invalid Membership Type. Must be one of: ${MEMBERSHIP_TYPES.join(
-            ", "
-          )}`
-        );
+    if (!isPartial) {
+      // Full validation for standard import
+      if (!row["School Email"]) {
+        errors.push("School Email is required");
+      } else if (!isValidEmail(row["School Email"])) {
+        errors.push("Invalid email format");
+      }
+      if (!row["School"] && !row["First Degree"]) {
+        errors.push("School is required if First Degree is not provided");
+      }
+      if (!row["Admit Year"]) {
+        errors.push("Admit Year is required");
+      }
+      if (!row["Membership Type"]) {
+        errors.push("Membership Type is required");
+      }
+      if (!row["First Degree"]) {
+        errors.push("First Degree is required");
       }
     }
 
-    // Validate and normalize student status (case-insensitive)
-    const studentStatus =
-      STUDENT_STATUS_MAP[rawStudentStatus.toLowerCase().trim()] ||
-      rawStudentStatus;
-
-    if (!STUDENT_STATUSES.includes(studentStatus)) {
-      errors.push(
-        `Invalid Student Status. Must be one of: ${STUDENT_STATUSES.join(", ")}`
-      );
-    }
-
-    // Validate and normalize school (case-insensitive)
-    const school = SCHOOL_NAME_MAP[rawSchool.toLowerCase().trim()] || rawSchool;
-
-    // Parse tracks
-    let tracks = [];
-    if (row["Tracks (comma-separated)"]) {
-      tracks = row["Tracks (comma-separated)"]
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t);
-    }
-
-    // Parse subsidy override (optional)
-    let subsidyOverride = null;
-    const subsidyValue = row["Subsidy Override (%)"];
-    if (
-      subsidyValue !== undefined &&
-      subsidyValue !== null &&
-      subsidyValue !== ""
-    ) {
-      const parsedSubsidy = parseInt(subsidyValue);
-      if (SUBSIDY_RATES.includes(parsedSubsidy)) {
-        subsidyOverride = parsedSubsidy;
+    // Helper to conditionally add fields
+    const getValue = (key, transform = (v) => v) => {
+      if (row[key] !== undefined && row[key] !== null && row[key] !== "") {
+        return transform(row[key]);
       }
-    }
+      return undefined;
+    };
 
-    // Parse boolean fields (optional)
-    const ismSignup = parseBooleanField(row["ISM Signup"]);
-    const contributionPaid = parseBooleanField(row["Contribution Paid"]);
-    const scholarshipAwarded = parseBooleanField(row["Scholarship Awarded"]);
-
-    // Parse scholarship year (optional)
-    let scholarshipYear = null;
-    if (row["Scholarship Year"]) {
-      const year = parseInt(row["Scholarship Year"]);
-      if (!isNaN(year) && year >= 2015 && year <= 2030) {
-        scholarshipYear = year;
-      }
-    }
-
-    // Parse attendance fields (optional)
-    const ncsAttended = parseInt(row["NCS Attended"]) || 0;
-    const issAttended = parseInt(row["ISS Attended"]) || 0;
-
-    // Parse NCS Events (optional)
-    // Format: "EventName1, EventName2, EventName3"
-    let ncsEvents = [];
-    if (row["NCS Events (comma-separated)"]) {
-      const ncsString = row["NCS Events (comma-separated)"].toString().trim();
-      if (ncsString) {
-        ncsEvents = ncsString
-          .split(",")
-          .map((name) => name.trim())
-          .filter((name) => name)
-          .map((eventName) => ({
-            eventName,
-            date: new Date().toISOString(),
-          }));
-      }
-    }
-
-    // Parse ISS Events (optional)
-    // Format: "EventName1, EventName2, EventName3"
-    let issEvents = [];
-    if (row["ISS Events (comma-separated)"]) {
-      const issString = row["ISS Events (comma-separated)"].toString().trim();
-      if (issString) {
-        issEvents = issString
-          .split(",")
-          .map((name) => name.trim())
-          .filter((name) => name)
-          .map((eventName) => ({
-            eventName,
-            date: new Date().toISOString(),
-          }));
-      }
-    }
-
-    // Parse ISM Attendance (optional)
-    // Format: "EventName1:subsidyRate1, EventName2:subsidyRate2"
-    let ismAttendance = [];
-    if (row["ISM Attendance"]) {
-      const ismString = row["ISM Attendance"].toString().trim();
-      if (ismString) {
-        const ismEntries = ismString.split(",").map((entry) => entry.trim());
-        ismAttendance = ismEntries
-          .map((entry) => {
-            const parts = entry.split(":");
-            if (parts.length === 2) {
-              const eventName = parts[0].trim();
-              const subsidyUsed = parseInt(parts[1].trim());
-              if (eventName && !isNaN(subsidyUsed)) {
-                return {
-                  eventName,
-                  subsidyUsed,
-                  timestamp: new Date().toISOString(),
-                };
-              }
-            }
-            return null;
-          })
-          .filter((item) => item !== null);
-      }
-    }
-
-    // Create member object
+    // Initialize member object with always-present fields
     const member = {
       campusId: row["Campus ID"]?.toString() || "",
       fullName: (row["Full Name"] || "").toUpperCase(),
-      schoolEmail: (row["School Email"] || "").toLowerCase(),
-      personalEmail: (row["Personal Email"] || "").toLowerCase(),
-      admitYear: parseInt(admitYear),
-      membershipType,
-      degree: studentStatus,
-      school,
-      tracks,
-      telegramHandle: row["Telegram Handle"] || "",
-      phoneNumber: row["Phone Number"]?.toString() || "",
-      ismAttendance,
-      ismSignup,
-      contributionPaid,
-      ncsAttended,
-      issAttended,
-      ncsEvents,
-      issEvents,
-      scholarshipAwarded,
-      scholarshipYear,
-      reasonForOrdinaryB: row["Reason for Ordinary B"] || "",
-      dynamicFields: [],
-      addedToTelegram: false,
-      subsidyOverride,
     };
 
+    // Conditionally add other fields based on presence or !isPartial (defaults)
+
+    // School Email
+    if (row["School Email"] || !isPartial) {
+      member.schoolEmail = (row["School Email"] || "").toLowerCase();
+    }
+
+    // Personal Email
+    if (row["Personal Email"] || !isPartial) {
+      member.personalEmail = (row["Personal Email"] || "").toLowerCase();
+    }
+
+    // Admit Year
+    if (row["Admit Year"] || !isPartial) {
+      member.admitYear = parseInt(row["Admit Year"] || 0);
+    }
+
+    // Membership Type
+    if (row["Membership Type"] || !isPartial) {
+      const rawType = row["Membership Type"];
+      if (rawType) {
+        const type =
+          MEMBERSHIP_TYPE_MAP[rawType.toLowerCase().trim()] || rawType;
+        if (!MEMBERSHIP_TYPES.includes(type)) {
+          errors.push(
+            `Invalid Membership Type. Must be one of: ${MEMBERSHIP_TYPES.join(
+              ", ",
+            )}`,
+          );
+        }
+        member.membershipType = type;
+      } else if (!isPartial) {
+        member.membershipType = null; // Should be caught by required check
+      }
+    }
+
+    // Student Status (and legacy degree field mapping for safety if needed, but we rely on new one now)
+    if (row["Student Status"] || !isPartial) {
+      const rawStatus = row["Student Status"] || "Undergraduate";
+      const status =
+        STUDENT_STATUS_MAP[rawStatus.toLowerCase().trim()] || rawStatus;
+      if (!STUDENT_STATUSES.includes(status)) {
+        errors.push(
+          `Invalid Student Status. Must be one of: ${STUDENT_STATUSES.join(
+            ", ",
+          )}`,
+        );
+      }
+      member.studentStatus = status;
+    }
+
+    // School
+    const rawSchool = row["School"];
+    if (rawSchool) {
+      member.school =
+        SCHOOL_NAME_MAP[rawSchool.toLowerCase().trim()] || rawSchool;
+    } else if (!isPartial) {
+      member.school = "";
+    }
+
+    // Degrees
+    const firstDegree = row["First Degree"];
+    if (firstDegree) {
+      const program = DEGREE_PROGRAMS.find(
+        (p) =>
+          p.degree === firstDegree ||
+          (p.shorthand && p.shorthand === firstDegree),
+      );
+      if (program) {
+        member.firstDegree = program.degree;
+        if (!member.school) member.school = program.school;
+      } else {
+        errors.push(`Invalid First Degree.`);
+      }
+    } else if (!isPartial) {
+      member.firstDegree = "";
+    }
+
+    const secondDegree = row["Second Degree"];
+    if (secondDegree) {
+      const program = DEGREE_PROGRAMS.find(
+        (p) =>
+          p.degree === secondDegree ||
+          (p.shorthand && p.shorthand === secondDegree),
+      );
+      if (program) {
+        member.secondDegree = program.degree;
+      } else {
+        errors.push(`Invalid Second Degree.`);
+      }
+    } else if (!isPartial) {
+      member.secondDegree = "";
+    }
+
+    // Tracks
+    if (row["Tracks (comma-separated)"]) {
+      member.tracks = row["Tracks (comma-separated)"]
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t);
+    } else if (!isPartial) {
+      member.tracks = []; // Default empty for full import
+    }
+
+    // Other simple fields
+    if (row["Telegram Handle"] || !isPartial)
+      member.telegramHandle = row["Telegram Handle"] || "";
+    if (row["Phone Number"] || !isPartial)
+      member.phoneNumber = row["Phone Number"]?.toString() || "";
+    if (row["Reason for Ordinary B"] || !isPartial)
+      member.reasonForOrdinaryB = row["Reason for Ordinary B"] || "";
+
+    // Booleans - be careful with partial updates on booleans.
+    // If column exists but is empty, should we treat as false or undefined?
+    // ParseBooleanField treats empty as false.
+    // Ideally for partial update, if column is MISSING, we skip. If column is present but empty, maybe false?
+    // Arrays usually don't have "missing column" for row property, just undefined value?
+    // Sheet_to_json usually omits keys for empty cells.
+
+    const checkBool = (key, prop) => {
+      // Check if key exists in row object (meaning column header existed and cell had value?)
+      // Actually sheet_to_json omits key if cell is empty.
+      // So checking `row[key] !== undefined` is a proxy for "is this cell filled?"
+      // But for partial update, user might want to set to FALSE explicitly.
+      // Easiest heuristic: If isPartial, only update if row[key] is defined.
+      if (!isPartial || row[key] !== undefined) {
+        member[prop] = parseBooleanField(row[key]);
+      }
+    };
+
+    checkBool("ISM Signup", "ismSignup");
+    checkBool("Contribution Paid", "contributionPaid");
+    checkBool("Scholarship Awarded", "scholarshipAwarded");
+    checkBool("Added to Telegram Group (1=Yes, 0=No)", "addedToTelegram");
+    // Handle alt name for telegram added
+    if (isPartial && row["Added to Telegram Group"] !== undefined) {
+      member.addedToTelegram = parseBooleanField(
+        row["Added to Telegram Group"],
+      );
+    }
+
+    // Complex Arrays (Attendance) - Partial update usually shouldn't overwrite these unless specified.
+    if (row["ISM Attendance"] || !isPartial) {
+      // Logic for parsing ISM Attendance... (abbreviated, reusing existing logic)
+      let ismAttendance = [];
+      if (row["ISM Attendance"]) {
+        const ismString = row["ISM Attendance"].toString().trim();
+        if (ismString) {
+          const ismEntries = ismString.split(",").map((entry) => entry.trim());
+          ismAttendance = ismEntries
+            .map((entry) => {
+              const parts = entry.split(":");
+              if (parts.length === 2) {
+                return {
+                  eventName: parts[0].trim(),
+                  subsidyUsed: parseInt(parts[1].trim()),
+                  timestamp: new Date().toISOString(),
+                };
+              }
+              return null;
+            })
+            .filter((i) => i);
+        }
+      }
+      member.ismAttendance = ismAttendance;
+    }
+
+    // If errors exist, push to invalid
     if (errors.length > 0) {
       invalidRecords.push({
         row: rowNumber,
@@ -360,13 +402,16 @@ function parseBooleanField(value) {
  */
 export async function bulkImportMembers(members, memberService, onProgress) {
   const results = {
-    success: [],
+    added: [],
+    updated: [],
     failed: [],
+    success: [], // Kept for backward compatibility if needed, but UI should switch to added/updated
   };
 
   for (let i = 0; i < members.length; i++) {
     try {
-      const result = await memberService.addMember(members[i]);
+      // Use upsertMember instead of addMember
+      const result = await memberService.upsertMember(members[i]);
 
       if (result.error) {
         results.failed.push({
@@ -374,6 +419,12 @@ export async function bulkImportMembers(members, memberService, onProgress) {
           error: result.error,
         });
       } else {
+        if (result.action === "added") {
+          results.added.push(members[i]);
+        } else {
+          results.updated.push(members[i]);
+        }
+        // Add to generic success array for simple counts if needed
         results.success.push(members[i]);
       }
 

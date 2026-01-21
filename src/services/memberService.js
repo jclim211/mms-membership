@@ -47,7 +47,7 @@ export const memberService = {
         },
         (error) => {
           callback({ members: [], error: error.message });
-        }
+        },
       );
 
       return unsubscribe;
@@ -64,7 +64,7 @@ export const memberService = {
       if (memberData.campusId) {
         const q = query(
           collection(db, MEMBERS_COLLECTION),
-          where("campusId", "==", memberData.campusId)
+          where("campusId", "==", memberData.campusId),
         );
         const existingMembers = await getDocs(q);
 
@@ -108,6 +108,46 @@ export const memberService = {
       return { error: null };
     } catch (error) {
       return { error: error.message };
+    }
+  },
+
+  // Upsert a member (Update if exists, Add if new)
+  async upsertMember(memberData) {
+    try {
+      // Check for existing member by Campus ID
+      if (!memberData.campusId) {
+        return { id: null, action: "error", error: "Campus ID is required" };
+      }
+
+      const q = query(
+        collection(db, MEMBERS_COLLECTION),
+        where("campusId", "==", memberData.campusId),
+      );
+      const existingMembers = await getDocs(q);
+
+      if (!existingMembers.empty) {
+        // Update existing member
+        const docId = existingMembers.docs[0].id;
+        const memberRef = doc(db, MEMBERS_COLLECTION, docId);
+
+        await updateDoc(memberRef, {
+          ...memberData,
+          updatedAt: new Date().toISOString(),
+        });
+
+        return { id: docId, action: "updated", error: null };
+      } else {
+        // Add new member
+        const docRef = await addDoc(collection(db, MEMBERS_COLLECTION), {
+          ...memberData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+        return { id: docRef.id, action: "added", error: null };
+      }
+    } catch (error) {
+      return { id: null, action: "error", error: error.message };
     }
   },
 };

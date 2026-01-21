@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { memberService } from "../services/memberService";
+import { useEventStore } from "./eventStore";
 
 export const useMemberStore = defineStore("members", () => {
   const members = ref([]);
@@ -84,7 +85,7 @@ export const useMemberStore = defineStore("members", () => {
     // Apply student status filter
     if (studentStatusFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.degree === studentStatusFilter.value,
+        (member) => member.studentStatus === studentStatusFilter.value,
       );
     }
 
@@ -237,9 +238,9 @@ export const useMemberStore = defineStore("members", () => {
     error.value = null;
     const result = await memberService.addMember(memberData);
     if (!result.error) {
-      // Real-time listener will auto-update, but refresh manually if disabled
+      // If we're not in realtime mode, update local state
       if (!realtimeEnabled.value) {
-        await fetchMembers();
+        members.value.push({ ...memberData, id: result.id });
       }
     } else {
       error.value = result.error;
@@ -253,9 +254,11 @@ export const useMemberStore = defineStore("members", () => {
     error.value = null;
     const result = await memberService.updateMember(memberId, memberData);
     if (!result.error) {
-      // Real-time listener will auto-update, but refresh manually if disabled
       if (!realtimeEnabled.value) {
-        await fetchMembers();
+        const index = members.value.findIndex((m) => m.id === memberId);
+        if (index !== -1) {
+          members.value[index] = { ...members.value[index], ...memberData };
+        }
       }
     } else {
       error.value = result.error;
@@ -267,17 +270,84 @@ export const useMemberStore = defineStore("members", () => {
   const deleteMember = async (memberId) => {
     loading.value = true;
     error.value = null;
+
+    // First remove from all events
+    const eventStore = useEventStore();
+    await eventStore.removeMemberFromAllEvents(memberId);
+
     const result = await memberService.deleteMember(memberId);
     if (!result.error) {
-      // Real-time listener will auto-update, but refresh manually if disabled
       if (!realtimeEnabled.value) {
-        await fetchMembers();
+        members.value = members.value.filter((m) => m.id !== memberId);
       }
     } else {
       error.value = result.error;
     }
     loading.value = false;
     return result;
+  };
+
+  // Remove a specific event from ALL members
+  const removeEventFromAllMembers = async (event) => {
+    loading.value = true;
+    error.value = null;
+
+    // Ensure we have the latest data if not realtime
+    if (!realtimeEnabled.value && members.value.length === 0) {
+      await fetchMembers();
+    }
+
+    const promises = [];
+    const eventName = event.name;
+
+    for (const member of members.value) {
+      let updatedData = {};
+      let needsUpdate = false;
+
+      if (event.type === "ISM") {
+        const ismAttendance = member.ismAttendance || [];
+        if (ismAttendance.some((e) => e.eventName === eventName)) {
+          updatedData.ismAttendance = ismAttendance.filter(
+            (e) => e.eventName !== eventName,
+          );
+          needsUpdate = true;
+        }
+      } else if (event.type === "ISS") {
+        const issEvents = member.issEvents || [];
+        if (issEvents.some((e) => e.eventName === eventName)) {
+          updatedData.issEvents = issEvents.filter(
+            (e) => e.eventName !== eventName,
+          );
+          updatedData.issAttended = Math.max(0, (member.issAttended || 0) - 1);
+          needsUpdate = true;
+        }
+      } else if (event.type === "NCS") {
+        const ncsEvents = member.ncsEvents || [];
+        if (ncsEvents.some((e) => e.eventName === eventName)) {
+          updatedData.ncsEvents = ncsEvents.filter(
+            (e) => e.eventName !== eventName,
+          );
+          updatedData.ncsAttended = Math.max(0, (member.ncsAttended || 0) - 1);
+          needsUpdate = true;
+        }
+      }
+
+      if (needsUpdate) {
+        promises.push(memberService.updateMember(member.id, updatedData));
+      }
+    }
+
+    const results = await Promise.all(promises);
+    const errors = results.filter((r) => r.error);
+
+    if (errors.length > 0) {
+      error.value = `Failed to update ${errors.length} members.`;
+    } else if (!realtimeEnabled.value) {
+      await fetchMembers();
+    }
+
+    loading.value = false;
+    return { error: error.value, count: promises.length };
   };
 
   return {
@@ -308,5 +378,6 @@ export const useMemberStore = defineStore("members", () => {
     deleteMember,
     getValidNCSCount,
     isNCSEventValid,
+    removeEventFromAllMembers,
   };
 });

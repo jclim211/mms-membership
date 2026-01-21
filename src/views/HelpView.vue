@@ -87,7 +87,12 @@ const router = useRouter();
                   </li>
                   <li>
                     Required fields include Campus ID, Full Name, Admit Year,
-                    and School
+                    School, and First Degree
+                  </li>
+                  <li>
+                    <strong>Tip:</strong> You can also use bulk import to update
+                    existing members! Just use their Campus ID and the new
+                    details.
                   </li>
                 </ul>
               </div>
@@ -345,9 +350,18 @@ const router = useRouter();
                   <li>Event type cannot be changed after creation</li>
                   <li>Click the trash icon to delete an event</li>
                   <li>
-                    <strong>Important:</strong> Deleting an event removes it
-                    from the system but does NOT remove attendance records from
-                    member profiles
+                    <strong>Important:</strong> When deleting an event, you can
+                    choose to also remove it from all member records.
+                    <ul>
+                      <li>
+                        <strong>Unchecked:</strong> Event is deleted but stays
+                        in students' history (useful for keeping records).
+                      </li>
+                      <li>
+                        <strong>Checked:</strong> Event is wiped from everyone's
+                        profile (useful for mistakes).
+                      </li>
+                    </ul>
                   </li>
                 </ul>
               </div>
@@ -592,6 +606,21 @@ const router = useRouter();
                 benefits
               </li>
               <li><strong>Associate</strong> - Limited benefits</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="font-semibold text-gray-900 mb-2">
+              Student Status Options
+            </h4>
+            <ul class="text-sm text-gray-600 space-y-2 ml-4 list-disc">
+              <li>
+                <strong>Undergraduate</strong> - Current bachelor's degree
+                students
+              </li>
+              <li><strong>Postgraduate</strong> - Master's or PhD students</li>
+              <li><strong>Alumni</strong> - Graduated members</li>
+              <li><strong>Exchange Student</strong> - Visiting students</li>
             </ul>
           </div>
 

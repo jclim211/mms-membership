@@ -38,8 +38,10 @@ const formData = ref({
   admitYear: props.member?.admitYear || new Date().getFullYear(),
   membershipType: props.member?.membershipType || "Ordinary A",
   tracks: props.member?.tracks ? [...props.member.tracks] : [],
-  degree: props.member?.degree || "Undergraduate",
+  studentStatus: props.member?.studentStatus || "Undergraduate",
   school: props.member?.school || "",
+  firstDegree: props.member?.firstDegree || "",
+  secondDegree: props.member?.secondDegree || "",
   schoolEmail: props.member?.schoolEmail || "",
   personalEmail: props.member?.personalEmail || "",
   telegramHandle: props.member?.telegramHandle || "",
@@ -91,7 +93,13 @@ watch(
   { deep: true },
 );
 
-import { SCHOOLS, TRACKS } from "../utils/constants";
+import {
+  SCHOOLS,
+  TRACKS,
+  DEGREE_PROGRAMS,
+  DEGREE_OPTIONS,
+  STUDENT_STATUSES,
+} from "../utils/constants";
 
 // Schools list
 const schools = SCHOOLS;
@@ -230,8 +238,35 @@ const validateForm = () => {
     errors.value.school = "School is required";
   }
 
+  if (!formData.value.firstDegree) {
+    errors.value.firstDegree = "First Degree is required";
+  }
+
+  // Ordinary A requires ITT or MBOT track
+  if (formData.value.membershipType === "Ordinary A") {
+    const hasRequiredTrack = formData.value.tracks.some((t) =>
+      ["ITT", "MBOT"].includes(t),
+    );
+    if (!hasRequiredTrack) {
+      errors.value.tracks = "Ordinary A members must be in ITT or MBOT track";
+    }
+  }
+
   return Object.keys(errors.value).length === 0;
 };
+
+// Watch for track changes to auto-set Ordinary A
+watch(
+  () => formData.value.tracks,
+  (newTracks) => {
+    if (newTracks.some((t) => ["ITT", "MBOT"].includes(t))) {
+      if (formData.value.membershipType !== "Ordinary A") {
+        formData.value.membershipType = "Ordinary A";
+      }
+    }
+  },
+  { deep: true },
+);
 
 // Add ISM attendance
 const addISMAttendance = () => {
@@ -619,18 +654,69 @@ const handleSave = async () => {
                   />
                 </div>
 
-                <!-- Degree -->
+                <!-- First Degree -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    First Degree <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    v-model="formData.firstDegree"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    :class="{ 'border-red-500': errors.firstDegree }"
+                  >
+                    <option value="">Select First Degree</option>
+                    <option
+                      v-for="degree in DEGREE_OPTIONS"
+                      :key="degree"
+                      :value="degree"
+                    >
+                      {{ degree }}
+                    </option>
+                  </select>
+                  <p
+                    v-if="errors.firstDegree"
+                    class="mt-1 text-sm text-red-500"
+                  >
+                    {{ errors.firstDegree }}
+                  </p>
+                </div>
+
+                <!-- Second Degree -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Second Degree <span class="text-gray-500">(Optional)</span>
+                  </label>
+                  <select
+                    v-model="formData.secondDegree"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                  >
+                    <option value="">Select Second Degree</option>
+                    <option
+                      v-for="degree in DEGREE_OPTIONS"
+                      :key="degree"
+                      :value="degree"
+                    >
+                      {{ degree }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Degree (Student Status) -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     Student Status <span class="text-red-500">*</span>
                   </label>
                   <select
-                    v-model="formData.degree"
+                    v-model="formData.studentStatus"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                   >
-                    <option value="Undergraduate">Undergraduate</option>
-                    <option value="Alumni">Alumni</option>
-                    <option value="Exchange Student">Exchange Student</option>
+                    <option
+                      v-for="status in STUDENT_STATUSES"
+                      :key="status"
+                      :value="status"
+                    >
+                      {{ status }}
+                    </option>
                   </select>
                 </div>
 
@@ -749,11 +835,11 @@ const handleSave = async () => {
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     Tracks
                   </label>
-                  <div class="flex gap-4">
+                  <div class="flex flex-wrap gap-3">
                     <label
                       v-for="track in tracksOptions"
                       :key="track"
-                      class="flex items-center gap-2 cursor-pointer"
+                      class="flex items-center space-x-2 cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -764,6 +850,9 @@ const handleSave = async () => {
                       <span class="text-sm text-gray-700">{{ track }}</span>
                     </label>
                   </div>
+                  <p v-if="errors.tracks" class="mt-1 text-sm text-red-500">
+                    {{ errors.tracks }}
+                  </p>
                 </div>
               </div>
             </div>
