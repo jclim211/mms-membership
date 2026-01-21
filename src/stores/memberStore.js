@@ -20,6 +20,11 @@ export const useMemberStore = defineStore("members", () => {
 
   // Helper: Check if an NCS event counts based on declaration date
   const isNCSEventValid = (member, event) => {
+    // If explicitly forced valid, return true
+    if (event.forceValid) {
+      return true;
+    }
+
     // If member is not Ordinary A, all events count
     if (member.membershipType !== "Ordinary A") {
       return true;
@@ -72,35 +77,35 @@ export const useMemberStore = defineStore("members", () => {
     // Apply membership type filter
     if (membershipFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.membershipType === membershipFilter.value
+        (member) => member.membershipType === membershipFilter.value,
       );
     }
 
     // Apply student status filter
     if (studentStatusFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.degree === studentStatusFilter.value
+        (member) => member.degree === studentStatusFilter.value,
       );
     }
 
     // Apply year filter
     if (yearFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.admitYear === yearFilter.value
+        (member) => member.admitYear === yearFilter.value,
       );
     }
 
     // Apply school filter
     if (schoolFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.school === schoolFilter.value
+        (member) => member.school === schoolFilter.value,
       );
     }
 
     // Apply track filter
     if (trackFilter.value !== "all") {
       filtered = filtered.filter(
-        (member) => member.tracks && member.tracks.includes(trackFilter.value)
+        (member) => member.tracks && member.tracks.includes(trackFilter.value),
       );
     }
 
@@ -156,12 +161,12 @@ export const useMemberStore = defineStore("members", () => {
   const ordinaryAMembers = computed(
     () =>
       members.value.filter(
-        (m) => m.membershipType === "Ordinary A" || m.membershipType === "Exco"
-      ).length
+        (m) => m.membershipType === "Ordinary A" || m.membershipType === "Exco",
+      ).length,
   );
 
   const ordinaryBMembers = computed(
-    () => members.value.filter((m) => m.membershipType === "Ordinary B").length
+    () => members.value.filter((m) => m.membershipType === "Ordinary B").length,
   );
 
   const scholarshipEligible = computed(
@@ -169,8 +174,8 @@ export const useMemberStore = defineStore("members", () => {
       members.value.filter(
         (m) =>
           m.membershipType === "Ordinary A" &&
-          (!m.scholarshipAwarded || m.scholarshipAwarded === false)
-      ).length
+          (!m.scholarshipAwarded || m.scholarshipAwarded === false),
+      ).length,
   );
 
   // Actions

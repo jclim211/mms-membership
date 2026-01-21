@@ -117,6 +117,21 @@ Your Club Membership Management Portal is now fully built and ready to use. This
 - [x] Backup reminder banner
 - [x] Responsive design for mobile/tablet/desktop
 
+### 2b. Event Management Module ✅ [New]
+
+- [x] Dedicated **Events View** (`/events`)
+- [x] Separate tabs for ISM, ISS, and NCS events
+- [x] **Event CRUD**: Create, Edit, Delete events
+- [x] **Attendance Tracking**:
+  - Individual "Mark Attendance" modal
+  - Real-time updates to member records
+  - **Quick Add Student**: On-the-fly creation of new members (defaults to "Associate", marked Incomplete)
+- [x] **Bulk Attendance Import**:
+  - Distinct from global member import
+  - Import attendance for a specific event via Excel
+  - Auto-creates new students if they don't exist
+  - Supports "Session 1/2" logic for NCS events
+
 ### 3. Member Data Table ✅
 
 - [x] Campus ID (monospace font)
@@ -137,7 +152,6 @@ Your Club Membership Management Portal is now fully built and ready to use. This
 ### 4. Add/Edit Member Modal ✅
 
 - [x] **Compulsory Fields Section**:
-
   - Campus ID (duplicate detection)
   - Full Name (auto-converts to UPPERCASE)
   - Admit Year
@@ -150,7 +164,6 @@ Your Club Membership Management Portal is now fully built and ready to use. This
   - Phone Number
 
 - [x] **ISM Attendance & Subsidy Section**:
-
   - Display of next subsidy rate with manual override option
   - Past ISM events list with individual subsidy rates
   - Add ISM attendance button
@@ -160,7 +173,6 @@ Your Club Membership Management Portal is now fully built and ready to use. This
   - Override indicator in table view
 
 - [x] **Optional Fields Section**:
-
   - Reason for Ordinary B (text area, always visible)
   - NCS Attended counter (auto-calculated from events)
   - ISS Attended counter (auto-calculated from events)
@@ -171,6 +183,7 @@ Your Club Membership Management Portal is now fully built and ready to use. This
   - ISM Signup status
   - Contribution Paid status
   - Added to Telegram status
+  - **New:** Manual "Force Count" for NCS events (override graduation requirements)
 
 - [x] **Dynamic Fields Section**:
   - Add custom key-value pairs

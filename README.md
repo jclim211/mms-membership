@@ -12,6 +12,7 @@ A centralized, secure dashboard for club administrators to manage member data, t
 ## 📋 Table of Contents
 
 - [Features](#-features)
+- [**Handover Guide**](#-handover-guide) (Start Here for New Admins)
 - [Demo](#-demo)
 - [Tech Stack](#-tech-stack)
 - [Prerequisites](#-prerequisites)
@@ -29,7 +30,9 @@ A centralized, secure dashboard for club administrators to manage member data, t
 
 > **📚 New here?** Check out [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for a complete guide to all documentation.
 >
-> **🚀 Quick Start:** Jump to [SETUP_GUIDE.md](SETUP_GUIDE.md) for a 5-minute setup guide.
+> **🤝 Taking over the project?** Read [HANDOVER_GUIDE.md](HANDOVER_GUIDE.md) first!
+>
+> **Rocket Quick Start:** Jump to [SETUP_GUIDE.md](SETUP_GUIDE.md) for a 5-minute setup guide.
 >
 > **🆕 Non-Technical Guide:** See [NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md) for troubleshooting without coding knowledge.
 

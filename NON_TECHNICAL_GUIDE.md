@@ -121,7 +121,6 @@ firebase deploy --only hosting
    - Open that URL in your browser
 
 2. **Clear browser cache**
-
    - Press `Ctrl + Shift + Delete`
    - Select "Cached images and files"
    - Click "Clear data"
@@ -140,7 +139,6 @@ firebase deploy --only hosting
 **Solutions**:
 
 1. **Hard refresh the website**
-
    - Press `Ctrl + Shift + R` (Windows)
    - Or `Shift + F5`
 
@@ -164,13 +162,11 @@ firebase deploy --only hosting
 **Solutions**:
 
 1. **Check Excel format**
-
    - Download a fresh template from the website
    - Copy your data to the new template
    - Make sure column headers are EXACT
 
 2. **Required fields must be filled**:
-
    - Campus ID ✅
    - Full Name ✅
    - School Email ✅
@@ -182,21 +178,39 @@ firebase deploy --only hosting
    - Each Campus ID must be unique
    - Search existing members first
 
-### Issue 4: Login Not Working
+### Issue 4: Attendance Import Created "Incomplete" Members
+
+**Symptoms**: You imported attendance (via Event page) and new members show as "Associate" with "Unknown" school.
+
+**Explanation**:
+
+- When adding students via attendance, the system doesn't know their full details (Membership Type, School, Year).
+- It creates them with **safe defaults** ("Associate", "Undergraduate").
+- They are marked "Incomplete".
+
+**Solution**:
+
+1. Go to the Dashboard.
+2. Filter by **Status: Incomplete** (if filter exists) or search for them.
+3. Edit the member and update their:
+   - Membership Type (e.g., to "Ordinary A")
+   - School
+   - Admit Year
+   - Campus ID
+
+### Issue 5: Login Not Working
 
 **Symptoms**: "Invalid credentials" or can't sign in
 
 **Solutions**:
 
 1. **Check Firebase Console**
-
    - Go to: https://console.firebase.google.com/
    - Select your project: "mms-membership"
    - Click "Authentication" → "Users"
    - Verify your email exists
 
 2. **Reset password**
-
    - In Firebase Console → Authentication → Users
    - Find your email → Click "⋮" → "Reset password"
 
@@ -210,12 +224,10 @@ firebase deploy --only hosting
 **Solutions**:
 
 1. **Check search terms**
-
    - Search works for: Name, Campus ID, Email, Telegram handle
    - Try searching part of the name (e.g., "John" instead of "John Doe")
 
 2. **Clear active filters**
-
    - Click the "Filters" button
    - Check if any filters are active
    - Click "Clear All Filters"
@@ -277,6 +289,15 @@ firebase deploy --only hosting
    ```
 
 3. Save and deploy
+
+   ### Managing NCS Event Overrides
+
+   **Feature**: Sometimes you need to count an NCS event towards graduation even if it was attended "too early".
+   1. Open the member's profile.
+   2. Scroll to "NCS Event Details".
+   3. Find the event marked "DOESN'T COUNT".
+   4. Click the **Force Count** button.
+   5. It should turn green implies it now counts.
 
 ### Changing the Backup Reminder Message
 
@@ -346,12 +367,10 @@ firebase deploy --only hosting
 **What to do**:
 
 1. **Restore from backup**:
-
    - You should have Excel exports saved locally
    - Use "Bulk Import" to restore data
 
 2. **Check Firestore Console**:
-
    - https://console.firebase.google.com/
    - Go to Firestore Database
    - Check if data exists there
@@ -367,13 +386,11 @@ firebase deploy --only hosting
 ### Self-Help Resources
 
 1. **Check existing documentation**:
-
    - [README.md](README.md) - General overview
    - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Technical troubleshooting
    - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Feature list
 
 2. **Firebase Documentation**:
-
    - https://firebase.google.com/docs
 
 3. **Vue.js Documentation**:
@@ -402,20 +419,16 @@ You can handle yourself:
 When asking for help, provide:
 
 1. **What were you trying to do?**
-
    - "I was trying to deploy to Firebase"
 
 2. **What happened instead?**
-
    - "I got an error message"
 
 3. **Error messages**:
-
    - Copy the FULL error from terminal
    - Include the red error text
 
 4. **What you've tried**:
-
    - "I restarted VS Code"
    - "I cleared my cache"
 
@@ -463,24 +476,20 @@ When asking for help, provide:
 ## Tips for Success
 
 1. **Always backup before making changes**
-
    - Export current data to Excel
    - Keep multiple dated backups
 
 2. **Test locally first**
-
    - Run `npm run dev`
    - Check changes at `localhost:5173`
    - Only deploy if it works
 
 3. **Make small changes**
-
    - Change one thing at a time
    - Test after each change
    - Don't change multiple files at once
 
 4. **Keep notes**
-
    - Document what you changed
    - Save error messages
    - Track deployment dates
@@ -579,7 +588,7 @@ Open browser console: Press `F12` → Click "Console" tab
 - `Ctrl + S` - Save file
 - `Ctrl + F` - Find in file
 - `Ctrl + Shift + F` - Find in all files
-- ` Ctrl + ``  ` `` - Toggle terminal
+- `Ctrl + `` ` `` - Toggle terminal
 - `Ctrl + P` - Quick file open
 - `Ctrl + /` - Comment/uncomment line
 
