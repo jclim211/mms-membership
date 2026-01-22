@@ -209,8 +209,8 @@ const availableSchools = computed(() => {
 const isIncomplete = (member) => {
   // Check required fields - must exist and not be empty string
   const isEmpty = (val) => val === null || val === undefined || val === "";
-  
-  const hasMissingFields = 
+
+  const hasMissingFields =
     isEmpty(member.campusId) ||
     isEmpty(member.fullName) ||
     isEmpty(member.schoolEmail) ||
