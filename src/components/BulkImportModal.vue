@@ -5,6 +5,7 @@ import {
   bulkImportMembers,
   downloadTemplate,
 } from "../utils/bulkImport";
+import * as XLSX from "xlsx";
 import { MEMBERSHIP_TYPES, STUDENT_STATUSES } from "../utils/constants";
 import { useMemberStore } from "../stores/memberStore";
 import { memberService } from "../services/memberService";
@@ -221,6 +222,64 @@ const handleClose = () => {
   }
   emit("close");
 };
+
+// Download existing members for bulk editing
+const downloadExistingMembers = () => {
+  const membersData = memberStore.members.map((member) => {
+    // Format ISM Attendance
+    const ismAttendance = (member.ismAttendance || [])
+      .map((ism) => `${ism.eventName}:${ism.subsidyUsed}`)
+      .join(", ");
+
+    // Format NCS Events
+    const ncsEvents = (member.ncsEvents || [])
+      .map((e) => e.eventName)
+      .join(", ");
+
+    // Format ISS Events
+    const issEvents = (member.issEvents || [])
+      .map((e) => e.eventName)
+      .join(", ");
+
+    return {
+      "Campus ID": member.campusId || "",
+      "Full Name": member.fullName || "",
+      "School Email": member.schoolEmail || "",
+      "Personal Email": member.personalEmail || "",
+      "Admit Year": member.admitYear || "",
+      "Membership Type": member.membershipType || "",
+      "Student Status": member.studentStatus || "",
+      "First Degree": member.firstDegree || "",
+      "Second Degree": member.secondDegree || "",
+      School: member.school || "",
+      "Tracks (comma-separated)": (member.tracks || []).join(", "),
+      "Ordinary A Declaration Date": member.ordinaryADeclarationDate || "",
+      "Telegram Handle": member.telegramHandle || "",
+      "Added to Telegram Group (1=Yes, 0=No)": member.addedToTelegram ? 1 : 0,
+      "Phone Number": member.phoneNumber || "",
+      "ISM Attendance": ismAttendance,
+      "NCS Attended": member.ncsAttended || 0,
+      "ISS Attended": member.issAttended || 0,
+      "NCS Events (comma-separated)": ncsEvents,
+      "ISS Events (comma-separated)": issEvents,
+      "Scholarship Awarded": member.scholarshipAwarded ? "TRUE" : "FALSE",
+      "Scholarship Year": member.scholarshipYear || "",
+      "Reason for Ordinary B": member.reasonForOrdinaryB || "",
+    };
+  });
+
+  if (membersData.length === 0) {
+    alert("No members found.");
+    return;
+  }
+
+  const worksheet = XLSX.utils.json_to_sheet(membersData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Members");
+
+  const fileName = `members_existing_${new Date().toISOString().split("T")[0]}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+};
 </script>
 
 <template>
@@ -274,15 +333,25 @@ const handleClose = () => {
 
               <!-- Download Template Button -->
               <div class="mb-8">
-                <button
-                  @click="downloadTemplate"
-                  class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg transition-all font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  <FileSpreadsheet :size="20" />
-                  Download Excel Template
-                </button>
-                <p class="text-xs text-gray-500 mt-2">
-                  💡 Start with our template to avoid errors
+                <div class="flex justify-center gap-4">
+                  <button
+                    @click="downloadTemplate"
+                    class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg transition-all font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <FileSpreadsheet :size="20" />
+                    Download Excel Template
+                  </button>
+                  <button
+                    @click="downloadExistingMembers"
+                    class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald to-teal-600 hover:from-emerald/90 hover:to-teal-700 text-white rounded-lg transition-all font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <FileSpreadsheet :size="20" />
+                    Download Current Members
+                  </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2 text-center">
+                  💡 Download template for new imports or current members for
+                  bulk editing
                 </p>
               </div>
 
@@ -334,7 +403,8 @@ const handleClose = () => {
                     class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                   />
                   <label for="partialUpdate" class="text-sm text-gray-700"
-                    >Partial Update Mode (Ignore blank columns, remain unchanged if blank)</label
+                    >Partial Update Mode (Ignore blank columns, remain unchanged
+                    if blank)</label
                   >
                 </div>
               </div>
@@ -347,7 +417,7 @@ const handleClose = () => {
                   class="px-6 py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
                 >
                   <CheckCircle :size="18" class="text-orange-600" />
-                  Verify & Clean List
+                  Verify & Clean Ord A
                 </button>
 
                 <button
@@ -371,7 +441,8 @@ const handleClose = () => {
                       >Verify & Clean (Orange):</strong
                     >
                     Upload the whole Ordinary A (track) student list to verify
-                    the latest list against the database.
+                    the latest list against the database. *New member will be
+                    added. Missing member will require attentions.
                   </div>
                   <div
                     class="bg-indigo-50 p-3 rounded-lg border border-indigo-100"

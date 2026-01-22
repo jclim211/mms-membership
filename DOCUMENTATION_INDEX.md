@@ -66,6 +66,7 @@ Welcome to the Club Membership Management Portal documentation! This index will 
 #### [SUBSIDY_ALGORITHM.md](SUBSIDY_ALGORITHM.md) - Subsidy Logic
 
 - How the tier-based subsidy system works
+- Smart subsidy tracking (auto vs manual)
 - Algorithm explanation with examples
 - Special scenarios (upgrades, downgrades)
 - Testing guidelines

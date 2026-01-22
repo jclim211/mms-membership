@@ -59,6 +59,11 @@ You will need to follow the **[NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md)**
 3. Click **Add ISM Attendance**.
 4. Enter the event name.
 5. **Magic**: The system checks their history and automatically fills in the refined subsidy rate (90%, 70%, etc.).
+6. **Manual Override**: You can change the subsidy if needed (dropdown: 95%, 90%, 70%, 50%, 10%).
+7. **Smart Tracking**: The system tracks whether subsidies were auto-applied or manually overridden:
+   - **(Auto)** - System calculated, counts towards next calculation
+   - **(Manual)** - Admin overridden, doesn't affect future calculations
+   - This prevents members from "gaming" the system
 
 ### Managing NCS Events (Graduation Requirements)
 
@@ -75,7 +80,8 @@ You can track which NCS events a member attended.
 1. Click **Bulk Import** on the dashboard.
 2. Download the **Excel Template**.
 3. Paste your new members into that Excel file.
-4. Drag and drop it back into the website.
+4. **Drag and drop** it back into the website (or click to browse).
+5. **Bulk Editing**: Click "Download Existing Data" to export all current members with complete details, edit the file, and re-upload to update in bulk.
 
 ### Event Management & Attendance
 
@@ -86,7 +92,11 @@ Instead of manually editing each member, you can use the **Events Page**:
 3. **Mark Attendance**: Click "Mark Attendance" on an event card.
    - You can toggle attendance for existing members.
    - **Quick Add**: If a student isn't in the database, you can "Quick Add" them right there. They will be added as "Associate" members.
-4. **Bulk Attendance Import**: Inside an event, click "Bulk Import" to upload a specific attendance sheet for _just that event_.
+   - **ISM Events**: System automatically calculates subsidy rates, but you can override if needed.
+4. **Bulk Attendance Import**: Inside an event, click "Bulk Import" to upload attendance for that specific event.
+   - **Drag & Drop**: Simply drag your Excel file into the upload zone.
+   - **Download Existing**: Export current attendees to edit and re-upload.
+   - System supports subsidy parsing and calculation.
 5. **Deleting Events**: You can choose whether to delete the event _only_ from the list, or also remove it from every student's history (cleaning up their profiles).
 
 ---

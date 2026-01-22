@@ -57,12 +57,14 @@ A centralized, secure dashboard for club administrators to manage member data, t
   - 4-step validation workflow
   - Case-insensitive field mapping
   - Comprehensive error reporting
-  - Support for 15+ fields
+  - Support for 24+ fields including event history
 - 📥 **Smart Export** - Multiple export options:
   - Export all members
   - Export filtered results
   - Export members not added to Telegram
+  - Download existing data for bulk editing
 - 💾 **Auto Backup Reminders** - Persistent notification system
+- 🔄 **Bulk Editing** - Download, edit, and re-upload member data
 
 ### Subsidy & Attendance
 
@@ -71,7 +73,12 @@ A centralized, secure dashboard for club administrators to manage member data, t
   - Ordinary B: 70% → 10%
   - Associate: 10% (fixed)
 - 🔧 **Manual Override** - Admin can set custom subsidy rates (95%, 90%, 70%, 50%, 10%)
-- 📈 **Event Tracking** - Log ISM/NCS/ISS attendance with history
+- 🧠 **Smart Subsidy Tracking** - Distinguishes auto-calculated vs manual subsidies:
+  - Only auto-applied subsidies count in history
+  - Prevents gaming the system with manual overrides
+  - Clear indicators: (Auto) / (Manual) in UI
+- 📈 **Event Tracking** - Log ISM/NCS/ISS attendance with detailed history
+- 📊 **Bulk Attendance Import** - Upload attendance for events with subsidy calculation
 - 🎓 **Scholarship Management** - Auto-calculated eligibility tracking
 
 ### User Experience

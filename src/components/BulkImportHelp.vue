@@ -253,6 +253,21 @@ const emit = defineEmits(["close"]);
                 </div>
               </div>
 
+              <!-- Ordinary A Declaration Date -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  Ordinary A Declaration Date
+                </h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  Date when member declared as Ordinary A. Format: YYYY-MM-DD.
+                  Optional field.
+                </p>
+                <div class="bg-white rounded p-2 text-sm">
+                  <span class="text-gray-500">Example:</span>
+                  <code class="ml-2 text-indigo-600 font-mono">2024-01-15</code>
+                </div>
+              </div>
+
               <!-- Personal Email -->
               <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">Personal Email</h4>
@@ -329,7 +344,13 @@ const emit = defineEmits(["close"]);
                     </code>
                   </div>
                   <div class="text-xs text-gray-600 mt-2">
-                    <strong>Note:</strong> Each entry must follow the format
+                    <strong>Smart Subsidy Calculation:</strong> The system
+                    automatically calculates subsidies based on membership type
+                    and attendance history. Only automatically-applied subsidies
+                    (not manual overrides) count towards the next calculation.
+                  </div>
+                  <div class="text-xs text-gray-600 mt-1">
+                    <strong>Format:</strong> Each entry must follow
                     <code class="bg-gray-100 px-1 rounded"
                       >EventName:Number</code
                     >. The number represents the subsidy rate (%) used for that
@@ -498,6 +519,22 @@ const emit = defineEmits(["close"]);
                   ><strong>Format Matters:</strong> Make sure to follow the
                   exact format for comma-separated fields (Tracks, ISM
                   Attendance).</span
+                >
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-orange-600 font-bold">•</span>
+                <span
+                  ><strong>Bulk Editing:</strong> Download existing members to
+                  edit and re-upload. Supports drag-and-drop for both member and
+                  attendance imports.</span
+                >
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-indigo-600 font-bold">•</span>
+                <span
+                  ><strong>ISM Subsidies:</strong> Auto-calculated based on
+                  membership type and history. Manual overrides are supported
+                  but won't affect future calculations.</span
                 >
               </li>
             </ul>

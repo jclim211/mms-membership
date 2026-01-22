@@ -17,6 +17,7 @@ import {
 import EventModal from "../components/EventModal.vue";
 import AttendanceModal from "../components/AttendanceModal.vue";
 import BulkAttendanceImportModal from "../components/BulkAttendanceImportModal.vue";
+import { calculateNextSubsidyRate } from "../utils/helpers";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -138,6 +139,21 @@ const handleSaveAttendance = async (attendance) => {
 
 // Update member records when attendance is saved
 const updateMemberRecords = async (event, attendance) => {
+  // Helper to normalize dates to YYYY-MM-DD format for comparison
+  const toLocalYMD = (d) => {
+    if (!d) return "";
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    try {
+      const dateObj = new Date(d);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch (e) {
+      return "";
+    }
+  };
+
   for (const [memberId, attendanceData] of Object.entries(attendance)) {
     const member = memberStore.members.find((m) => m.id === memberId);
     if (!member) continue;
@@ -148,23 +164,80 @@ const updateMemberRecords = async (event, attendance) => {
       // --- ADDING ATTENDANCE ---
       if (event.type === "ISM") {
         const ismAttendance = member.ismAttendance || [];
-        const exists = ismAttendance.some(
-          (ism) => ism.eventName === event.name,
+        const existingIndex = ismAttendance.findIndex(
+          (ism) =>
+            ism.eventName === event.name &&
+            toLocalYMD(ism.date) === toLocalYMD(event.date),
         );
 
-        if (!exists) {
+        if (existingIndex === -1) {
+          // New attendance - Calculate subsidy based on membership type and history
+          // Only count auto-applied subsidies in history
+          const subsidyHistory = (member.ismAttendance || [])
+            .filter((a) => a.isAuto !== false) // Include undefined (old data) and true
+            .map((a) => a.subsidyUsed);
+
+          let subsidyToUse = 0;
+          let isAuto = true;
+
+          if (attendanceData.subsidyOverride !== undefined) {
+            subsidyToUse = attendanceData.subsidyOverride;
+            // Check if override matches auto-calculated value
+            const autoValue = calculateNextSubsidyRate(
+              member.membershipType,
+              subsidyHistory,
+            );
+            isAuto = subsidyToUse === autoValue;
+          } else {
+            // Auto-calculate subsidy
+            subsidyToUse = calculateNextSubsidyRate(
+              member.membershipType,
+              subsidyHistory,
+            );
+            isAuto = true;
+          }
+
           updatedData.ismAttendance = [
             ...ismAttendance,
             {
               eventName: event.name,
-              subsidyUsed: 0,
+              subsidyUsed: subsidyToUse,
               date: event.date,
+              isAuto: isAuto,
             },
           ];
+        } else {
+          // Update existing attendance - check if subsidy changed
+          if (attendanceData.subsidyOverride !== undefined) {
+            const subsidyHistory = (member.ismAttendance || [])
+              .filter((a, idx) => idx !== existingIndex && a.isAuto !== false)
+              .map((a) => a.subsidyUsed);
+
+            const autoValue = calculateNextSubsidyRate(
+              member.membershipType,
+              subsidyHistory,
+            );
+            const isAuto = attendanceData.subsidyOverride === autoValue;
+
+            // Update the subsidy if it changed
+            updatedData.ismAttendance = ismAttendance.map((ism, idx) =>
+              idx === existingIndex
+                ? {
+                    ...ism,
+                    subsidyUsed: attendanceData.subsidyOverride,
+                    isAuto: isAuto,
+                  }
+                : ism,
+            );
+          }
         }
       } else if (event.type === "ISS") {
         const issEvents = member.issEvents || [];
-        const exists = issEvents.some((e) => e.eventName === event.name);
+        const exists = issEvents.some(
+          (e) =>
+            e.eventName === event.name &&
+            toLocalYMD(e.date) === toLocalYMD(event.date),
+        );
 
         if (!exists) {
           updatedData.issEvents = [
@@ -177,35 +250,64 @@ const updateMemberRecords = async (event, attendance) => {
           updatedData.issAttended = (member.issAttended || 0) + 1;
         }
       } else if (event.type === "NCS") {
-        // Only count if both sessions attended
-        if (attendanceData.session1 && attendanceData.session2) {
-          const ncsEvents = member.ncsEvents || [];
-          const exists = ncsEvents.some((e) => e.eventName === event.name);
+        const ncsEvents = member.ncsEvents || [];
+        const exists = ncsEvents.some(
+          (e) =>
+            e.eventName === event.name &&
+            toLocalYMD(e.date) === toLocalYMD(event.date),
+        );
 
+        // Update or Add event record if either session is attended
+        if (attendanceData.session1 || attendanceData.session2) {
           if (!exists) {
             updatedData.ncsEvents = [
               ...ncsEvents,
               {
                 eventName: event.name,
                 date: event.date,
-                session1: true,
-                session2: true,
+                session1: attendanceData.session1 || false,
+                session2: attendanceData.session2 || false,
               },
             ];
-            updatedData.ncsAttended = (member.ncsAttended || 0) + 1;
+          } else {
+            // Update existing event sessions
+            updatedData.ncsEvents = ncsEvents.map((e) =>
+              e.eventName === event.name &&
+              toLocalYMD(e.date) === toLocalYMD(event.date)
+                ? {
+                    ...e,
+                    session1: attendanceData.session1 || false,
+                    session2: attendanceData.session2 || false,
+                  }
+                : e,
+            );
           }
+
+          // Recalculate ncsAttended count
+          // We need to use the NEW list of events to calculate the count
+          const currentEvents = updatedData.ncsEvents || ncsEvents;
+          const validCount = currentEvents.filter((e) =>
+            memberStore.isNCSEventValid(member, e),
+          ).length;
+
+          updatedData.ncsAttended = validCount;
         } else {
-          // If previously attended both but now only one, remove it
-          const ncsEvents = member.ncsEvents || [];
-          const exists = ncsEvents.some((e) => e.eventName === event.name);
+          // If neither session attended, remove it
           if (exists) {
             updatedData.ncsEvents = ncsEvents.filter(
-              (e) => e.eventName !== event.name,
+              (e) =>
+                !(
+                  e.eventName === event.name &&
+                  toLocalYMD(e.date) === toLocalYMD(event.date)
+                ),
             );
-            updatedData.ncsAttended = Math.max(
-              0,
-              (member.ncsAttended || 0) - 1,
-            );
+
+            // Recalculate ncsAttended count after removal
+            const currentEvents = updatedData.ncsEvents;
+            const validCount = currentEvents.filter((e) =>
+              memberStore.isNCSEventValid(member, e),
+            ).length;
+            updatedData.ncsAttended = validCount;
           }
         }
       }
@@ -214,31 +316,53 @@ const updateMemberRecords = async (event, attendance) => {
       if (event.type === "ISM") {
         const ismAttendance = member.ismAttendance || [];
         const exists = ismAttendance.some(
-          (ism) => ism.eventName === event.name,
+          (ism) =>
+            ism.eventName === event.name &&
+            toLocalYMD(ism.date) === toLocalYMD(event.date),
         );
 
         if (exists) {
           updatedData.ismAttendance = ismAttendance.filter(
-            (ism) => ism.eventName !== event.name,
+            (ism) =>
+              !(
+                ism.eventName === event.name &&
+                toLocalYMD(ism.date) === toLocalYMD(event.date)
+              ),
           );
         }
       } else if (event.type === "ISS") {
         const issEvents = member.issEvents || [];
-        const exists = issEvents.some((e) => e.eventName === event.name);
+        const exists = issEvents.some(
+          (e) =>
+            e.eventName === event.name &&
+            toLocalYMD(e.date) === toLocalYMD(event.date),
+        );
 
         if (exists) {
           updatedData.issEvents = issEvents.filter(
-            (e) => e.eventName !== event.name,
+            (e) =>
+              !(
+                e.eventName === event.name &&
+                toLocalYMD(e.date) === toLocalYMD(event.date)
+              ),
           );
           updatedData.issAttended = Math.max(0, (member.issAttended || 0) - 1);
         }
       } else if (event.type === "NCS") {
         const ncsEvents = member.ncsEvents || [];
-        const exists = ncsEvents.some((e) => e.eventName === event.name);
+        const exists = ncsEvents.some(
+          (e) =>
+            e.eventName === event.name &&
+            toLocalYMD(e.date) === toLocalYMD(event.date),
+        );
 
         if (exists) {
           updatedData.ncsEvents = ncsEvents.filter(
-            (e) => e.eventName !== event.name,
+            (e) =>
+              !(
+                e.eventName === event.name &&
+                toLocalYMD(e.date) === toLocalYMD(event.date)
+              ),
           );
           updatedData.ncsAttended = Math.max(0, (member.ncsAttended || 0) - 1);
         }

@@ -93,6 +93,28 @@ watch(
   { deep: true },
 );
 
+// Watch for changes to the member prop and update formData
+watch(
+  () => props.member,
+  (newMember, oldMember) => {
+    if (newMember && JSON.stringify(newMember) !== JSON.stringify(oldMember)) {
+      // Update formData with new member data while preserving the structure
+      formData.value.ismAttendance = newMember.ismAttendance
+        ? [...newMember.ismAttendance]
+        : [];
+      formData.value.ncsEvents = newMember.ncsEvents
+        ? newMember.ncsEvents.map((e) => ({ ...e }))
+        : [];
+      formData.value.issEvents = newMember.issEvents
+        ? [...newMember.issEvents]
+        : [];
+      formData.value.ncsAttended = newMember.ncsAttended || 0;
+      formData.value.issAttended = newMember.issAttended || 0;
+    }
+  },
+  { deep: true, immediate: false },
+);
+
 import {
   SCHOOLS,
   TRACKS,
@@ -154,22 +176,31 @@ const nextSubsidyRate = computed(() => {
   }
 
   // Otherwise calculate based on membership type and history
-  const subsidyHistory = formData.value.ismAttendance.map(
-    (ism) => ism.subsidyUsed,
-  );
+  // Only count auto-applied subsidies in history
+  const subsidyHistory = formData.value.ismAttendance
+    .filter((ism) => ism.isAuto !== false) // Include undefined (old data) and true
+    .map((ism) => ism.subsidyUsed);
   return calculateNextSubsidyRate(
     formData.value.membershipType,
     subsidyHistory,
   );
 });
 
-// Watch membership type change
+// Watch for membership type changes to clear Ordinary B reason
 watch(
   () => formData.value.membershipType,
   (newType) => {
     if (newType !== "Ordinary B") {
       formData.value.reasonForOrdinaryB = "";
     }
+  },
+);
+
+// Watch declaration date change to recalculate NCS
+watch(
+  () => formData.value.ordinaryADeclarationDate,
+  () => {
+    recalculateNCSAttended();
   },
 );
 
@@ -182,14 +213,12 @@ const doesNCSEventCount = (ncsEvent) => {
 // Toggle force valid status for an NCS event
 const toggleNCSForceValid = (event) => {
   event.forceValid = !event.forceValid;
-  // Trigger update (Vue 3 reactivity on array items deep property might not auto-trigger deep watchers unless configured,
-  // but since we are modifying a property of an object in the array, it should be fine if we are careful.
-  // We can force a trigger by creating a new reference if needed, but 'forceValid' is new property.
-  // Actually, let's just ensure reactivity:
+  // Trigger update logic
   const index = formData.value.ncsEvents.indexOf(event);
   if (index !== -1) {
     formData.value.ncsEvents[index] = { ...event };
   }
+  recalculateNCSAttended();
 };
 
 // Format date for display
@@ -297,6 +326,14 @@ const removeISMAttendance = (index) => {
 };
 
 // Add NCS event
+// Recalculate NCS Attended count based on valid events
+const recalculateNCSAttended = () => {
+  const validCount = formData.value.ncsEvents.filter((event) =>
+    doesNCSEventCount(event),
+  ).length;
+  formData.value.ncsAttended = validCount;
+};
+
 const addNCSEvent = () => {
   if (!newNCSEvent.value.eventName) {
     return;
@@ -309,10 +346,13 @@ const addNCSEvent = () => {
   formData.value.ncsEvents.push({
     eventName: newNCSEvent.value.eventName,
     date: eventDate,
+    // Initialize sessions as false for new manual events
+    session1: false,
+    session2: false,
   });
 
-  // Increment counter
-  formData.value.ncsAttended = (formData.value.ncsAttended || 0) + 1;
+  // Recalculate counter
+  recalculateNCSAttended();
 
   // Reset form
   newNCSEvent.value = { eventName: "", date: "" };
@@ -322,11 +362,8 @@ const addNCSEvent = () => {
 // Remove NCS event
 const removeNCSEvent = (index) => {
   formData.value.ncsEvents.splice(index, 1);
-  // Decrement counter
-  formData.value.ncsAttended = Math.max(
-    0,
-    (formData.value.ncsAttended || 0) - 1,
-  );
+  // Recalculate counter
+  recalculateNCSAttended();
 };
 
 // Add ISS event
@@ -435,22 +472,40 @@ const handleSave = async () => {
 
     // Check for removed events and sync with EventStore
     if (!result.error) {
+      const getEventDate = (date) =>
+        date ? new Date(date).toISOString().split("T")[0] : null;
+
       const originalNCS = props.member.ncsEvents || [];
       const newNCS = formData.value.ncsEvents || [];
       const removedNCS = originalNCS.filter(
-        (orig) => !newNCS.some((newE) => newE.eventName === orig.eventName),
+        (orig) =>
+          !newNCS.some(
+            (newE) =>
+              newE.eventName === orig.eventName &&
+              getEventDate(newE.date) === getEventDate(orig.date),
+          ),
       );
 
       const originalISS = props.member.issEvents || [];
       const newISS = formData.value.issEvents || [];
       const removedISS = originalISS.filter(
-        (orig) => !newISS.some((newE) => newE.eventName === orig.eventName),
+        (orig) =>
+          !newISS.some(
+            (newE) =>
+              newE.eventName === orig.eventName &&
+              getEventDate(newE.date) === getEventDate(orig.date),
+          ),
       );
 
       const originalISM = props.member.ismAttendance || [];
       const newISM = formData.value.ismAttendance || [];
       const removedISM = originalISM.filter(
-        (orig) => !newISM.some((newE) => newE.eventName === orig.eventName),
+        (orig) =>
+          !newISM.some(
+            (newE) =>
+              newE.eventName === orig.eventName &&
+              getEventDate(newE.date) === getEventDate(orig.date),
+          ),
       );
 
       if (
@@ -465,8 +520,12 @@ const handleSave = async () => {
 
         // Process NCS removals
         for (const removed of removedNCS) {
+          const removedDate = getEventDate(removed.date);
           const event = eventStore.events.find(
-            (e) => e.name === removed.eventName && e.type === "NCS",
+            (e) =>
+              e.name === removed.eventName &&
+              e.type === "NCS" &&
+              getEventDate(e.date) === removedDate,
           );
           if (event) {
             await eventStore.removeAttendee(event.id, props.member.id);
@@ -475,8 +534,12 @@ const handleSave = async () => {
 
         // Process ISS removals
         for (const removed of removedISS) {
+          const removedDate = getEventDate(removed.date);
           const event = eventStore.events.find(
-            (e) => e.name === removed.eventName && e.type === "ISS",
+            (e) =>
+              e.name === removed.eventName &&
+              e.type === "ISS" &&
+              getEventDate(e.date) === removedDate,
           );
           if (event) {
             await eventStore.removeAttendee(event.id, props.member.id);
@@ -485,8 +548,12 @@ const handleSave = async () => {
 
         // Process ISM removals
         for (const removed of removedISM) {
+          const removedDate = getEventDate(removed.date);
           const event = eventStore.events.find(
-            (e) => e.name === removed.eventName && e.type === "ISM",
+            (e) =>
+              e.name === removed.eventName &&
+              e.type === "ISM" &&
+              getEventDate(e.date) === removedDate,
           );
           if (event) {
             await eventStore.removeAttendee(event.id, props.member.id);
@@ -497,15 +564,27 @@ const handleSave = async () => {
       // Check for ADDED events and sync with EventStore
       const addedNCS = newNCS.filter(
         (newE) =>
-          !originalNCS.some((orig) => orig.eventName === newE.eventName),
+          !originalNCS.some(
+            (orig) =>
+              orig.eventName === newE.eventName &&
+              getEventDate(orig.date) === getEventDate(newE.date),
+          ),
       );
       const addedISS = newISS.filter(
         (newE) =>
-          !originalISS.some((orig) => orig.eventName === newE.eventName),
+          !originalISS.some(
+            (orig) =>
+              orig.eventName === newE.eventName &&
+              getEventDate(orig.date) === getEventDate(newE.date),
+          ),
       );
       const addedISM = newISM.filter(
         (newE) =>
-          !originalISM.some((orig) => orig.eventName === newE.eventName),
+          !originalISM.some(
+            (orig) =>
+              orig.eventName === newE.eventName &&
+              getEventDate(orig.date) === getEventDate(newE.date),
+          ),
       );
 
       if (addedNCS.length > 0 || addedISS.length > 0 || addedISM.length > 0) {
@@ -516,8 +595,12 @@ const handleSave = async () => {
 
         // Process NCS additions
         for (const added of addedNCS) {
+          const addedDate = getEventDate(added.date);
           const event = eventStore.events.find(
-            (e) => e.name === added.eventName && e.type === "NCS",
+            (e) =>
+              e.name === added.eventName &&
+              e.type === "NCS" &&
+              getEventDate(e.date) === addedDate,
           );
           if (event) {
             await eventStore.addAttendee(event.id, props.member.id, {
@@ -530,8 +613,12 @@ const handleSave = async () => {
 
         // Process ISS additions
         for (const added of addedISS) {
+          const addedDate = getEventDate(added.date);
           const event = eventStore.events.find(
-            (e) => e.name === added.eventName && e.type === "ISS",
+            (e) =>
+              e.name === added.eventName &&
+              e.type === "ISS" &&
+              getEventDate(e.date) === addedDate,
           );
           if (event) {
             await eventStore.addAttendee(event.id, props.member.id, {
@@ -542,8 +629,12 @@ const handleSave = async () => {
 
         // Process ISM additions
         for (const added of addedISM) {
+          const addedDate = getEventDate(added.date);
           const event = eventStore.events.find(
-            (e) => e.name === added.eventName && e.type === "ISM",
+            (e) =>
+              e.name === added.eventName &&
+              e.type === "ISM" &&
+              getEventDate(e.date) === addedDate,
           );
           if (event) {
             await eventStore.addAttendee(event.id, props.member.id, {
@@ -865,19 +956,32 @@ const handleSave = async () => {
               <label class="block text-sm font-medium text-gray-900 mb-2">
                 Ordinary A Declaration Date
               </label>
+
               <input
                 v-if="formData.ordinaryADeclarationDate"
                 :value="formatDate(formData.ordinaryADeclarationDate)"
                 type="text"
                 disabled
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 cursor-not-allowed"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 cursor-not-allowed mb-3"
               />
               <div
                 v-else
-                class="w-full px-3 py-2 border border-amber-300 bg-amber-50 rounded-lg text-amber-900 font-medium"
+                class="w-full px-3 py-2 border border-amber-300 bg-amber-50 rounded-lg text-amber-900 font-medium mb-3"
               >
                 Not set (grandfathered member)
               </div>
+
+              <label class="block text-sm font-small text-gray-500 mb-1">
+                Update Date
+              </label>
+
+              <!-- Date Selection -->
+              <input
+                v-model="formData.ordinaryADeclarationDate"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+              />
+
               <p class="mt-2 text-xs text-blue-800">
                 <span v-if="formData.ordinaryADeclarationDate">
                   <strong>Declaration Date:</strong> When member was upgraded to
@@ -987,6 +1091,20 @@ const handleSave = async () => {
                     <div class="flex items-center gap-4 mt-1">
                       <p class="text-sm text-gray-600">
                         Subsidy: {{ ism.subsidyUsed }}%
+                        <span
+                          v-if="ism.isAuto === false"
+                          class="text-xs text-orange-600 font-medium ml-1"
+                          title="Manually set - not counted in auto calculation"
+                        >
+                          (Manual)
+                        </span>
+                        <span
+                          v-else-if="ism.isAuto === true"
+                          class="text-xs text-emerald font-medium ml-1"
+                          title="Auto-applied - counted in calculation"
+                        >
+                          (Auto)
+                        </span>
                       </p>
                       <p class="text-sm text-gray-500">
                         {{ formatDate(ism.date) }}
@@ -1166,12 +1284,20 @@ const handleSave = async () => {
                         </p>
                         <span
                           v-if="doesNCSEventCount(event)"
-                          class="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-emerald-600 text-white rounded-full"
+                          class="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-emerald-600 text-emerald rounded-full"
                         >
                           <span v-if="event.forceValid" title="Manually forced">
                             <ShieldCheck :size="12" />
                           </span>
                           ✓ COUNTS
+                        </span>
+                        <span
+                          v-else-if="event.session1 || event.session2"
+                          class="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full"
+                        >
+                          PARTIAL ({{ event.session1 ? "1" : ""
+                          }}{{ event.session1 && event.session2 ? " & " : ""
+                          }}{{ event.session2 ? "2" : "" }})
                         </span>
                         <span
                           v-else

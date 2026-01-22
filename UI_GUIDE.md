@@ -9,10 +9,9 @@ A visual guide to the MMS Portal interface and its components.
 ### Primary Colors
 
 ```css
---navy: #1e3a8a         /* Primary buttons, headers, badges */
---emerald: #10b981      /* Success states, eligible indicators */
---muted-red: #ef4444    /* Delete actions, errors, alerts */
---light-grey: #F3F4F6   /* Background */
+--navy: #1e3a8a /* Primary buttons, headers, badges */ --emerald: #10b981
+  /* Success states, eligible indicators */ --muted-red: #ef4444
+  /* Delete actions, errors, alerts */ --light-grey: #f3f4f6 /* Background */;
 ```
 
 ### Semantic Colors
@@ -198,6 +197,8 @@ The modal is divided into collapsible sections:
 │ └──────────────────────────────────────────┘         │
 │                                                        │
 │ Past ISM Events:                                      │
+│ • ISM Beijing 2024: 90% (Auto) - 2024-06-15          │
+│ • ISM Shanghai 2024: 70% (Manual) - 2024-08-20       │
 │ ┌────────────────────────────────────────┐           │
 │ │ ISM Beijing 2024            90%   [🗑️] │           │
 │ │ ISM Tokyo 2024              70%   [🗑️] │           │

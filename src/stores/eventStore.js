@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { useMemberStore } from "./memberStore";
 import { eventService } from "../services/eventService";
 
 export const useEventStore = defineStore("events", () => {
@@ -9,6 +10,41 @@ export const useEventStore = defineStore("events", () => {
   const realtimeEnabled = ref(true);
   const lastSyncTime = ref(null);
   let unsubscribe = null;
+
+  // Helper: Check for duplicate event (Same Name AND Same Date)
+  const checkForDuplicate = (name, date, excludeEventId = null) => {
+    if (!name | !date) return false;
+
+    // Helper to get YYYY-MM-DD in local time
+    const toLocalYMD = (d) => {
+      if (!d) return "";
+      // If already YYYY-MM-DD string, return it
+      if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const dateObj = new Date(d);
+        // Use local time methods
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        return "";
+      }
+    };
+
+    const targetDate = toLocalYMD(date);
+    const targetName = name.toLowerCase().trim();
+
+    return events.value.some((event) => {
+      // Skip if excluding self (for updates)
+      if (excludeEventId && event.id === excludeEventId) return false;
+
+      const eventDate = toLocalYMD(event.date);
+      const eventName = event.name ? event.name.toLowerCase().trim() : "";
+
+      return eventName === targetName && eventDate === targetDate;
+    });
+  };
 
   // Computed: Filter events by type
   const ismEvents = computed(() =>
@@ -77,6 +113,14 @@ export const useEventStore = defineStore("events", () => {
   const createEvent = async (eventData) => {
     loading.value = true;
     error.value = null;
+
+    // Check for duplicate
+    if (checkForDuplicate(eventData.name, eventData.date)) {
+      error.value = "An event with this name and date already exists.";
+      loading.value = false;
+      return { error: error.value };
+    }
+
     const result = await eventService.createEvent(eventData);
     if (!result.error) {
       if (!realtimeEnabled.value) {
@@ -92,11 +136,33 @@ export const useEventStore = defineStore("events", () => {
   const updateEvent = async (eventId, eventData) => {
     loading.value = true;
     error.value = null;
+
+    // Check for duplicate (excluding self)
+    if (checkForDuplicate(eventData.name, eventData.date, eventId)) {
+      error.value = "An event with this name and date already exists.";
+      loading.value = false;
+      return { error: error.value };
+    }
+
+    // Get old event data for sync
+    const oldEvent = events.value.find((e) => e.id === eventId);
+    if (!oldEvent) {
+      error.value = "Event not found locally.";
+      loading.value = false;
+      return { error: error.value };
+    }
+    // Create a copy to pass to member store (since local state might update)
+    const oldEventCopy = { ...oldEvent };
+
     const result = await eventService.updateEvent(eventId, eventData);
     if (!result.error) {
       if (!realtimeEnabled.value) {
         await fetchEvents();
       }
+
+      // Sync changes to all members
+      const memberStore = useMemberStore();
+      await memberStore.updateEventInAllMembers(oldEventCopy, eventData);
     } else {
       error.value = result.error;
     }

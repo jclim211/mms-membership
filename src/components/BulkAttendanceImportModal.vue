@@ -9,6 +9,7 @@ import {
   AlertTriangle,
 } from "lucide-vue-next";
 import { useMemberStore } from "../stores/memberStore";
+import { calculateNextSubsidyRate } from "../utils/helpers";
 import * as XLSX from "xlsx";
 
 const props = defineProps({
@@ -28,6 +29,7 @@ const errors = ref([]);
 const isProcessing = ref(false);
 const step = ref(1); // 1: Upload, 2: Preview, 3: Results
 const importResults = ref({});
+const isDragging = ref(false);
 
 // Handle file upload
 const handleFileSelect = (event) => {
@@ -36,6 +38,33 @@ const handleFileSelect = (event) => {
 
   uploadedFile.value = file;
   parseExcelFile(file);
+};
+
+// Handle drag and drop
+const handleDragOver = (event) => {
+  event.preventDefault();
+  isDragging.value = true;
+};
+
+const handleDragLeave = (event) => {
+  event.preventDefault();
+  isDragging.value = false;
+};
+
+const handleDrop = (event) => {
+  event.preventDefault();
+  isDragging.value = false;
+
+  const droppedFile = event.dataTransfer.files[0];
+  if (
+    droppedFile &&
+    (droppedFile.name.endsWith(".xlsx") || droppedFile.name.endsWith(".xls"))
+  ) {
+    uploadedFile.value = droppedFile;
+    parseExcelFile(droppedFile);
+  } else {
+    alert("Please drop a valid Excel file (.xlsx or .xls)");
+  }
 };
 
 // Parse Excel file
@@ -74,19 +103,20 @@ const processImportData = (data) => {
 
     // Extract data with flexible column names
     const email = String(
-      row["Email"] || row["School Email"] || row["email"] || ""
+      row["Email"] || row["School Email"] || row["email"] || "",
     )
       .trim()
       .toLowerCase();
     const name = String(
-      row["Name"] || row["Student Name"] || row["FullName"] || ""
+      row["Name"] || row["Student Name"] || row["FullName"] || "",
     ).trim();
     const studentId = String(
-      row["Student ID"] || row["StudentID"] || row["ID"] || ""
+      row["Student ID"] || row["StudentID"] || row["ID"] || "",
     ).trim();
     const session1 = row["Session 1"] || row["Session1"];
     const session2 = row["Session 2"] || row["Session2"];
     const attendedCol = row["Attended"] || row["Attendance"] || row["Status"];
+    const subsidyCol = row["Subsidy"] || row["Subsidy %"] || row["SubsidyUsed"];
 
     const parseSession = (val) => {
       if (val === undefined || val === null || val === "") return null; // Distinguish between explicit 0/false and missing
@@ -98,6 +128,19 @@ const processImportData = (data) => {
     const s2Parsed = parseSession(session2);
     const attendedParsed = parseSession(attendedCol);
 
+    // Parse subsidy for ISM events
+    let subsidyParsed = null;
+    if (subsidyCol !== undefined && subsidyCol !== null && subsidyCol !== "") {
+      const subsidyNum = parseFloat(String(subsidyCol).replace("%", "").trim());
+      if (!isNaN(subsidyNum) && subsidyNum >= 0 && subsidyNum <= 100) {
+        subsidyParsed = subsidyNum;
+      } else {
+        validationErrors.push(
+          `Row ${rowNum}: Invalid subsidy value "${subsidyCol}" - must be 0-100`,
+        );
+      }
+    }
+
     // Validate required fields
     if (!email || !email.includes("@")) {
       validationErrors.push(`Row ${rowNum}: Invalid or missing email`);
@@ -106,7 +149,7 @@ const processImportData = (data) => {
 
     // Find existing member by email (case-insensitive)
     const existingMember = memberStore.members.find(
-      (m) => m.schoolEmail?.toLowerCase() === email
+      (m) => m.schoolEmail?.toLowerCase() === email,
     );
 
     processed.push({
@@ -117,8 +160,10 @@ const processImportData = (data) => {
       session2: s2Parsed === true,
       // For non-NCS, if explicit attended column exists, use it. Otherwise default to true (presence = attendance)
       attendedExplicit: attendedParsed,
+      subsidyOverride: subsidyParsed, // Optional subsidy override
       isExisting: !!existingMember,
       memberId: existingMember?.id,
+      member: existingMember, // Store member object for subsidy calculation
       rowNum,
     });
   });
@@ -137,7 +182,9 @@ const downloadTemplate = () => {
       // Include Sessions only for NCS
       ...(props.event.type === "NCS"
         ? { "Session 1": "1", "Session 2": "1" }
-        : { Attended: "1" }), // Optional for others
+        : props.event.type === "ISM"
+          ? { Attended: "1", "Subsidy %": "90" } // ISM with subsidy
+          : { Attended: "1" }), // ISS
     },
   ];
 
@@ -146,6 +193,79 @@ const downloadTemplate = () => {
   XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
 
   const fileName = `${props.event.name}_attendance_template.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+};
+
+// Download existing attendance data for bulk editing
+const downloadExistingData = () => {
+  const attendanceData = [];
+
+  // Get members who have attendance marked for this event
+  memberStore.members.forEach((member) => {
+    const hasAttendance = props.event.attendance?.[member.id]?.attended;
+
+    if (hasAttendance) {
+      const attendanceRecord = props.event.attendance[member.id];
+
+      if (props.event.type === "NCS") {
+        attendanceData.push({
+          Email: member.schoolEmail || "",
+          Name: member.fullName || "",
+          "Student ID": member.campusId || "",
+          "Session 1": attendanceRecord.session1 ? "1" : "0",
+          "Session 2": attendanceRecord.session2 ? "1" : "0",
+        });
+      } else if (props.event.type === "ISM") {
+        // Find member's ISM attendance record for this event
+        const toLocalYMD = (d) => {
+          if (!d) return "";
+          if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+          try {
+            const dateObj = new Date(d);
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+            const day = String(dateObj.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+          } catch (e) {
+            return "";
+          }
+        };
+
+        const ismRecord = (member.ismAttendance || []).find(
+          (ism) =>
+            ism.eventName === props.event.name &&
+            toLocalYMD(ism.date) === toLocalYMD(props.event.date),
+        );
+
+        attendanceData.push({
+          Email: member.schoolEmail || "",
+          Name: member.fullName || "",
+          "Student ID": member.campusId || "",
+          Attended: "1",
+          "Subsidy %": ismRecord?.subsidyUsed || 0,
+        });
+      } else {
+        // ISS
+        attendanceData.push({
+          Email: member.schoolEmail || "",
+          Name: member.fullName || "",
+          "Student ID": member.campusId || "",
+          Attended: "1",
+        });
+      }
+    }
+  });
+
+  if (attendanceData.length === 0) {
+    alert("No attendance data found for this event.");
+    return;
+  }
+
+  const worksheet = XLSX.utils.json_to_sheet(attendanceData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
+
+  const fileName = `${props.event.name}_attendance_existing.xlsx`;
   XLSX.writeFile(workbook, fileName);
 };
 
@@ -171,15 +291,33 @@ const handleImport = async () => {
           // ISM/ISS: Use explicit attended column if present, otherwise assume true
           const isAttended =
             row.attendedExplicit !== null ? row.attendedExplicit : true;
-          attendance[row.memberId] = {
-            attended: isAttended,
-          };
+
+          const attendanceData = { attended: isAttended };
+
+          // For ISM events, add subsidy calculation/override
+          if (props.event.type === "ISM" && isAttended) {
+            if (row.subsidyOverride !== null) {
+              // Manual subsidy provided in Excel
+              attendanceData.subsidyOverride = row.subsidyOverride;
+            } else if (row.member) {
+              // Auto-calculate subsidy
+              const subsidyHistory = (row.member.ismAttendance || [])
+                .filter((a) => a.isAuto !== false)
+                .map((a) => a.subsidyUsed);
+              attendanceData.subsidyOverride = calculateNextSubsidyRate(
+                row.member.membershipType,
+                subsidyHistory,
+              );
+            }
+          }
+
+          attendance[row.memberId] = attendanceData;
         }
       } else {
         // New student - create incomplete member
         if (!row.name) {
           errors.value.push(
-            `Row ${row.rowNum}: Missing name for new student with email ${row.email}`
+            `Row ${row.rowNum}: Missing name for new student with email ${row.email}`,
           );
           continue;
         }
@@ -232,13 +370,25 @@ const handleImport = async () => {
             student.attendance.attendedExplicit !== null
               ? student.attendance.attendedExplicit
               : true;
-          attendance[result.id] = {
-            attended: isAttended,
-          };
+
+          const attendanceData = { attended: isAttended };
+
+          // For ISM events, add subsidy (new students get 10% as Associates)
+          if (props.event.type === "ISM" && isAttended) {
+            if (student.attendance.subsidyOverride !== null) {
+              attendanceData.subsidyOverride =
+                student.attendance.subsidyOverride;
+            } else {
+              // New students are Associates, so 10%
+              attendanceData.subsidyOverride = 10;
+            }
+          }
+
+          attendance[result.id] = attendanceData;
         }
       } else {
         errors.value.push(
-          `Failed to create student ${student.data.schoolEmail}: ${result.error}`
+          `Failed to create student ${student.data.schoolEmail}: ${result.error}`,
         );
       }
     }
@@ -331,12 +481,45 @@ const existingStudentsCount = computed(() => {
                 <span>Download Template</span>
               </button>
               <button
-                @click="$refs.fileInput.click()"
-                class="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors"
+                @click="downloadExistingData"
+                class="flex items-center gap-2 px-4 py-2 border border-emerald rounded-lg text-emerald hover:bg-emerald/5 transition-colors"
               >
-                <Upload :size="18" />
-                <span>Upload File</span>
+                <Download :size="18" />
+                <span>Download Current Data</span>
               </button>
+            </div>
+
+            <!-- File Drop Zone -->
+            <div class="max-w-md mx-auto">
+              <label
+                class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors"
+                :class="
+                  isDragging
+                    ? 'border-navy bg-navy/5'
+                    : 'border-gray-300 hover:border-navy'
+                "
+                @dragover="handleDragOver"
+                @dragleave="handleDragLeave"
+                @drop="handleDrop"
+                @click="$refs.fileInput.click()"
+              >
+                <div
+                  class="flex flex-col items-center justify-center pt-5 pb-6"
+                >
+                  <Upload
+                    :size="32"
+                    class="mb-3"
+                    :class="isDragging ? 'text-navy' : 'text-gray-400'"
+                  />
+                  <p class="mb-2 text-sm text-gray-600">
+                    <span class="font-semibold">Click to upload</span> or drag
+                    and drop
+                  </p>
+                  <p class="text-xs text-gray-500">
+                    Excel files only (.xlsx, .xls)
+                  </p>
+                </div>
+              </label>
             </div>
 
             <input

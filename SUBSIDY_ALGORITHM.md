@@ -95,6 +95,64 @@ calculateNextSubsidyRate("Ordinary A", [90, 70, 50]);
 // Returns: 10
 ```
 
+## Smart Subsidy Tracking (isAuto Flag)
+
+### Purpose
+
+As of the latest update, the system tracks whether each subsidy was **automatically applied** or **manually overridden** by an admin. This prevents members from "gaming" the system by manually using lower subsidies to preserve higher tiers.
+
+### Implementation
+
+Each ISM attendance record now includes an `isAuto` boolean flag:
+
+```javascript
+{
+  eventName: "ISM Beijing 2024",
+  subsidyUsed: 70,
+  date: "2024-06-15",
+  isAuto: true  // or false if manually overridden
+}
+```
+
+### Logic
+
+1. **Auto-Applied Subsidies** (`isAuto: true`):
+   - Calculated by the system based on membership type and history
+   - **COUNTS** towards the next subsidy calculation
+   - Displayed as **(Auto)** in the UI
+
+2. **Manual Override Subsidies** (`isAuto: false`):
+   - Admin manually selected a different rate
+   - **DOES NOT COUNT** towards the next subsidy calculation
+   - Displayed as **(Manual)** in the UI
+
+### Example
+
+**Scenario**: Ordinary A member attends 3 ISM events
+
+1. **First Event**: System offers 90%, admin overrides to 10% (manual)
+   - History: `[{subsidy: 10, isAuto: false}]`
+   - Next calculation: Still offers **90%** (manual doesn't count)
+
+2. **Second Event**: System offers 90%, admin accepts (auto)
+   - History: `[{subsidy: 10, isAuto: false}, {subsidy: 90, isAuto: true}]`
+   - Next calculation: Offers **70%** (90% tier consumed)
+
+3. **Third Event**: System offers 70%, admin accepts (auto)
+   - History: `[..., {subsidy: 70, isAuto: true}]`
+   - Next calculation: Offers **50%** (both 90% and 70% consumed)
+
+### Filter Logic
+
+```javascript
+// Only count auto-applied subsidies for history
+const subsidyHistory = member.ismAttendance
+  .filter((ism) => ism.isAuto === true)
+  .map((ism) => ism.subsidyUsed);
+
+const nextRate = calculateNextSubsidyRate(membershipType, subsidyHistory);
+```
+
 ## Special Scenarios
 
 ### Scenario 1: Membership Upgrade (B to A)

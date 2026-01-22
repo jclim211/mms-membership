@@ -45,17 +45,17 @@ const authStore = useAuthStore();
 const eventStore = useEventStore();
 const router = useRouter();
 
-/* 
+/*
   ═══════════════════════════════════════════════════════════════════════
   INCOMPLETE MEMBER TRACKING - MEMBERSTORE SETUP REQUIRED
   ═══════════════════════════════════════════════════════════════════════
-  
+
   ADD TO YOUR MEMBERSTORE FILE (../stores/memberStore.js or .ts):
-  
+
   1. In your state/refs section, ADD:
      ────────────────────────────────────────
      const incompleteFilter = ref("all");
-     
+
   2. In your filteredMembers computed property, ADD this filter block:
      ────────────────────────────────────────
      // Profile Completion Filter
@@ -88,11 +88,11 @@ const router = useRouter();
          return !hasMissingFields && hasTracks;
        });
      }
-     
+
   3. In your return statement, ADD:
      ────────────────────────────────────────
      incompleteFilter,
-     
+
   ═══════════════════════════════════════════════════════════════════════
 */
 
@@ -103,6 +103,8 @@ const editingMember = ref(null);
 const confirmDelete = ref(null);
 const showFilterPanel = ref(false);
 const sortField = ref("createdAt");
+const isBulkDeleteMode = ref(false); // Toggle for bulk delete mode
+const selectedMembers = ref(new Set()); // Track selected members
 
 const sortOrder = ref("asc");
 
@@ -122,6 +124,61 @@ const activeFiltersCount = computed(() => {
   if (memberStore.incompleteFilter !== "all") count++;
   return count;
 });
+
+const exportButtonText = computed(() => {
+  return activeFiltersCount.value > 0 ? "Export Filtered" : "Export All";
+});
+
+// Selection Logic
+const toggleSelection = (memberId) => {
+  if (selectedMembers.value.has(memberId)) {
+    selectedMembers.value.delete(memberId);
+  } else {
+    selectedMembers.value.add(memberId);
+  }
+};
+
+const toggleSelectAll = () => {
+  // If all CURRENT PAGE members are selected, deselect them
+  const pageIds = paginatedMembers.value.map((m) => m.id);
+  const allSelected = pageIds.every((id) => selectedMembers.value.has(id));
+
+  if (allSelected) {
+    pageIds.forEach((id) => selectedMembers.value.delete(id));
+  } else {
+    pageIds.forEach((id) => selectedMembers.value.add(id));
+  }
+};
+
+const isAllSelected = computed(() => {
+  if (paginatedMembers.value.length === 0) return false;
+  return paginatedMembers.value.every((m) => selectedMembers.value.has(m.id));
+});
+
+const handleBulkDelete = async () => {
+  if (selectedMembers.value.size === 0) return;
+
+  if (
+    confirm(
+      `Are you sure you want to delete ${selectedMembers.value.size} members? This cannot be undone.`,
+    )
+  ) {
+    // We should probably show a loading state here
+    for (const memberId of selectedMembers.value) {
+      await memberStore.deleteMember(memberId);
+      // eventStore cleanup is now handled inside memberStore.deleteMember
+    }
+    selectedMembers.value.clear();
+    isBulkDeleteMode.value = false; // Exit mode after delete
+  }
+};
+
+const toggleBulkDeleteMode = () => {
+  isBulkDeleteMode.value = !isBulkDeleteMode.value;
+  if (!isBulkDeleteMode.value) {
+    selectedMembers.value.clear(); // Clear selection when exiting mode
+  }
+};
 
 const clearAllFilters = () => {
   memberStore.membershipFilter = "all";
@@ -732,8 +789,11 @@ watch(
               class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors font-medium text-sm"
             >
               <Download :size="18" />
-              <span class="hidden sm:inline">Export All</span>
-              <span class="sm:hidden">Export All</span>
+              <span class="hidden sm:inline">{{ exportButtonText }}</span>
+              <span class="sm:hidden">Export</span>
+            </button>
+            <button v-if="false" class="hidden">
+              <!-- Hidden old button placeholder if needed, or just remove -->
             </button>
             <button
               @click="exportTelegramNotAdded"
@@ -813,6 +873,17 @@ watch(
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
+                <th
+                  v-if="isBulkDeleteMode"
+                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="isAllSelected"
+                    @change="toggleSelectAll"
+                    class="w-4 h-4 text-navy border-gray-300 rounded focus:ring-navy"
+                  />
+                </th>
                 <th
                   class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
@@ -945,6 +1016,17 @@ watch(
                 :key="member.id"
                 class="hover:bg-gray-50 transition-colors"
               >
+                <td
+                  v-if="isBulkDeleteMode"
+                  class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="selectedMembers.has(member.id)"
+                    @change="toggleSelection(member.id)"
+                    class="w-4 h-4 text-navy border-gray-300 rounded focus:ring-navy"
+                  />
+                </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   <span class="font-mono text-xs sm:text-sm text-gray-900">{{
                     member.campusId
@@ -1161,6 +1243,31 @@ watch(
               {{ option }}
             </option>
           </select>
+
+          <!-- Bulk Delete Toggle & Action -->
+          <div
+            class="flex items-center gap-2 ml-4 border-l border-gray-300 pl-4 h-6"
+          >
+            <button
+              @click="toggleBulkDeleteMode"
+              class="text-xs font-medium transition-colors"
+              :class="
+                isBulkDeleteMode
+                  ? 'text-red-600 hover:text-red-700'
+                  : 'text-gray-600 hover:text-gray-900'
+              "
+            >
+              {{ isBulkDeleteMode ? "Cancel Bulk Delete" : "Bulk Delete" }}
+            </button>
+            <button
+              v-if="isBulkDeleteMode && selectedMembers.size > 0"
+              @click="handleBulkDelete"
+              class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors shadow-sm"
+            >
+              <Trash2 :size="14" />
+              <span>Delete ({{ selectedMembers.size }})</span>
+            </button>
+          </div>
         </div>
 
         <!-- Navigation -->

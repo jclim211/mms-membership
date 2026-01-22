@@ -19,14 +19,19 @@ export const useMemberStore = defineStore("members", () => {
   const lastSyncTime = ref(null); // Track last sync time
   let unsubscribe = null; // Store the unsubscribe function
 
-  // Helper: Check if an NCS event counts based on declaration date
+  // Helper: Check if an NCS event counts based on declaration date and session completion
   const isNCSEventValid = (member, event) => {
     // If explicitly forced valid, return true
     if (event.forceValid) {
       return true;
     }
 
-    // If member is not Ordinary A, all events count
+    // Must have attended both sessions (unless forced)
+    if (!event.session1 || !event.session2) {
+      return false;
+    }
+
+    // If member is not Ordinary A, all events count (provided they finished both sessions)
     if (member.membershipType !== "Ordinary A") {
       return true;
     }
@@ -48,6 +53,11 @@ export const useMemberStore = defineStore("members", () => {
 
   // Helper: Calculate valid NCS count based on declaration date
   const getValidNCSCount = (member) => {
+    // If ncsAttended is present (manual override or cached), use it
+    if (member.ncsAttended !== undefined && member.ncsAttended !== null) {
+      return member.ncsAttended;
+    }
+
     if (!member.ncsEvents) return 0;
     return member.ncsEvents.filter((event) => isNCSEventValid(member, event))
       .length;
@@ -288,6 +298,7 @@ export const useMemberStore = defineStore("members", () => {
   };
 
   // Remove a specific event from ALL members
+  // Remove a specific event from ALL members
   const removeEventFromAllMembers = async (event) => {
     loading.value = true;
     error.value = null;
@@ -298,38 +309,168 @@ export const useMemberStore = defineStore("members", () => {
     }
 
     const promises = [];
-    const eventName = event.name;
+
+    // Helper to safely format date (reusing logic for consistency)
+    // Helper to safely format date to YYYY-MM-DD using LOCAL time
+    const toLocalYMD = (d) => {
+      if (!d) return "";
+      // If already a string in YYYY-MM-DD format, return it
+      if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const dateObj = new Date(d);
+        // Use local time methods to avoid UTC shifts
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        return ""; // Handle invalid dates gracefully
+      }
+    };
+
+    // Helper to normalize strings
+    const normalize = (str) => (str ? str.toLowerCase().trim() : "");
+
+    const eventNameNormalized = normalize(event.name);
+
+    const eventDateFormatted = toLocalYMD(event.date);
 
     for (const member of members.value) {
       let updatedData = {};
       let needsUpdate = false;
 
+      const isSameEvent = (e) => {
+        return (
+          normalize(e.eventName) === eventNameNormalized &&
+          toLocalYMD(e.date) === eventDateFormatted
+        );
+      };
+
       if (event.type === "ISM") {
         const ismAttendance = member.ismAttendance || [];
-        if (ismAttendance.some((e) => e.eventName === eventName)) {
+        if (ismAttendance.some(isSameEvent)) {
           updatedData.ismAttendance = ismAttendance.filter(
-            (e) => e.eventName !== eventName,
+            (e) => !isSameEvent(e),
           );
           needsUpdate = true;
         }
       } else if (event.type === "ISS") {
         const issEvents = member.issEvents || [];
-        if (issEvents.some((e) => e.eventName === eventName)) {
-          updatedData.issEvents = issEvents.filter(
-            (e) => e.eventName !== eventName,
-          );
+        if (issEvents.some(isSameEvent)) {
+          updatedData.issEvents = issEvents.filter((e) => !isSameEvent(e));
           updatedData.issAttended = Math.max(0, (member.issAttended || 0) - 1);
           needsUpdate = true;
         }
       } else if (event.type === "NCS") {
         const ncsEvents = member.ncsEvents || [];
-        if (ncsEvents.some((e) => e.eventName === eventName)) {
-          updatedData.ncsEvents = ncsEvents.filter(
-            (e) => e.eventName !== eventName,
-          );
+        if (ncsEvents.some(isSameEvent)) {
+          updatedData.ncsEvents = ncsEvents.filter((e) => !isSameEvent(e));
           updatedData.ncsAttended = Math.max(0, (member.ncsAttended || 0) - 1);
           needsUpdate = true;
         }
+      }
+
+      if (needsUpdate) {
+        promises.push(memberService.updateMember(member.id, updatedData));
+      }
+    }
+
+    const results = await Promise.all(promises);
+    const errors = results.filter((r) => r.error);
+
+    if (errors.length > 0) {
+      error.value = `Failed to update ${errors.length} members.`;
+    } else if (!realtimeEnabled.value) {
+      await fetchMembers();
+    }
+
+    loading.value = false;
+    return { error: error.value, count: promises.length };
+  };
+
+  // Update an event's details in ALL members (Sync)
+  const updateEventInAllMembers = async (oldEvent, newEventData) => {
+    loading.value = true;
+    error.value = null;
+
+    // Ensure we have the latest data if not realtime
+    if (!realtimeEnabled.value && members.value.length === 0) {
+      await fetchMembers();
+    }
+
+    // Helper to safely format date to YYYY-MM-DD using LOCAL time
+    const toLocalYMD = (d) => {
+      if (!d) return "";
+      // If already a string in YYYY-MM-DD format, return it
+      if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const dateObj = new Date(d);
+        // Use local time methods to avoid UTC shifts
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        return ""; // Handle invalid dates gracefully
+      }
+    };
+
+    // Helper to normalize strings for comparison
+    const normalize = (str) => (str ? str.toLowerCase().trim() : "");
+
+    const oldNameNormalized = normalize(oldEvent.name);
+    const oldDateFormatted = toLocalYMD(oldEvent.date);
+
+    const promises = [];
+
+    for (const member of members.value) {
+      let updatedData = {};
+      let needsUpdate = false;
+
+      const checkAndUpdateEvent = (eventList) => {
+        if (!eventList) return null;
+        let listChanged = false;
+
+        const newList = eventList.map((e) => {
+          // Check for match on Name AND Date
+          const eDateFormatted = toLocalYMD(e.date);
+          const eNameNormalized = normalize(e.eventName);
+
+          if (
+            eNameNormalized === oldNameNormalized &&
+            eDateFormatted === oldDateFormatted
+          ) {
+            listChanged = true;
+            return {
+              ...e,
+              eventName: newEventData.name || e.eventName,
+              date: newEventData.date || e.date,
+            };
+          }
+          return e;
+        });
+        return listChanged ? newList : null;
+      };
+
+      // Check ISM
+      const newISM = checkAndUpdateEvent(member.ismAttendance);
+      if (newISM) {
+        updatedData.ismAttendance = newISM;
+        needsUpdate = true;
+      }
+
+      // Check ISS
+      const newISS = checkAndUpdateEvent(member.issEvents);
+      if (newISS) {
+        updatedData.issEvents = newISS;
+        needsUpdate = true;
+      }
+
+      // Check NCS
+      const newNCS = checkAndUpdateEvent(member.ncsEvents);
+      if (newNCS) {
+        updatedData.ncsEvents = newNCS;
+        needsUpdate = true;
       }
 
       if (needsUpdate) {
@@ -379,5 +520,6 @@ export const useMemberStore = defineStore("members", () => {
     getValidNCSCount,
     isNCSEventValid,
     removeEventFromAllMembers,
+    updateEventInAllMembers,
   };
 });

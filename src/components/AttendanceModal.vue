@@ -3,6 +3,7 @@ import { ref, computed, watch } from "vue";
 import { useMemberStore } from "../stores/memberStore";
 import { X, Search, Check, UserPlus } from "lucide-vue-next";
 import QuickAddStudentModal from "./QuickAddStudentModal.vue";
+import { calculateNextSubsidyRate } from "../utils/helpers";
 
 const props = defineProps({
   event: {
@@ -42,6 +43,135 @@ const filteredMembers = computed(() => {
   });
 });
 
+// Calculate subsidies for ISM events
+const getMemberSubsidy = (member) => {
+  if (props.event.type !== "ISM") return null;
+
+  // Helper to normalize dates to YYYY-MM-DD format
+  const toLocalYMD = (d) => {
+    if (!d) return "";
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    try {
+      const dateObj = new Date(d);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch (e) {
+      return "";
+    }
+  };
+
+  // Check if member already has attendance for THIS specific event
+  const existingAttendance = (member.ismAttendance || []).find(
+    (ism) =>
+      ism.eventName === props.event.name &&
+      toLocalYMD(ism.date) === toLocalYMD(props.event.date),
+  );
+
+  // If attendance already exists for this event, return the saved subsidy
+  if (existingAttendance) {
+    return existingAttendance.subsidyUsed;
+  }
+
+  // Otherwise, calculate the next subsidy based on history
+  // Only count auto-applied subsidies in history
+  const subsidyHistory = (member.ismAttendance || [])
+    .filter((a) => a.isAuto !== false) // Include undefined (old data) and true
+    .map((a) => a.subsidyUsed);
+  return calculateNextSubsidyRate(member.membershipType, subsidyHistory);
+};
+
+// Track manual subsidy overrides
+// Initialize with existing attendance data if available
+const subsidyOverrides = ref({});
+
+// Initialize subsidy overrides from existing event attendance
+const initializeSubsidyOverrides = () => {
+  if (props.event.type !== "ISM") return;
+
+  const toLocalYMD = (d) => {
+    if (!d) return "";
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    try {
+      const dateObj = new Date(d);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch (e) {
+      return "";
+    }
+  };
+
+  memberStore.members.forEach((member) => {
+    const existingAttendance = (member.ismAttendance || []).find(
+      (ism) =>
+        ism.eventName === props.event.name &&
+        toLocalYMD(ism.date) === toLocalYMD(props.event.date),
+    );
+
+    // Only set override if attendance already exists for this event
+    if (existingAttendance && attendance.value[member.id]?.attended) {
+      subsidyOverrides.value[member.id] = existingAttendance.subsidyUsed;
+    }
+  });
+};
+
+// Initialize on mount
+initializeSubsidyOverrides();
+
+const getDisplaySubsidy = (memberId) => {
+  const member = memberStore.members.find((m) => m.id === memberId);
+  if (!member) return 0;
+
+  // Return override if set, otherwise return auto-calculated
+  return subsidyOverrides.value[memberId] !== undefined
+    ? subsidyOverrides.value[memberId]
+    : getMemberSubsidy(member);
+};
+
+const setSubsidyOverride = (memberId, value) => {
+  subsidyOverrides.value[memberId] = value;
+  // Mark that user manually changed this subsidy
+  manuallyModified.value[memberId] = true;
+};
+
+// Track which subsidies were manually modified by user
+const manuallyModified = ref({});
+
+// Check if subsidy is from saved attendance data
+const isSavedSubsidy = (memberId) => {
+  if (props.event.type !== "ISM") return false;
+
+  const toLocalYMD = (d) => {
+    if (!d) return "";
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    try {
+      const dateObj = new Date(d);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch (e) {
+      return "";
+    }
+  };
+
+  const member = memberStore.members.find((m) => m.id === memberId);
+  if (!member) return false;
+
+  const existingAttendance = (member.ismAttendance || []).find(
+    (ism) =>
+      ism.eventName === props.event.name &&
+      toLocalYMD(ism.date) === toLocalYMD(props.event.date),
+  );
+
+  return !!existingAttendance && !manuallyModified.value[memberId];
+};
+
+const subsidyOptions = [95, 90, 70, 50, 10, 0];
+
 // Helper functions for attendance
 const isAttended = (memberId) => {
   return attendance.value[memberId]?.attended || false;
@@ -65,6 +195,15 @@ const toggleAttendance = (memberId) => {
     attendance.value[memberId] = { attended: true };
   } else {
     attendance.value[memberId].attended = !attendance.value[memberId].attended;
+  }
+
+  // For ISM events, include subsidy override if set
+  if (
+    props.event.type === "ISM" &&
+    subsidyOverrides.value[memberId] !== undefined
+  ) {
+    attendance.value[memberId].subsidyOverride =
+      subsidyOverrides.value[memberId];
   }
 };
 
@@ -112,6 +251,16 @@ const attendedCount = computed(() => {
 });
 
 const handleSave = async () => {
+  // Add subsidy overrides to attendance data for ISM events
+  if (props.event.type === "ISM") {
+    Object.keys(attendance.value).forEach((memberId) => {
+      if (subsidyOverrides.value[memberId] !== undefined) {
+        attendance.value[memberId].subsidyOverride =
+          subsidyOverrides.value[memberId];
+      }
+    });
+  }
+
   isSaving.value = true;
   emit("save", attendance.value);
   // Note: The parent component will handle closing the modal after save
@@ -221,7 +370,7 @@ const handleQuickAddStudent = async (studentData) => {
             </div>
 
             <!-- ISM/ISS Attendance Checkbox -->
-            <div v-if="event.type !== 'NCS'" class="flex items-center gap-2">
+            <div v-if="event.type !== 'NCS'" class="flex items-center gap-3">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -231,6 +380,44 @@ const handleQuickAddStudent = async (studentData) => {
                 />
                 <span class="text-sm font-medium text-gray-700">Attended</span>
               </label>
+
+              <!-- Subsidy Dropdown for ISM Events -->
+              <div
+                v-if="event.type === 'ISM' && isAttended(member.id)"
+                class="flex items-center gap-2"
+              >
+                <span class="text-xs text-gray-600">Subsidy:</span>
+                <select
+                  :value="getDisplaySubsidy(member.id)"
+                  @change="
+                    (e) =>
+                      setSubsidyOverride(member.id, parseInt(e.target.value))
+                  "
+                  class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-navy focus:border-navy"
+                >
+                  <option
+                    v-for="option in subsidyOptions"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}%
+                  </option>
+                </select>
+                <span
+                  v-if="isSavedSubsidy(member.id)"
+                  class="text-xs text-blue-600 font-medium"
+                  title="Saved subsidy from existing attendance"
+                >
+                  (Saved)
+                </span>
+                <span
+                  v-else-if="!manuallyModified[member.id]"
+                  class="text-xs text-emerald font-medium"
+                  title="Auto-calculated based on membership type"
+                >
+                  (Auto)
+                </span>
+              </div>
             </div>
 
             <!-- NCS Session Checkboxes -->

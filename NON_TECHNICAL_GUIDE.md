@@ -173,10 +173,20 @@ firebase deploy --only hosting
    - School ✅
    - Admit Year ✅
    - Membership Type ✅
+   - Declaration Date (for Ordinary A) ✅
 
 3. **Check for duplicates**
    - Each Campus ID must be unique
    - Search existing members first
+
+4. **Use Drag-and-Drop**
+   - You can now drag and drop Excel files directly into the upload zone
+   - Works for both member and attendance imports
+
+5. **Bulk Editing Existing Data**
+   - Click "Download Existing Data" to export current members
+   - Edit the downloaded file (all columns included)
+   - Re-upload to update members in bulk
 
 ### Issue 4: Attendance Import Created "Incomplete" Members
 
@@ -235,6 +245,29 @@ firebase deploy --only hosting
 3. **Check spelling**
    - Names are stored in UPPERCASE
    - Emails are stored in lowercase
+
+---
+
+## New Features (v2.0)
+
+### Export filtered members
+
+The default "Export All" button will automatically change to **"Export Filtered"** whenever you have active filters applied (e.g., viewing only "Ordinary A" members). Clicking this will download an Excel file containing **only** the members currently visible in the table.
+
+### Bulk delete members
+
+To delete multiple members at once:
+
+1.  Click the **"Bulk Delete"** toggle at the bottom right of the page (next to "Rows per page").
+2.  Checkboxes will appear next to each member. Select the members you wish to delete.
+3.  Click the red **"Delete ({n})"** button that appears next to the toggle.
+4.  Confirm the deletion. This action is **permanent** and will verify deletion of associated event records.
+
+### NCS Attendance Logic
+
+- **Partial Attendance**: If a member attends only 1 out of 2 sessions for an NCS event, it will be recorded but **marked as Partial** in their profile. It will **not** count towards their NCS graduation requirement total automatically.
+- **Force Count**: In the Member Modal > NCS Event Details, you can click the "Force Count" button on a specific event to manually validate it, even if attendance was partial or dates are outside the standard window.
+- **Manual Override**: You can manually edit the **"# NCS Attended"** number in the Member Modal (Optional Information section). This manual value will override the automatic calculation and appear on the Dashboard.
 
 ---
 
