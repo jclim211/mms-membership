@@ -2,6 +2,8 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { memberService } from "../services/memberService";
 import { useEventStore } from "./eventStore";
+import { writeBatch, doc } from "firebase/firestore";
+import { db } from "../services/firebase";
 
 export const useMemberStore = defineStore("members", () => {
   const members = ref([]);
@@ -306,7 +308,6 @@ export const useMemberStore = defineStore("members", () => {
   };
 
   // Remove a specific event from ALL members
-  // Remove a specific event from ALL members
   const removeEventFromAllMembers = async (event) => {
     loading.value = true;
     error.value = null;
@@ -316,33 +317,28 @@ export const useMemberStore = defineStore("members", () => {
       await fetchMembers();
     }
 
-    const promises = [];
-
-    // Helper to safely format date (reusing logic for consistency)
     // Helper to safely format date to YYYY-MM-DD using LOCAL time
     const toLocalYMD = (d) => {
       if (!d) return "";
-      // If already a string in YYYY-MM-DD format, return it
       if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
       try {
         const dateObj = new Date(d);
-        // Use local time methods to avoid UTC shifts
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, "0");
         const day = String(dateObj.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
       } catch (e) {
-        return ""; // Handle invalid dates gracefully
+        return "";
       }
     };
 
-    // Helper to normalize strings
     const normalize = (str) => (str ? str.toLowerCase().trim() : "");
-
     const eventNameNormalized = normalize(event.name);
-
     const eventDateFormatted = toLocalYMD(event.date);
 
+    // Collect members that need updates
+    const membersToUpdate = [];
+    
     for (const member of members.value) {
       let updatedData = {};
       let needsUpdate = false;
@@ -379,21 +375,44 @@ export const useMemberStore = defineStore("members", () => {
       }
 
       if (needsUpdate) {
-        promises.push(memberService.updateMember(member.id, updatedData));
+        membersToUpdate.push({ id: member.id, data: updatedData });
       }
     }
 
-    const results = await Promise.all(promises);
-    const errors = results.filter((r) => r.error);
+    // Process in batches of 500 (Firestore limit)
+    const BATCH_SIZE = 500;
+    let errorCount = 0;
 
-    if (errors.length > 0) {
-      error.value = `Failed to update ${errors.length} members.`;
+    for (let i = 0; i < membersToUpdate.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      const batchMembers = membersToUpdate.slice(i, i + BATCH_SIZE);
+
+      for (const member of batchMembers) {
+        const memberRef = doc(db, "members", member.id);
+        batch.update(memberRef, {
+          ...member.data,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      try {
+        await batch.commit();
+      } catch (err) {
+        errorCount++;
+        if (import.meta.env.DEV) {
+          console.error("Batch update failed:", err);
+        }
+      }
+    }
+
+    if (errorCount > 0) {
+      error.value = `Failed to update ${errorCount} batches of members.`;
     } else if (!realtimeEnabled.value) {
       await fetchMembers();
     }
 
     loading.value = false;
-    return { error: error.value, count: promises.length };
+    return { error: error.value, count: membersToUpdate.length };
   };
 
   // Update an event's details in ALL members (Sync)
@@ -401,35 +420,30 @@ export const useMemberStore = defineStore("members", () => {
     loading.value = true;
     error.value = null;
 
-    // Ensure we have the latest data if not realtime
     if (!realtimeEnabled.value && members.value.length === 0) {
       await fetchMembers();
     }
 
-    // Helper to safely format date to YYYY-MM-DD using LOCAL time
     const toLocalYMD = (d) => {
       if (!d) return "";
-      // If already a string in YYYY-MM-DD format, return it
       if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
       try {
         const dateObj = new Date(d);
-        // Use local time methods to avoid UTC shifts
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, "0");
         const day = String(dateObj.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
       } catch (e) {
-        return ""; // Handle invalid dates gracefully
+        return "";
       }
     };
 
-    // Helper to normalize strings for comparison
     const normalize = (str) => (str ? str.toLowerCase().trim() : "");
-
     const oldNameNormalized = normalize(oldEvent.name);
     const oldDateFormatted = toLocalYMD(oldEvent.date);
 
-    const promises = [];
+    // Collect members that need updates
+    const membersToUpdate = [];
 
     for (const member of members.value) {
       let updatedData = {};
@@ -440,7 +454,6 @@ export const useMemberStore = defineStore("members", () => {
         let listChanged = false;
 
         const newList = eventList.map((e) => {
-          // Check for match on Name AND Date
           const eDateFormatted = toLocalYMD(e.date);
           const eNameNormalized = normalize(e.eventName);
 
@@ -460,21 +473,18 @@ export const useMemberStore = defineStore("members", () => {
         return listChanged ? newList : null;
       };
 
-      // Check ISM
       const newISM = checkAndUpdateEvent(member.ismAttendance);
       if (newISM) {
         updatedData.ismAttendance = newISM;
         needsUpdate = true;
       }
 
-      // Check ISS
       const newISS = checkAndUpdateEvent(member.issEvents);
       if (newISS) {
         updatedData.issEvents = newISS;
         needsUpdate = true;
       }
 
-      // Check NCS
       const newNCS = checkAndUpdateEvent(member.ncsEvents);
       if (newNCS) {
         updatedData.ncsEvents = newNCS;
@@ -482,21 +492,44 @@ export const useMemberStore = defineStore("members", () => {
       }
 
       if (needsUpdate) {
-        promises.push(memberService.updateMember(member.id, updatedData));
+        membersToUpdate.push({ id: member.id, data: updatedData });
       }
     }
 
-    const results = await Promise.all(promises);
-    const errors = results.filter((r) => r.error);
+    // Process in batches of 500
+    const BATCH_SIZE = 500;
+    let errorCount = 0;
 
-    if (errors.length > 0) {
-      error.value = `Failed to update ${errors.length} members.`;
+    for (let i = 0; i < membersToUpdate.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      const batchMembers = membersToUpdate.slice(i, i + BATCH_SIZE);
+
+      for (const member of batchMembers) {
+        const memberRef = doc(db, "members", member.id);
+        batch.update(memberRef, {
+          ...member.data,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      try {
+        await batch.commit();
+      } catch (err) {
+        errorCount++;
+        if (import.meta.env.DEV) {
+          console.error("Batch update failed:", err);
+        }
+      }
+    }
+
+    if (errorCount > 0) {
+      error.value = `Failed to update ${errorCount} batches of members.`;
     } else if (!realtimeEnabled.value) {
       await fetchMembers();
     }
 
     loading.value = false;
-    return { error: error.value, count: promises.length };
+    return { error: error.value, count: membersToUpdate.length };
   };
 
   return {

@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is an approved admin
+    function isApprovedAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) &&
+             get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.approved == true;
+    }
+    
+    // Members collection - only approved admins can access
+    match /members/{memberId} {
+      allow read, write: if isApprovedAdmin();
+    }
+    
+    // Events collection - only approved admins can access
+    match /events/{eventId} {
+      allow read, write: if isApprovedAdmin();
+    }
+    
+    // Admins collection
+    match /admins/{email} {
+      // Admins can read their own document
+      allow read: if request.auth != null && request.auth.token.email == email;
+      
+      // Only existing approved admins can create/update/delete admin records
+      allow write: if isApprovedAdmin();
+    }
+  }
+}

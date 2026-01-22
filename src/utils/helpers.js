@@ -151,3 +151,19 @@ export function getStudentStatusBadge(status) {
       return { label: "?", color: "bg-gray-100 text-gray-800 border-gray-200" };
   }
 }
+
+/**
+ * Normalize Campus ID by padding with leading zero if needed
+ * Excel removes leading zeros, so we restore them for 7-digit IDs
+ * @param {string|number} id - Campus ID to normalize
+ * @returns {string} Normalized campus ID
+ */
+export function normalizeCampusId(id) {
+  if (!id) return "";
+  const campusId = id.toString();
+  // If it's 7 digits, add leading zero
+  if (campusId.length === 7 && /^\d{7}$/.test(campusId)) {
+    return "0" + campusId;
+  }
+  return campusId;
+}

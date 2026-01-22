@@ -78,21 +78,19 @@ export const authService = {
   // Check if user email is in approved admins list
   async checkAdminApproval(email) {
     try {
-      console.log("🔍 Checking admin approval for:", email);
       const adminDoc = await getDoc(doc(db, "admins", email));
-      console.log("📄 Document exists:", adminDoc.exists());
 
       if (adminDoc.exists()) {
         const data = adminDoc.data();
-        console.log("📋 Document data:", data);
-        console.log("✅ Approved status:", data.approved);
         return data.approved === true;
       }
 
-      console.log("❌ No document found for email:", email);
       return false;
     } catch (error) {
-      console.error("❌ Error checking admin approval:", error);
+      // Only log in development
+      if (import.meta.env.DEV) {
+        console.error("Error checking admin approval:", error);
+      }
       return false;
     }
   },

@@ -105,6 +105,7 @@ const showFilterPanel = ref(false);
 const sortField = ref("createdAt");
 const isBulkDeleteMode = ref(false); // Toggle for bulk delete mode
 const selectedMembers = ref(new Set()); // Track selected members
+const isBulkDeleting = ref(false); // Loading state for bulk delete
 
 const sortOrder = ref("asc");
 
@@ -163,13 +164,22 @@ const handleBulkDelete = async () => {
       `Are you sure you want to delete ${selectedMembers.value.size} members? This cannot be undone.`,
     )
   ) {
-    // We should probably show a loading state here
-    for (const memberId of selectedMembers.value) {
-      await memberStore.deleteMember(memberId);
-      // eventStore cleanup is now handled inside memberStore.deleteMember
+    isBulkDeleting.value = true;
+    try {
+      for (const memberId of selectedMembers.value) {
+        await memberStore.deleteMember(memberId);
+        // eventStore cleanup is now handled inside memberStore.deleteMember
+      }
+      selectedMembers.value.clear();
+      isBulkDeleteMode.value = false; // Exit mode after delete
+    } catch (error) {
+      alert('Bulk delete failed: ' + error.message);
+      if (import.meta.env.DEV) {
+        console.error('Bulk delete error:', error);
+      }
+    } finally {
+      isBulkDeleting.value = false;
     }
-    selectedMembers.value.clear();
-    isBulkDeleteMode.value = false; // Exit mode after delete
   }
 };
 
@@ -342,56 +352,70 @@ const handleLogout = async () => {
   router.push("/login");
 };
 
-const handleExport = () => {
-  // Add next subsidy rate to each member before export
-  // Use sortedMembers to maintain current sort order in export
-  const membersWithSubsidy = sortedMembers.value.map((member) => ({
-    ...member,
-    nextSubsidyRate: calculateNextSubsidyRate(
-      member.membershipType,
-      member.ismAttendance?.map((ism) => ism.subsidyUsed) || [],
-    ),
-  }));
-  exportToExcel(membersWithSubsidy);
+const handleExport = async () => {
+  try {
+    // Add next subsidy rate to each member before export
+    // Use sortedMembers to maintain current sort order in export
+    const membersWithSubsidy = sortedMembers.value.map((member) => ({
+      ...member,
+      nextSubsidyRate: calculateNextSubsidyRate(
+        member.membershipType,
+        member.ismAttendance?.map((ism) => ism.subsidyUsed) || [],
+      ),
+    }));
+    exportToExcel(membersWithSubsidy);
+  } catch (error) {
+    alert('Export failed: ' + error.message);
+    if (import.meta.env.DEV) {
+      console.error('Export error:', error);
+    }
+  }
 };
 
 const exportTelegramNotAdded = () => {
-  // Filter members not added to Telegram and have Telegram handles
-  const notAdded = memberStore.members.filter(
-    (member) => !member.addedToTelegram && member.telegramHandle,
-  );
+  try {
+    // Filter members not added to Telegram and have Telegram handles
+    const notAdded = memberStore.members.filter(
+      (member) => !member.addedToTelegram && member.telegramHandle,
+    );
 
-  if (notAdded.length === 0) {
-    alert("All members with Telegram handles have been added to the group!");
-    return;
+    if (notAdded.length === 0) {
+      alert("All members with Telegram handles have been added to the group!");
+      return;
+    }
+
+    // Create export data
+    const exportData = notAdded.map((member) => ({
+      "Campus ID": member.campusId || "",
+      "Full Name": member.fullName || "",
+      "Telegram Handle": member.telegramHandle || "",
+      "Membership Type": member.membershipType || "",
+      "School Email": member.schoolEmail || "",
+    }));
+
+    // Create CSV content
+    const headers = Object.keys(exportData[0]).join(",");
+    const rows = exportData.map((row) => Object.values(row).join(","));
+    const csv = [headers, ...rows].join("\n");
+
+    // Download CSV
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `telegram_not_added_${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    alert('Export failed: ' + error.message);
+    if (import.meta.env.DEV) {
+      console.error('Telegram export error:', error);
+    }
   }
-
-  // Create export data
-  const exportData = notAdded.map((member) => ({
-    "Campus ID": member.campusId || "",
-    "Full Name": member.fullName || "",
-    "Telegram Handle": member.telegramHandle || "",
-    "Membership Type": member.membershipType || "",
-    "School Email": member.schoolEmail || "",
-  }));
-
-  // Create CSV content
-  const headers = Object.keys(exportData[0]).join(",");
-  const rows = exportData.map((row) => Object.values(row).join(","));
-  const csv = [headers, ...rows].join("\n");
-
-  // Download CSV
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `telegram_not_added_${
-    new Date().toISOString().split("T")[0]
-  }.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
 };
 
 const openAddModal = () => {
@@ -1266,10 +1290,12 @@ watch(
             <button
               v-if="isBulkDeleteMode && selectedMembers.size > 0"
               @click="handleBulkDelete"
-              class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors shadow-sm"
+              :disabled="isBulkDeleting"
+              class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 :size="14" />
-              <span>Delete ({{ selectedMembers.size }})</span>
+              <span v-if="isBulkDeleting">Deleting...</span>
+              <span v-else>Delete ({{ selectedMembers.size }})</span>
             </button>
           </div>
         </div>
