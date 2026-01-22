@@ -17,7 +17,14 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
 
     // Flatten NCS events
     const ncsEvents = member.ncsEvents || [];
-    const ncsNames = ncsEvents.map((event) => event.eventName).join("; ");
+    const ncsNames = ncsEvents
+      .map((event) => {
+        const isPartialComplete = !event.session1 || !event.session2;
+        return isPartialComplete
+          ? `${event.eventName} (Partial Completed)`
+          : event.eventName;
+      })
+      .join("; ");
 
     // Flatten ISS events
     const issEvents = member.issEvents || [];
