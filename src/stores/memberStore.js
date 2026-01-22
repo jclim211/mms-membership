@@ -141,18 +141,25 @@ export const useMemberStore = defineStore("members", () => {
     // Apply Profile Completion filter
     if (incompleteFilter.value !== "all") {
       filtered = filtered.filter((member) => {
-        // Check for required fields (same logic as DashboardView)
-        const requiredFields = [
-          member.campusId,
-          member.fullName,
-          member.schoolEmail,
-          member.admitYear,
-          member.school,
-          member.membershipType,
-        ];
-        const hasMissingFields = requiredFields.some((field) => !field);
-        const hasTracks = member.tracks && member.tracks.length > 0;
-        const isProfileIncomplete = hasMissingFields || !hasTracks;
+        // Check required fields - must exist and not be empty string
+        const isEmpty = (val) => val === null || val === undefined || val === "";
+        
+        const hasMissingFields = 
+          isEmpty(member.campusId) ||
+          isEmpty(member.fullName) ||
+          isEmpty(member.schoolEmail) ||
+          isEmpty(member.admitYear) ||
+          isEmpty(member.school) ||
+          isEmpty(member.membershipType) ||
+          isEmpty(member.studentStatus) ||
+          isEmpty(member.firstDegree);
+
+        // Only Ordinary A members require tracks
+        let isProfileIncomplete = hasMissingFields;
+        if (member.membershipType === "Ordinary A") {
+          const hasTracks = member.tracks && member.tracks.length > 0;
+          isProfileIncomplete = hasMissingFields || !hasTracks;
+        }
 
         if (incompleteFilter.value === "incomplete") {
           return isProfileIncomplete || member.isIncomplete === true;

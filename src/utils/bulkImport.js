@@ -181,8 +181,14 @@ function validateAndTransformData(data, options = {}) {
     };
 
     // Initialize member object with always-present fields
+    // Pad Campus ID with leading zero if it's 7 digits (Excel removes leading zeros)
+    let campusId = row["Campus ID"]?.toString() || "";
+    if (campusId.length === 7 && /^\d{7}$/.test(campusId)) {
+      campusId = "0" + campusId;
+    }
+
     const member = {
-      campusId: row["Campus ID"]?.toString() || "",
+      campusId: campusId,
       fullName: (row["Full Name"] || "").toUpperCase(),
     };
 

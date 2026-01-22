@@ -207,22 +207,26 @@ const availableSchools = computed(() => {
 
 // Check if a member profile is incomplete
 const isIncomplete = (member) => {
-  const requiredFields = [
-    member.campusId,
-    member.fullName,
-    member.schoolEmail,
-    member.admitYear,
-    member.school,
-    member.membershipType,
-  ];
+  // Check required fields - must exist and not be empty string
+  const isEmpty = (val) => val === null || val === undefined || val === "";
+  
+  const hasMissingFields = 
+    isEmpty(member.campusId) ||
+    isEmpty(member.fullName) ||
+    isEmpty(member.schoolEmail) ||
+    isEmpty(member.admitYear) ||
+    isEmpty(member.school) ||
+    isEmpty(member.membershipType) ||
+    isEmpty(member.studentStatus) ||
+    isEmpty(member.firstDegree);
 
-  // Check if any required field is missing
-  const hasMissingFields = requiredFields.some((field) => !field);
+  // Only Ordinary A members require tracks
+  if (member.membershipType === "Ordinary A") {
+    const hasTracks = member.tracks && member.tracks.length > 0;
+    return hasMissingFields || !hasTracks;
+  }
 
-  // Check if tracks array is empty or missing
-  const hasTracks = member.tracks && member.tracks.length > 0;
-
-  return hasMissingFields || !hasTracks;
+  return hasMissingFields;
 };
 
 // Calculate NCS progress for a member
