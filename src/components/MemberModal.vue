@@ -77,7 +77,12 @@ const showAddISS = ref(false);
 const newISSEvent = ref({ eventName: "", date: "" });
 const newDynamicField = ref({ key: "", value: "" });
 const editingReasonForEvent = ref(null);
-const deleteConfirmation = ref({ show: false, type: null, index: null, eventName: "" });
+const deleteConfirmation = ref({
+  show: false,
+  type: null,
+  index: null,
+  eventName: "",
+});
 
 // Track original membership type to detect transitions
 const originalMembershipType = ref(props.member?.membershipType || null);
@@ -330,15 +335,20 @@ const addISMAttendance = () => {
 const removeISMAttendance = (index) => {
   deleteConfirmation.value = {
     show: true,
-    type: 'ISM',
+    type: "ISM",
     index: index,
-    eventName: formData.value.ismAttendance[index].eventName
+    eventName: formData.value.ismAttendance[index].eventName,
   };
 };
 
 const confirmDeleteISM = () => {
   formData.value.ismAttendance.splice(deleteConfirmation.value.index, 1);
-  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
+  deleteConfirmation.value = {
+    show: false,
+    type: null,
+    index: null,
+    eventName: "",
+  };
 };
 
 // Add NCS event
@@ -379,9 +389,9 @@ const addNCSEvent = () => {
 const removeNCSEvent = (index) => {
   deleteConfirmation.value = {
     show: true,
-    type: 'NCS',
+    type: "NCS",
     index: index,
-    eventName: formData.value.ncsEvents[index].eventName
+    eventName: formData.value.ncsEvents[index].eventName,
   };
 };
 
@@ -389,7 +399,12 @@ const confirmDeleteNCS = () => {
   formData.value.ncsEvents.splice(deleteConfirmation.value.index, 1);
   // Recalculate counter
   recalculateNCSAttended();
-  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
+  deleteConfirmation.value = {
+    show: false,
+    type: null,
+    index: null,
+    eventName: "",
+  };
 };
 
 // Add ISS event
@@ -419,9 +434,9 @@ const addISSEvent = () => {
 const removeISSEvent = (index) => {
   deleteConfirmation.value = {
     show: true,
-    type: 'ISS',
+    type: "ISS",
     index: index,
-    eventName: formData.value.issEvents[index].eventName
+    eventName: formData.value.issEvents[index].eventName,
   };
 };
 
@@ -432,19 +447,29 @@ const confirmDeleteISS = () => {
     0,
     (formData.value.issAttended || 0) - 1,
   );
-  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
+  deleteConfirmation.value = {
+    show: false,
+    type: null,
+    index: null,
+    eventName: "",
+  };
 };
 
 const cancelDelete = () => {
-  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
+  deleteConfirmation.value = {
+    show: false,
+    type: null,
+    index: null,
+    eventName: "",
+  };
 };
 
 const confirmDelete = () => {
-  if (deleteConfirmation.value.type === 'ISM') {
+  if (deleteConfirmation.value.type === "ISM") {
     confirmDeleteISM();
-  } else if (deleteConfirmation.value.type === 'NCS') {
+  } else if (deleteConfirmation.value.type === "NCS") {
     confirmDeleteNCS();
-  } else if (deleteConfirmation.value.type === 'ISS') {
+  } else if (deleteConfirmation.value.type === "ISS") {
     confirmDeleteISS();
   }
 };
@@ -1438,7 +1463,10 @@ const handleSave = async () => {
                       <div v-if="event.forceValid" class="mt-2">
                         <!-- Show input if editing or no reason set -->
                         <input
-                          v-if="!event.forceValidReason || editingReasonForEvent === event"
+                          v-if="
+                            !event.forceValidReason ||
+                            editingReasonForEvent === event
+                          "
                           v-model="event.forceValidReason"
                           type="text"
                           placeholder="Reason for manual override (optional)"
@@ -1954,9 +1982,7 @@ const handleSave = async () => {
               <p class="text-sm font-medium text-gray-900 mb-3">
                 "{{ deleteConfirmation.eventName }}"
               </p>
-              <p class="text-xs text-red-600">
-                This action cannot be undone.
-              </p>
+              <p class="text-xs text-red-600">This action cannot be undone.</p>
             </div>
           </div>
           <div class="flex gap-3 mt-6">
