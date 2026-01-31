@@ -12,6 +12,24 @@ import {
 import { normalizeCampusId } from "./helpers";
 
 /**
+ * IMPORTANT: Event Attendance Fields (NCS, ISS, ISM)
+ *
+ * These fields are EXPORT-ONLY and are NOT imported during bulk upload:
+ * - ISM Attendance
+ * - NCS Events (comma-separated)
+ * - ISS Events (comma-separated)
+ * - NCS Attended (auto-calculated)
+ * - ISS Attended (auto-calculated)
+ *
+ * Rationale:
+ * - Event attendance should be managed through the Event View's bulk attendance import feature
+ * - This prevents sync issues between member records and the centralized Event Store
+ * - Keeps member bulk import focused on profile data only
+ *
+ * These fields appear in downloads for reference and audit purposes.
+ */
+
+/**
  * Generate and download Excel template for bulk member upload
  */
 export function downloadTemplate() {
@@ -345,31 +363,9 @@ function validateAndTransformData(data, options = {}) {
       );
     }
 
-    // Complex Arrays (Attendance) - Partial update usually shouldn't overwrite these unless specified.
-    if (row["ISM Attendance"] || !isPartial) {
-      // Logic for parsing ISM Attendance... (abbreviated, reusing existing logic)
-      let ismAttendance = [];
-      if (row["ISM Attendance"]) {
-        const ismString = row["ISM Attendance"].toString().trim();
-        if (ismString) {
-          const ismEntries = ismString.split(",").map((entry) => entry.trim());
-          ismAttendance = ismEntries
-            .map((entry) => {
-              const parts = entry.split(":");
-              if (parts.length === 2) {
-                return {
-                  eventName: parts[0].trim(),
-                  subsidyUsed: parseInt(parts[1].trim()),
-                  timestamp: new Date().toISOString(),
-                };
-              }
-              return null;
-            })
-            .filter((i) => i);
-        }
-      }
-      member.ismAttendance = ismAttendance;
-    }
+    // Skip processing of ISM Attendance, NCS Events, and ISS Events
+    // These fields are shown in exports for reference only but are not imported
+    // Event attendance should be managed through the Event View bulk attendance import feature
 
     // If errors exist, push to invalid
     if (errors.length > 0) {

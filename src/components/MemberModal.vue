@@ -1146,10 +1146,11 @@ const handleSave = async () => {
                 <button
                   type="button"
                   @click="showAddISM = true"
-                  class="flex items-center gap-2 px-4 py-2 text-navy border border-navy rounded-lg hover:bg-navy/5 transition-colors"
+                  class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  title="For edge cases only. Use Event View for bulk attendance."
                 >
-                  <Plus :size="18" />
-                  <span>Add ISM Attendance</span>
+                  <Plus :size="16" />
+                  <span>Add ISM Attendance (Manual Override)</span>
                 </button>
               </div>
 
@@ -1157,6 +1158,25 @@ const handleSave = async () => {
                 v-else
                 class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3"
               >
+                <!-- Warning: Use Event View -->
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div class="flex items-start gap-2">
+                    <AlertCircle
+                      :size="16"
+                      class="text-amber-600 flex-shrink-0 mt-0.5"
+                    />
+                    <div class="text-xs text-amber-800">
+                      <p class="font-medium mb-0.5">
+                        ⚠️ For most cases, use Event View instead
+                      </p>
+                      <p>
+                        Create the event in <strong>Event View</strong> and mark
+                        attendance there to avoid sync issues.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2"
                     >ISM Event Name</label
@@ -1228,8 +1248,9 @@ const handleSave = async () => {
               <h4
                 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200"
               >
-                Optional Information
+                NCS & ISS Information
               </h4>
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Reason for Ordinary B -->
                 <div
@@ -1251,12 +1272,16 @@ const handleSave = async () => {
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     # NCS Attended
                   </label>
-                  <input
-                    v-model.number="formData.ncsAttended"
-                    type="number"
-                    min="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                  />
+                  <div class="flex items-center">
+                    <span
+                      class="inline-flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-800 text-lg font-semibold rounded-lg"
+                    >
+                      {{ formData.ncsAttended }}
+                    </span>
+                    <span class="ml-2 text-xs text-gray-500"
+                      >Auto-calculated from events</span
+                    >
+                  </div>
                 </div>
 
                 <!-- ISS Attended -->
@@ -1264,12 +1289,16 @@ const handleSave = async () => {
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     # ISS Attended
                   </label>
-                  <input
-                    v-model.number="formData.issAttended"
-                    type="number"
-                    min="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                  />
+                  <div class="flex items-center">
+                    <span
+                      class="inline-flex items-center justify-center px-4 py-2 bg-purple-100 text-purple-800 text-lg font-semibold rounded-lg"
+                    >
+                      {{ formData.issAttended }}
+                    </span>
+                    <span class="ml-2 text-xs text-gray-500"
+                      >Auto-calculated from events</span
+                    >
+                  </div>
                 </div>
               </div>
 
@@ -1406,10 +1435,11 @@ const handleSave = async () => {
                   <button
                     type="button"
                     @click="showAddNCS = true"
-                    class="flex items-center gap-2 px-4 py-2 text-navy border border-navy rounded-lg hover:bg-navy/5 transition-colors"
+                    class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    title="For edge cases only. Use Event View for bulk attendance."
                   >
-                    <Plus :size="18" />
-                    <span>Add NCS Event</span>
+                    <Plus :size="16" />
+                    <span>Add NCS Event (Manual Override)</span>
                   </button>
                 </div>
 
@@ -1417,6 +1447,27 @@ const handleSave = async () => {
                   v-else
                   class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3"
                 >
+                  <!-- Warning: Use Event View -->
+                  <div
+                    class="p-3 bg-amber-50 border border-amber-200 rounded-lg"
+                  >
+                    <div class="flex items-start gap-2">
+                      <AlertCircle
+                        :size="16"
+                        class="text-amber-600 flex-shrink-0 mt-0.5"
+                      />
+                      <div class="text-xs text-amber-800">
+                        <p class="font-medium mb-0.5">
+                          ⚠️ For most cases, use Event View instead
+                        </p>
+                        <p>
+                          Create the event in <strong>Event View</strong> and
+                          mark attendance there to avoid sync issues.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"
                       >NCS Event Name</label
@@ -1517,10 +1568,11 @@ const handleSave = async () => {
                   <button
                     type="button"
                     @click="showAddISS = true"
-                    class="flex items-center gap-2 px-4 py-2 text-navy border border-navy rounded-lg hover:bg-navy/5 transition-colors"
+                    class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    title="For edge cases only. Use Event View for bulk attendance."
                   >
-                    <Plus :size="18" />
-                    <span>Add ISS Event</span>
+                    <Plus :size="16" />
+                    <span>Add ISS Event (Manual Override)</span>
                   </button>
                 </div>
 
@@ -1528,6 +1580,27 @@ const handleSave = async () => {
                   v-else
                   class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3"
                 >
+                  <!-- Warning: Use Event View -->
+                  <div
+                    class="p-3 bg-amber-50 border border-amber-200 rounded-lg"
+                  >
+                    <div class="flex items-start gap-2">
+                      <AlertCircle
+                        :size="16"
+                        class="text-amber-600 flex-shrink-0 mt-0.5"
+                      />
+                      <div class="text-xs text-amber-800">
+                        <p class="font-medium mb-0.5">
+                          ⚠️ For most cases, use Event View instead
+                        </p>
+                        <p>
+                          Create the event in <strong>Event View</strong> and
+                          mark attendance there to avoid sync issues.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"
                       >ISS Event Name</label

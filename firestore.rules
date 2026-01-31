@@ -21,11 +21,8 @@ service cloud.firestore {
     
     // Admins collection
     match /admins/{email} {
-      // Admins can read their own document
-      allow read: if request.auth != null && request.auth.token.email == email;
-      
       // Only existing approved admins can create/update/delete admin records
-      allow write: if isApprovedAdmin();
+      allow read, write: if isApprovedAdmin();
     }
   }
 }

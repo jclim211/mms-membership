@@ -391,42 +391,26 @@ const emit = defineEmits(["close"]);
                 class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4"
               >
                 <h4 class="font-semibold text-gray-900 mb-2">
-                  ISM Attendance (Advanced)
+                  ISM Attendance (Export Reference Only)
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
-                  Historical ISM events with subsidy rates. This field captures
-                  both the ISM attendance records AND the subsidy rates applied.
-                  Format:
-                  <code class="bg-white px-1 rounded"
-                    >EventName:SubsidyRate</code
+                  <strong class="text-red-600"
+                    >⚠️ This field is for reference only and NOT
+                    imported.</strong
                   >
+                  Historical ISM events appear in downloads to show past
+                  attendance. Manage ISM attendance through the Event View
+                  instead.
                 </p>
                 <div class="bg-white rounded p-2 text-sm space-y-2">
                   <div>
-                    <span class="text-gray-500">Single event:</span>
-                    <code class="ml-2 text-indigo-600"
-                      >ISM Beijing 2024:90</code
-                    >
-                  </div>
-                  <div>
-                    <span class="text-gray-500"
-                      >Multiple events (comma-separated):</span
-                    >
-                    <code class="ml-2 text-indigo-600 block mt-1">
-                      ISM Beijing 2024:90, ISM Shanghai 2024:70, ISM Tokyo
-                      2023:50
-                    </code>
+                    <span class="text-gray-500">Format example:</span>
+                    <code class="ml-2 text-gray-500">ISM Beijing 2024:90</code>
                   </div>
                   <div class="text-xs text-gray-600 mt-2">
-                    <strong>Smart Subsidy Calculation:</strong> The system
-                    automatically calculates subsidies based on membership type
-                    and attendance history. Only automatically-applied subsidies
-                    (not manual overrides) count towards the next calculation.
-                  </div>
-                  <div class="text-xs text-gray-600 mt-1">
-                    <strong>Format:</strong> Each entry must follow
+                    <strong>Format:</strong> Each entry follows
                     <code class="bg-gray-100 px-1 rounded"
-                      >EventName:Number</code
+                      >EventName:SubsidyRate</code
                     >. The number represents the subsidy rate (%) used for that
                     ISM event.
                   </div>
@@ -439,39 +423,71 @@ const emit = defineEmits(["close"]);
                   NCS Attended & ISS Attended
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
-                  Number of events attended. Auto-calculated from event names if
-                  provided. Defaults to 0 if blank.
+                  <strong class="text-red-600"
+                    >⚠️ These fields are auto-calculated and NOT
+                    imported.</strong
+                  >
+                  They appear in downloads for reference only. The system
+                  automatically counts events from the member's event records.
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
-                  <span class="text-gray-500">Example:</span>
-                  <code class="ml-2 text-indigo-600 font-mono">3</code>
+                  <span class="text-gray-500">Example value:</span>
+                  <code class="ml-2 text-gray-500 font-mono">3</code>
                 </div>
               </div>
 
               <!-- NCS Events -->
               <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">
-                  NCS Events (comma-separated)
+                  NCS Events (Export Reference Only)
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
-                  List of NCS event names attended. Comma-separated. The system
-                  will automatically count these events.
+                  <strong class="text-red-600"
+                    >⚠️ This field is for reference only and NOT
+                    imported.</strong
+                  >
+                  NCS event names appear in downloads with bracket notation
+                  showing session and force count details. Manage NCS attendance
+                  through the Event View instead.
                 </p>
-                <div class="bg-white rounded p-2 text-sm space-y-2">
+                <div class="bg-white rounded p-2 text-sm space-y-3">
                   <div>
-                    <span class="text-gray-500">Single event:</span>
-                    <code class="ml-2 text-indigo-600">NCS Singapore 2024</code>
+                    <span class="text-gray-500 font-semibold"
+                      >Format in exports:</span
+                    >
+                    <code class="ml-2 text-gray-500">EventName</code> or
+                    <code class="text-gray-500">EventName[details]</code>
                   </div>
-                  <div>
-                    <span class="text-gray-500">Multiple events:</span>
-                    <code class="ml-2 text-indigo-600 block mt-1">
-                      NCS Singapore 2024, NCS Hong Kong 2024, NCS Malaysia 2023
-                    </code>
-                  </div>
-                  <div class="text-xs text-gray-600 mt-2">
-                    <strong>Note:</strong> Event names will be tracked
-                    individually, and the # NCS Attended counter will be updated
-                    automatically.
+                  <div class="border-t pt-2">
+                    <div class="mb-1 text-gray-700 font-medium">
+                      Examples you might see:
+                    </div>
+                    <div class="space-y-1 ml-2">
+                      <div>
+                        <code class="text-gray-600 bg-gray-50 px-2 py-1 rounded"
+                          >NCS Singapore 2024</code
+                        >
+                        <span class="text-xs text-gray-600 ml-2"
+                          >- Both sessions attended</span
+                        >
+                      </div>
+                      <div>
+                        <code class="text-gray-600 bg-gray-50 px-2 py-1 rounded"
+                          >NCS Hong Kong 2024[1]</code
+                        >
+                        <span class="text-xs text-gray-600 ml-2"
+                          >- Session 1 only</span
+                        >
+                      </div>
+                      <div>
+                        <code class="text-gray-600 bg-gray-50 px-2 py-1 rounded"
+                          >NCS Thailand 2023[F:Medical reason]</code
+                        >
+                        <span class="text-xs text-gray-600 ml-2"
+                          >- Force counted with reason</span
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -479,27 +495,22 @@ const emit = defineEmits(["close"]);
               <!-- ISS Events -->
               <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">
-                  ISS Events (comma-separated)
+                  ISS Events (Export Reference Only)
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
-                  List of ISS event names attended. Comma-separated. The system
-                  will automatically count these events.
+                  <strong class="text-red-600"
+                    >⚠️ This field is for reference only and NOT
+                    imported.</strong
+                  >
+                  ISS event names appear in downloads for reference. Manage ISS
+                  attendance through the Event View instead.
                 </p>
                 <div class="bg-white rounded p-2 text-sm space-y-2">
                   <div>
-                    <span class="text-gray-500">Single event:</span>
-                    <code class="ml-2 text-indigo-600">ISS Tokyo 2024</code>
-                  </div>
-                  <div>
-                    <span class="text-gray-500">Multiple events:</span>
-                    <code class="ml-2 text-indigo-600 block mt-1">
-                      ISS Tokyo 2024, ISS Seoul 2024, ISS Bangkok 2023
-                    </code>
-                  </div>
-                  <div class="text-xs text-gray-600 mt-2">
-                    <strong>Note:</strong> Event names will be tracked
-                    individually, and the # ISS Attended counter will be updated
-                    automatically.
+                    <span class="text-gray-500">Format example:</span>
+                    <code class="ml-2 text-gray-500"
+                      >ISS Tokyo 2024, ISS Seoul 2024</code
+                    >
                   </div>
                 </div>
               </div>
@@ -513,9 +524,10 @@ const emit = defineEmits(["close"]);
                   Whether member was awarded a scholarship. Enter YES or NO.
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
-                  <span class="text-gray-500">Valid options:</span>
-                  <code class="ml-2 text-indigo-600">YES</code>,
-                  <code class="ml-1 text-indigo-600">NO</code>
+                  <span class="text-gray-500">Example:</span>
+                  <code class="ml-2 text-indigo-600">YES</code>
+                  <span class="text-gray-400 mx-2">or</span>
+                  <code class="text-indigo-600">NO</code>
                 </div>
               </div>
 
@@ -525,12 +537,11 @@ const emit = defineEmits(["close"]);
                   Scholarship Year
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
-                  Year when scholarship was awarded. Optional. Leave blank if
-                  not applicable or unknown.
+                  Year the scholarship was awarded (if applicable).
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Example:</span>
-                  <code class="ml-2 text-indigo-600 font-mono">2024</code>
+                  <code class="ml-2 text-indigo-600">2024</code>
                   <span class="text-gray-400 text-xs ml-2"
                     >(Valid range: 2015-2030)</span
                   >
@@ -590,9 +601,8 @@ const emit = defineEmits(["close"]);
               <li class="flex items-start gap-2">
                 <span class="text-purple-600 font-bold">•</span>
                 <span
-                  ><strong>Format Matters:</strong> Make sure to follow the
-                  exact format for comma-separated fields (Tracks, ISM
-                  Attendance).</span
+                  ><strong>Format Matters:</strong> Follow the exact format for
+                  comma-separated fields (like Tracks).</span
                 >
               </li>
               <li class="flex items-start gap-2">
@@ -606,9 +616,9 @@ const emit = defineEmits(["close"]);
               <li class="flex items-start gap-2">
                 <span class="text-indigo-600 font-bold">•</span>
                 <span
-                  ><strong>ISM Subsidies:</strong> Auto-calculated based on
-                  membership type and history. Manual overrides are supported
-                  but won't affect future calculations.</span
+                  ><strong>Event Attendance:</strong> NCS, ISS, and ISM events
+                  are managed through the Event View. They appear in exports for
+                  reference but cannot be imported via bulk upload.</span
                 >
               </li>
             </ul>

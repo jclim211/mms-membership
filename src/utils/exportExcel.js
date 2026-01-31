@@ -9,22 +9,40 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
   // Flatten the data for Excel export
   const exportData = members.map((member) => {
     // Flatten ISM attendance
-    const ismAttendance = member.ismAttendance || [];
-    const ismNames = ismAttendance.map((ism) => ism.eventName).join("; ");
-    const ismSubsidies = ismAttendance
-      .map((ism) => `${ism.subsidyUsed}%`)
-      .join("; ");
+    const ismAttendance = (member.ismAttendance || [])
+      .map((ism) => `${ism.eventName}:${ism.subsidyUsed}`)
+      .join(", ");
 
-    // Flatten NCS events
+    // Flatten NCS events with bracket notation
     const ncsEvents = member.ncsEvents || [];
     const ncsNames = ncsEvents
       .map((event) => {
-        const isPartialComplete = !event.session1 || !event.session2;
-        return isPartialComplete
-          ? `${event.eventName} (Partial Completed)`
-          : event.eventName;
+        const sessions = [];
+        if (event.session1) sessions.push("1");
+        if (event.session2) sessions.push("2");
+
+        // Build bracket content
+        const bracketParts = [];
+
+        // Add sessions if not both
+        if (!(event.session1 && event.session2)) {
+          bracketParts.push(sessions.join(","));
+        }
+
+        // Add force valid if present
+        if (event.forceValid) {
+          const reason = event.forceValidReason || "";
+          bracketParts.push(`F:${reason}`);
+        }
+
+        // If both sessions and not forced, no brackets
+        if (bracketParts.length === 0) {
+          return event.eventName;
+        }
+
+        return `${event.eventName}[${bracketParts.join(",")}]`;
       })
-      .join("; ");
+      .join(", ");
 
     // Flatten ISS events
     const issEvents = member.issEvents || [];
@@ -47,33 +65,34 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
       "Campus ID": member.campusId || "",
       "Full Name": member.fullName || "",
       "Admit Year": member.admitYear || "",
-      "Student Status": member.degree || "",
+      "Student Status": member.studentStatus || "",
       School: member.school || "",
+      "First Degree": member.firstDegree || "",
+      "Second Degree": member.secondDegree || "",
       "Membership Type": member.membershipType || "",
       "Ordinary A Declaration Date": member.ordinaryADeclarationDate
         ? new Date(member.ordinaryADeclarationDate).toLocaleDateString("en-GB")
         : "",
-      Tracks: tracks,
+      "Tracks (comma-separated)": tracks,
       "School Email": member.schoolEmail || "",
       "Personal Email": member.personalEmail || "",
       "Telegram Handle": member.telegramHandle || "",
-      "Added to TG Group": member.addedToTelegram ? "YES" : "NO",
+      "Added to Telegram Group (1=Yes, 0=No)": member.addedToTelegram ? 1 : 0,
       "Phone Number": member.phoneNumber || "",
+      "ISM Attendance": ismAttendance,
+      "Total ISM Count": (member.ismAttendance || []).length,
       "Next Subsidy Rate": member.nextSubsidyRate
         ? `${member.nextSubsidyRate}%`
         : "",
-      "ISM Events Attended": ismNames,
-      "ISM Subsidies Used": ismSubsidies,
-      "Total ISM Count": ismAttendance.length,
       "NCS Attended": member.ncsAttended || 0,
-      "NCS Events": ncsNames,
+      "NCS Events (comma-separated)": ncsNames,
       "ISS Attended": member.issAttended || 0,
-      "ISS Events": issNames,
+      "ISS Events (comma-separated)": issNames,
       "Scholarship Eligible":
         member.membershipType === "Ordinary A" && !member.scholarshipAwarded
           ? "YES"
           : "NO",
-      "Scholarship Awarded": member.scholarshipAwarded ? "YES" : "NO",
+      "Scholarship Awarded": member.scholarshipAwarded ? "TRUE" : "FALSE",
       "Scholarship Year": member.scholarshipYear || "",
       "Reason for Ordinary B": member.reasonForOrdinaryB || "",
       "Dynamic Fields": dynamicFieldsStr,

@@ -337,8 +337,12 @@ To delete multiple members at once:
 2. **Import with bulk date setting**
    - Click "Bulk Import" on Dashboard
    - Upload your Excel file
+   - **Optional**: Check "Process NCS Event Records" if your file contains NCS event data
+     - NCS events use bracket notation: `EventName[1,2]` for both sessions, `EventName[1]` for session 1, `EventName[F:reason]` for forced count
+     - When enabled, a format guide will appear to help you format the data correctly
+     - The # NCS Attended count is auto-calculated from events (do not manually edit)
    - Click "Continue Import" (or "Verify & Clean")
-   - In preview step, check ✅ **"Bulk Set Ordinary A Declaration Date"**
+   - In preview step, check ✅ **"Bulk Set Ordinary A Declaration Date"** if needed
    - Select the appropriate date
    - Click "Import"
 

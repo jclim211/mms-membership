@@ -224,8 +224,11 @@ Your Club Membership Management Portal is now fully built and ready to use. This
   - Case-insensitive school/membership/status mapping
   - Duplicate Campus ID detection (within file and database)
   - ISM Attendance parsing (EventName:SubsidyRate format)
-  - NCS Events parsing (comma-separated event names)
-  - ISS Events parsing (comma-separated event names)
+  - NCS Events parsing with bracket notation (EventName[sessions] format) - **opt-in via checkbox**
+    - Supports session details: [1,2] (both), [1] (session 1), [2] (session 2)
+    - Supports forced count: [F:reason]
+    - Auto-calculates # NCS Attended from event list
+  - ISS Events parsing (comma-separated event names) - **opt-in via checkbox**
 - [x] Preview with error display by row
 - [x] Progress tracking during import
 - [x] Detailed success/failure reporting

@@ -36,7 +36,7 @@ const showHelp = ref(false);
 // Verification Mode State
 const verifyMode = ref(false);
 const missingMembers = ref([]);
-const isPartialUpdate = ref(false); // New flag for partial updates
+const isPartialUpdate = ref(true); // New flag for partial updates
 const verificationConfig = ref({
   targetStatus: "Alumni",
   targetMembership: "Ordinary A", // Keep existing or change
@@ -261,9 +261,34 @@ const downloadExistingMembers = () => {
       .map((ism) => `${ism.eventName}:${ism.subsidyUsed}`)
       .join(", ");
 
-    // Format NCS Events
+    // Format NCS Events with bracket notation
     const ncsEvents = (member.ncsEvents || [])
-      .map((e) => e.eventName)
+      .map((event) => {
+        const sessions = [];
+        if (event.session1) sessions.push("1");
+        if (event.session2) sessions.push("2");
+
+        // Build bracket content
+        const bracketParts = [];
+
+        // Add sessions if not both
+        if (!(event.session1 && event.session2)) {
+          bracketParts.push(sessions.join(","));
+        }
+
+        // Add force valid if present
+        if (event.forceValid) {
+          const reason = event.forceValidReason || "";
+          bracketParts.push(`F:${reason}`);
+        }
+
+        // If both sessions and not forced, no brackets
+        if (bracketParts.length === 0) {
+          return event.eventName;
+        }
+
+        return `${event.eventName}[${bracketParts.join(",")}]`;
+      })
       .join(", ");
 
     // Format ISS Events
@@ -425,17 +450,21 @@ const downloadExistingMembers = () => {
                 </p>
 
                 <!-- Partial Update Option -->
-                <div class="mt-4 flex items-center justify-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="partialUpdate"
-                    v-model="isPartialUpdate"
-                    class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                  />
-                  <label for="partialUpdate" class="text-sm text-gray-700"
-                    >Partial Update Mode (Ignore blank columns, remain unchanged
-                    if blank)</label
-                  >
+                <div
+                  class="mt-4 flex flex-col items-center justify-center gap-2"
+                >
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="partialUpdate"
+                      v-model="isPartialUpdate"
+                      class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                    />
+                    <label for="partialUpdate" class="text-sm text-gray-700"
+                      >Partial Update Mode (Ignore blank columns, remain
+                      unchanged if blank)</label
+                    >
+                  </div>
                 </div>
               </div>
 
