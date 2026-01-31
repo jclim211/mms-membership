@@ -76,6 +76,8 @@ const newNCSEvent = ref({ eventName: "", date: "" });
 const showAddISS = ref(false);
 const newISSEvent = ref({ eventName: "", date: "" });
 const newDynamicField = ref({ key: "", value: "" });
+const editingReasonForEvent = ref(null);
+const deleteConfirmation = ref({ show: false, type: null, index: null, eventName: "" });
 
 // Track original membership type to detect transitions
 const originalMembershipType = ref(props.member?.membershipType || null);
@@ -326,7 +328,17 @@ const addISMAttendance = () => {
 
 // Remove ISM attendance
 const removeISMAttendance = (index) => {
-  formData.value.ismAttendance.splice(index, 1);
+  deleteConfirmation.value = {
+    show: true,
+    type: 'ISM',
+    index: index,
+    eventName: formData.value.ismAttendance[index].eventName
+  };
+};
+
+const confirmDeleteISM = () => {
+  formData.value.ismAttendance.splice(deleteConfirmation.value.index, 1);
+  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
 };
 
 // Add NCS event
@@ -365,9 +377,19 @@ const addNCSEvent = () => {
 
 // Remove NCS event
 const removeNCSEvent = (index) => {
-  formData.value.ncsEvents.splice(index, 1);
+  deleteConfirmation.value = {
+    show: true,
+    type: 'NCS',
+    index: index,
+    eventName: formData.value.ncsEvents[index].eventName
+  };
+};
+
+const confirmDeleteNCS = () => {
+  formData.value.ncsEvents.splice(deleteConfirmation.value.index, 1);
   // Recalculate counter
   recalculateNCSAttended();
+  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
 };
 
 // Add ISS event
@@ -395,12 +417,36 @@ const addISSEvent = () => {
 
 // Remove ISS event
 const removeISSEvent = (index) => {
-  formData.value.issEvents.splice(index, 1);
+  deleteConfirmation.value = {
+    show: true,
+    type: 'ISS',
+    index: index,
+    eventName: formData.value.issEvents[index].eventName
+  };
+};
+
+const confirmDeleteISS = () => {
+  formData.value.issEvents.splice(deleteConfirmation.value.index, 1);
   // Decrement counter
   formData.value.issAttended = Math.max(
     0,
     (formData.value.issAttended || 0) - 1,
   );
+  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
+};
+
+const cancelDelete = () => {
+  deleteConfirmation.value = { show: false, type: null, index: null, eventName: "" };
+};
+
+const confirmDelete = () => {
+  if (deleteConfirmation.value.type === 'ISM') {
+    confirmDeleteISM();
+  } else if (deleteConfirmation.value.type === 'NCS') {
+    confirmDeleteNCS();
+  } else if (deleteConfirmation.value.type === 'ISS') {
+    confirmDeleteISS();
+  }
 };
 
 // Add dynamic field
@@ -1390,20 +1436,33 @@ const handleSave = async () => {
                       </div>
                       <!-- Force Valid Reason -->
                       <div v-if="event.forceValid" class="mt-2">
+                        <!-- Show input if editing or no reason set -->
                         <input
+                          v-if="!event.forceValidReason || editingReasonForEvent === event"
                           v-model="event.forceValidReason"
                           type="text"
                           placeholder="Reason for manual override (optional)"
                           class="w-full text-xs px-2 py-1 border border-purple-300 bg-purple-50 rounded focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           @click.stop
+                          @blur="editingReasonForEvent = null"
                         />
+                        <!-- Show reason with edit button if reason exists and not editing -->
+                        <div
+                          v-else
+                          class="flex items-center justify-between gap-2 p-2 bg-purple-50 border border-purple-200 rounded"
+                        >
+                          <p class="text-xs text-purple-700 italic flex-1">
+                            Reason: {{ event.forceValidReason }}
+                          </p>
+                          <button
+                            type="button"
+                            @click="editingReasonForEvent = event"
+                            class="text-xs px-2 py-1 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded transition-colors"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </div>
-                      <p
-                        v-if="event.forceValidReason"
-                        class="text-xs text-purple-700 mt-1 italic"
-                      >
-                        Reason: {{ event.forceValidReason }}
-                      </p>
                       <p
                         v-if="!doesNCSEventCount(event)"
                         class="text-xs text-gray-600 mt-1"
@@ -1859,6 +1918,61 @@ const handleSave = async () => {
                   : "Add Member"
             }}
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="deleteConfirmation.show"
+      class="fixed inset-0 z-[60] overflow-y-auto"
+    >
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <!-- Background overlay -->
+        <div
+          class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          @click="cancelDelete"
+        ></div>
+
+        <!-- Modal panel -->
+        <div
+          class="relative w-full max-w-md p-6 bg-white shadow-xl rounded-xl transform transition-all"
+        >
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-red-100 rounded-full"
+            >
+              <AlertCircle :size="24" class="text-red-600" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                Delete {{ deleteConfirmation.type }} Event?
+              </h3>
+              <p class="text-sm text-gray-600 mb-1">
+                Are you sure you want to delete:
+              </p>
+              <p class="text-sm font-medium text-gray-900 mb-3">
+                "{{ deleteConfirmation.eventName }}"
+              </p>
+              <p class="text-xs text-red-600">
+                This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-6">
+            <button
+              @click="cancelDelete"
+              class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              @click="confirmDelete"
+              class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
