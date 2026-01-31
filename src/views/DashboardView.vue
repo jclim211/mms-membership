@@ -47,51 +47,29 @@ const router = useRouter();
 
 /*
   ═══════════════════════════════════════════════════════════════════════
-  INCOMPLETE MEMBER TRACKING - MEMBERSTORE SETUP REQUIRED
+  INCOMPLETE MEMBER TRACKING - HOW IT WORKS
   ═══════════════════════════════════════════════════════════════════════
 
-  ADD TO YOUR MEMBERSTORE FILE (../stores/memberStore.js or .ts):
-
-  1. In your state/refs section, ADD:
-     ────────────────────────────────────────
-     const incompleteFilter = ref("all");
-
-  2. In your filteredMembers computed property, ADD this filter block:
-     ────────────────────────────────────────
-     // Profile Completion Filter
-     if (incompleteFilter.value === "incomplete") {
-       filtered = filtered.filter(member => {
-         const requiredFields = [
-           member.campusId,
-           member.fullName,
-           member.schoolEmail,
-           member.admitYear,
-           member.school,
-           member.membershipType,
-         ];
-         const hasMissingFields = requiredFields.some(field => !field);
-         const hasTracks = member.tracks && member.tracks.length > 0;
-         return hasMissingFields || !hasTracks;
-       });
-     } else if (incompleteFilter.value === "complete") {
-       filtered = filtered.filter(member => {
-         const requiredFields = [
-           member.campusId,
-           member.fullName,
-           member.schoolEmail,
-           member.admitYear,
-           member.school,
-           member.membershipType,
-         ];
-         const hasMissingFields = requiredFields.some(field => !field);
-         const hasTracks = member.tracks && member.tracks.length > 0;
-         return !hasMissingFields && hasTracks;
-       });
-     }
-
-  3. In your return statement, ADD:
-     ────────────────────────────────────────
-     incompleteFilter,
+  PROFILE COMPLETION LOGIC:
+  ────────────────────────────────────────────────────────────────────────
+  - When a member is created via Event page (Quick Add), they are marked
+    with isIncomplete=true since only name and email are provided.
+  
+  - When admin edits a member and fills in all required fields via
+    MemberModal, the isIncomplete flag is automatically set to false.
+  
+  - Members created via Bulk Import or Member Modal don't have isIncomplete
+    field set initially, so we check for missing required fields instead.
+  
+  FILTER BEHAVIOR (Default: Complete Profiles):
+  ────────────────────────────────────────────────────────────────────────
+  - "All Profiles": Shows all members regardless of completion status
+  - "Incomplete Profiles": Shows members with isIncomplete=true OR
+    missing any required fields (campusId, fullName, schoolEmail,
+    admitYear, school, membershipType, studentStatus, firstDegree, and
+    tracks for Ordinary A members)
+  - "Complete Profiles": Shows only members with all required fields
+    filled and isIncomplete!=true
 
   ═══════════════════════════════════════════════════════════════════════
 */

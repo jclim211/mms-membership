@@ -436,6 +436,20 @@ const handleSave = async () => {
 
   isSaving.value = true;
 
+  // Check if profile is complete
+  const isEmpty = (val) => val === null || val === undefined || val === "";
+  const isProfileComplete =
+    !isEmpty(formData.value.campusId) &&
+    !isEmpty(formData.value.fullName) &&
+    !isEmpty(formData.value.schoolEmail) &&
+    !isEmpty(formData.value.admitYear) &&
+    !isEmpty(formData.value.school) &&
+    !isEmpty(formData.value.membershipType) &&
+    !isEmpty(formData.value.studentStatus) &&
+    !isEmpty(formData.value.firstDegree) &&
+    (formData.value.membershipType !== "Ordinary A" ||
+      (formData.value.tracks && formData.value.tracks.length > 0));
+
   // Format data
   const memberData = {
     ...formData.value,
@@ -445,6 +459,8 @@ const handleSave = async () => {
     phoneNumber: formatPhoneNumber(formData.value.phoneNumber),
     // Clear subsidyOverride so it reverts to automatic calculation
     subsidyOverride: null,
+    // Set or remove isIncomplete based on profile completion
+    isIncomplete: isProfileComplete ? false : true,
   };
 
   // Handle Ordinary A declaration date
@@ -1339,7 +1355,13 @@ const handleSave = async () => {
                         v-if="!doesNCSEventCount(event)"
                         class="text-xs text-gray-600 mt-1"
                       >
-                        Attended before Ordinary A declaration date
+                        {{
+                          !event.session1 || !event.session2
+                            ? "Only attended " +
+                              (event.session1 ? "1st" : event.session2 ? "2nd" : "neither") +
+                              " session of the NCS"
+                            : "Attended before track declaration date"
+                        }}
                       </p>
                     </div>
                     <button

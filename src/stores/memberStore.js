@@ -16,7 +16,7 @@ export const useMemberStore = defineStore("members", () => {
   const schoolFilter = ref("all");
   const trackFilter = ref("all");
   const ncsCompletionFilter = ref("all");
-  const incompleteFilter = ref("all");
+  const incompleteFilter = ref("complete"); // Default to showing only complete profiles
   const realtimeEnabled = ref(true); // Toggle for real-time sync
   const lastSyncTime = ref(null); // Track last sync time
   let unsubscribe = null; // Store the unsubscribe function
