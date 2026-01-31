@@ -1061,38 +1061,6 @@ const handleSave = async () => {
                 </p>
               </div>
 
-              <!-- Manual Subsidy Override -->
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  Manual Subsidy Override
-                </label>
-                <select
-                  v-model="formData.subsidyOverride"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                >
-                  <option :value="null">Auto-calculate</option>
-                  <option :value="95">95% (Contributions)</option>
-                  <option :value="90">90%</option>
-                  <option :value="70">70%</option>
-                  <option :value="50">50%</option>
-                  <option :value="10">10%</option>
-                </select>
-                <p
-                  class="text-xs mt-1"
-                  :class="
-                    formData.subsidyOverride !== null
-                      ? 'text-purple-600 font-medium'
-                      : 'text-gray-500'
-                  "
-                >
-                  {{
-                    formData.subsidyOverride !== null
-                      ? "⚠️ Temporary override for current edit only - will revert to automatic calculation after save"
-                      : "Override automatic calculation for special cases (e.g., contributions)"
-                  }}
-                </p>
-              </div>
-
               <!-- Past ISM Attendance -->
               <div
                 v-if="formData.ismAttendance.length > 0"
@@ -1175,6 +1143,38 @@ const handleSave = async () => {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                <!-- Manual Subsidy Override -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Manual Subsidy Override
+                  </label>
+                  <select
+                    v-model="formData.subsidyOverride"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                  >
+                    <option :value="null">Auto-calculate</option>
+                    <option :value="95">95% (Contributions)</option>
+                    <option :value="90">90%</option>
+                    <option :value="70">70%</option>
+                    <option :value="50">50%</option>
+                    <option :value="10">10%</option>
+                  </select>
+                  <p
+                    class="text-xs mt-1"
+                    :class="
+                      formData.subsidyOverride !== null
+                        ? 'text-purple-600 font-medium'
+                        : 'text-gray-500'
+                    "
+                  >
+                    {{
+                      formData.subsidyOverride !== null
+                        ? "⚠️ Temporary override for current edit only - will revert to automatic calculation after save"
+                        : "Override automatic calculation for special cases (e.g., contributions)"
+                    }}
+                  </p>
                 </div>
 
                 <div>
