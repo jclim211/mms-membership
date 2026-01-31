@@ -1358,7 +1358,11 @@ const handleSave = async () => {
                         {{
                           !event.session1 || !event.session2
                             ? "Only attended " +
-                              (event.session1 ? "1st" : event.session2 ? "2nd" : "neither") +
+                              (event.session1
+                                ? "1st"
+                                : event.session2
+                                  ? "2nd"
+                                  : "neither") +
                               " session of the NCS"
                             : "Attended before track declaration date"
                         }}
@@ -1700,6 +1704,36 @@ const handleSave = async () => {
                   <Plus :size="18" />
                   <span>Add Field</span>
                 </button>
+              </div>
+            </div>
+
+            <!-- Timestamps -->
+            <div
+              v-if="
+                isEditMode &&
+                (props.member?.createdAt || props.member?.updatedAt)
+              "
+              class="pt-6 border-t border-gray-200"
+            >
+              <div
+                class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-500"
+              >
+                <div
+                  v-if="props.member?.createdAt"
+                  class="flex items-center gap-2"
+                >
+                  <span class="font-medium text-gray-600"
+                    >Profile Created:</span
+                  >
+                  <span>{{ formatDate(props.member.createdAt) }}</span>
+                </div>
+                <div
+                  v-if="props.member?.updatedAt"
+                  class="flex items-center gap-2"
+                >
+                  <span class="font-medium text-gray-600">Last Updated:</span>
+                  <span>{{ formatDate(props.member.updatedAt) }}</span>
+                </div>
               </div>
             </div>
           </form>
