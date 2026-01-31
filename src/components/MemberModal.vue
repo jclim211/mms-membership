@@ -1300,7 +1300,7 @@ const handleSave = async () => {
                         </p>
                         <span
                           v-if="doesNCSEventCount(event)"
-                          class="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-emerald-600 text-emerald rounded-full"
+                          class="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-emerald text-white rounded-full"
                         >
                           <span v-if="event.forceValid" title="Manually forced">
                             <ShieldCheck :size="12" />
@@ -1308,18 +1308,21 @@ const handleSave = async () => {
                           ✓ COUNTS
                         </span>
                         <span
-                          v-else-if="event.session1 || event.session2"
+                          v-else
+                          class="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 rounded-full"
+                        >
+                          ✗ DOESN'T COUNT
+                        </span>
+                        <span
+                          v-if="
+                            !doesNCSEventCount(event) &&
+                            (event.session1 || event.session2)
+                          "
                           class="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full"
                         >
                           PARTIAL ({{ event.session1 ? "1" : ""
                           }}{{ event.session1 && event.session2 ? " & " : ""
                           }}{{ event.session2 ? "2" : "" }})
-                        </span>
-                        <span
-                          v-else
-                          class="px-2 py-0.5 text-xs font-semibold bg-gray-400 text-white rounded-full"
-                        >
-                          ✗ DOESN'T COUNT
                         </span>
                       </div>
                       <div class="flex items-center gap-2 mt-1">
