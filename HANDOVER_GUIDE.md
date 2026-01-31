@@ -81,7 +81,21 @@ You can track which NCS events a member attended.
 2. Download the **Excel Template**.
 3. Paste your new members into that Excel file.
 4. **Drag and drop** it back into the website (or click to browse).
-5. **Bulk Editing**: Click "Download Existing Data" to export all current members with complete details, edit the file, and re-upload to update in bulk.
+5. **Preview Step Features**:
+   - **Verification Mode** (orange button): Compare uploaded list against database to identify missing Ordinary A members
+   - **Bulk Set Ordinary A Declaration Date** ✨ **NEW**:
+     - Check the box to enable
+     - Select the date when track members officially became Ordinary A
+     - Automatically applies to all Ordinary A members without a date
+     - Critical for NCS graduation tracking (only events after this date count)
+6. **Bulk Editing**: Click "Download Existing Data" to export all current members with complete details, edit the file, and re-upload to update in bulk.
+
+> 💡 **Pro Tip**: When onboarding a new ITT/MBOT cohort:
+>
+> 1. Import them with their basic info
+> 2. In the preview step, enable "Bulk Set Ordinary A Declaration Date"
+> 3. Set it to the date they officially joined the track
+> 4. This ensures NCS attendance tracking starts from the correct date
 
 ### Event Management & Attendance
 

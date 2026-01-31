@@ -338,7 +338,7 @@ export const useMemberStore = defineStore("members", () => {
 
     // Collect members that need updates
     const membersToUpdate = [];
-    
+
     for (const member of members.value) {
       let updatedData = {};
       let needsUpdate = false;

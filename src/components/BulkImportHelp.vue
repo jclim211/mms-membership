@@ -66,6 +66,62 @@ const emit = defineEmits(["close"]);
             </ol>
           </section>
 
+          <!-- Bulk Ordinary A Declaration Date -->
+          <section class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+            <h3
+              class="text-lg font-bold text-blue-800 mb-2 flex items-center gap-2"
+            >
+              <CheckCircle :size="20" />
+              Bulk Set Ordinary A Declaration Date
+            </h3>
+            <p class="text-sm text-gray-700 mb-3">
+              When importing or updating members, you can automatically set the
+              <strong>Ordinary A Declaration Date</strong> for all Ordinary A
+              members who don't already have one.
+            </p>
+            <ol
+              class="list-decimal list-inside space-y-2 text-sm text-gray-700 bg-white p-3 rounded-lg border border-blue-100"
+            >
+              <li>
+                In the preview step, check the
+                <strong>"Bulk Set Ordinary A Declaration Date"</strong>
+                checkbox.
+              </li>
+              <li>
+                Select the date when these members officially became Ordinary A
+                (defaults to today).
+              </li>
+              <li>
+                This date will be automatically applied to
+                <strong>all Ordinary A members</strong>
+                in your upload who don't already have a declaration date.
+              </li>
+              <li>
+                <strong>Important:</strong> Only NCS events attended
+                <em>after</em> this date will count toward graduation
+                requirements.
+              </li>
+              <li>
+                Members who already have a declaration date will
+                <strong>not</strong> be affected.
+              </li>
+            </ol>
+            <div class="mt-3 bg-amber-50 border border-amber-200 rounded p-3">
+              <p class="text-xs text-amber-800">
+                <strong>💡 Tip:</strong> Use this feature when:
+              </p>
+              <ul
+                class="list-disc list-inside ml-2 mt-1 text-xs text-amber-800"
+              >
+                <li>Importing a new cohort of track members</li>
+                <li>
+                  Cleaning up old members who never had a declaration date set
+                </li>
+                <li>Processing bulk upgrades from Ordinary B to Ordinary A</li>
+              </ul>
+            </div>
+          </section>
+
           <!-- Overview -->
           <section>
             <h3 class="text-lg font-semibold text-gray-900 mb-3">
@@ -259,12 +315,30 @@ const emit = defineEmits(["close"]);
                   Ordinary A Declaration Date
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
-                  Date when member declared as Ordinary A. Format: YYYY-MM-DD.
-                  Optional field.
+                  Date when member declared as Ordinary A. Format: YYYY-MM-DD or
+                  Excel date. Optional field.
                 </p>
-                <div class="bg-white rounded p-2 text-sm">
-                  <span class="text-gray-500">Example:</span>
-                  <code class="ml-2 text-indigo-600 font-mono">2024-01-15</code>
+                <div class="bg-white rounded p-2 text-sm space-y-2">
+                  <div>
+                    <span class="text-gray-500">Example (Text):</span>
+                    <code class="ml-2 text-indigo-600 font-mono"
+                      >2024-01-15</code
+                    >
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Example (Excel Date):</span>
+                    <code class="ml-2 text-indigo-600 font-mono"
+                      >Excel serial number (auto-detected)</code
+                    >
+                  </div>
+                </div>
+                <div
+                  class="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-800"
+                >
+                  <strong>📌 Note:</strong> Excel stores dates as serial
+                  numbers, which are automatically converted. You can also use
+                  the <strong>Bulk Set</strong> feature in the preview step to
+                  apply a declaration date to all Ordinary A members at once.
                 </div>
               </div>
 

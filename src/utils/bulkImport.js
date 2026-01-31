@@ -303,20 +303,13 @@ function validateAndTransformData(data, options = {}) {
     // Ordinary A Declaration Date
     if (row["Ordinary A Declaration Date"] || !isPartial) {
       if (row["Ordinary A Declaration Date"]) {
-        // Simple date parsing. Excel dates can be tricky.
-        // Assuming user enters YYYY-MM-DD or standard excel date format which sheet_to_json handles?
-        // sheet_to_json with default options might parse dates as numbers or strings.
-        // For safety, let's treat it as string and standard ISO if possible.
-        // But if it's an Excel serial date, we might need conversion.
-        // Since we don't have a reliable excel date parser handy here without testing,
-        // we'll rely on string input or standard date object if XLSX parsed it.
-        const d = new Date(row["Ordinary A Declaration Date"]);
-        if (!isNaN(d.getTime())) {
-          member.ordinaryADeclarationDate = d.toISOString();
+        // Excel stores dates as serial numbers, need proper conversion
+        const parsedDate = parseExcelDate(row["Ordinary A Declaration Date"]);
+        if (parsedDate) {
+          member.ordinaryADeclarationDate = parsedDate.toISOString();
         } else {
-          // For now, if invalid, maybe ignore or push error?
-          // Let's rely on standard forgiving nature for now unless strict validation required.
-          // But if Ordinary A, let's try to set it.
+          // Invalid date format
+          errors.push("Invalid Ordinary A Declaration Date format");
         }
       } else {
         member.ordinaryADeclarationDate = null;
@@ -395,6 +388,61 @@ function validateAndTransformData(data, options = {}) {
     invalid: invalidRecords,
     totalRows: data.length,
   };
+}
+
+/**
+ * Convert Excel serial date to JavaScript Date
+ * Excel stores dates as serial numbers (days since 1900-01-01)
+ * @param {number|string|Date} value - Excel date value
+ * @returns {Date|null} - JavaScript Date object or null if invalid
+ */
+function parseExcelDate(value) {
+  // If already a Date object
+  if (value instanceof Date) {
+    return value;
+  }
+
+  // If it's a string, parse it as local date to avoid timezone shifts
+  if (typeof value === "string") {
+    // Try to parse as YYYY-MM-DD format
+    const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (dateMatch) {
+      const [, year, month, day] = dateMatch;
+      // Create date at noon local time to avoid timezone issues
+      return new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        12,
+        0,
+        0,
+      );
+    }
+
+    // Fallback to standard parsing
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+      return d;
+    }
+    return null;
+  }
+
+  // If it's a number, treat as Excel serial date
+  if (typeof value === "number") {
+    // Excel date serial number: days since 1900-01-01
+    // Note: Excel incorrectly treats 1900 as a leap year, so we need to account for that
+    const EXCEL_EPOCH = new Date(1899, 11, 30, 12, 0, 0); // December 30, 1899 at noon
+    const milliseconds = value * 24 * 60 * 60 * 1000;
+    const date = new Date(EXCEL_EPOCH.getTime() + milliseconds);
+
+    // Validate the date is reasonable (not epoch)
+    if (!isNaN(date.getTime()) && date.getFullYear() > 1970) {
+      return date;
+    }
+    return null;
+  }
+
+  return null;
 }
 
 /**

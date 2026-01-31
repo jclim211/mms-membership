@@ -16,6 +16,7 @@ const emit = defineEmits(["close", "save"]);
 
 const memberStore = useMemberStore();
 const searchQuery = ref("");
+const attendanceFilter = ref("all"); // all, attended, not-attended
 const isSaving = ref(false);
 const showQuickAddModal = ref(false);
 
@@ -27,20 +28,30 @@ const isLoadingMembers = computed(() => {
 // Initialize attendance from event data
 const attendance = ref({ ...props.event.attendance } || {});
 
-// Filtered members based on search
+// Filtered members based on search and attendance
 const filteredMembers = computed(() => {
-  if (!searchQuery.value) {
-    return memberStore.members;
+  let filtered = memberStore.members;
+
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter((member) => {
+      return (
+        member.fullName?.toLowerCase().includes(query) ||
+        member.campusId?.toLowerCase().includes(query) ||
+        member.schoolEmail?.toLowerCase().includes(query)
+      );
+    });
   }
 
-  const query = searchQuery.value.toLowerCase();
-  return memberStore.members.filter((member) => {
-    return (
-      member.fullName?.toLowerCase().includes(query) ||
-      member.campusId?.toLowerCase().includes(query) ||
-      member.schoolEmail?.toLowerCase().includes(query)
-    );
-  });
+  // Apply attendance filter
+  if (attendanceFilter.value === "attended") {
+    filtered = filtered.filter((member) => isAttended(member.id));
+  } else if (attendanceFilter.value === "not-attended") {
+    filtered = filtered.filter((member) => !isAttended(member.id));
+  }
+
+  return filtered;
 });
 
 // Calculate subsidies for ISM events
@@ -291,7 +302,6 @@ const handleQuickAddStudent = async (studentData) => {
 <template>
   <div
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-    @click.self="handleClose"
   >
     <div
       class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
@@ -340,6 +350,46 @@ const handleQuickAddStudent = async (studentData) => {
           </button>
         </div>
 
+        <!-- Attendance Filter -->
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-600">Filter:</span>
+          <div class="flex gap-2">
+            <button
+              @click="attendanceFilter = 'all'"
+              :class="[
+                'px-3 py-1 text-sm font-medium rounded-lg transition-colors',
+                attendanceFilter === 'all'
+                  ? 'bg-navy text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+              ]"
+            >
+              All
+            </button>
+            <button
+              @click="attendanceFilter = 'attended'"
+              :class="[
+                'px-3 py-1 text-sm font-medium rounded-lg transition-colors',
+                attendanceFilter === 'attended'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+              ]"
+            >
+              Attended
+            </button>
+            <button
+              @click="attendanceFilter = 'not-attended'"
+              :class="[
+                'px-3 py-1 text-sm font-medium rounded-lg transition-colors',
+                attendanceFilter === 'not-attended'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+              ]"
+            >
+              Not Attended
+            </button>
+          </div>
+        </div>
+
         <!-- Stats -->
         <div class="flex items-center justify-between text-sm">
           <span class="text-gray-600">
@@ -365,7 +415,8 @@ const handleQuickAddStudent = async (studentData) => {
                 {{ member.fullName }}
               </p>
               <p class="text-sm text-gray-600">
-                {{ member.campusId }} • {{ member.school }}
+                {{ member.campusId }} •
+                {{ member.schoolEmail?.split("@")[0] }} • {{ member.school }}
               </p>
             </div>
 

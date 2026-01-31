@@ -40,6 +40,8 @@ const isPartialUpdate = ref(false); // New flag for partial updates
 const verificationConfig = ref({
   targetStatus: "Alumni",
   targetMembership: "Ordinary A", // Keep existing or change
+  setOrdADeclarationDate: false, // Enable bulk setting of declaration date
+  ordADeclarationDate: new Date().toISOString().split("T")[0], // Default to today
 });
 
 // Handle file selection
@@ -138,6 +140,34 @@ const handleBulkMembershipChange = () => {
   if (!verificationConfig.value.targetMembership) return;
   missingMembers.value.forEach((m) => {
     m.newMembership = verificationConfig.value.targetMembership;
+  });
+};
+
+const handleBulkOrdADateChange = () => {
+  if (
+    !verificationConfig.value.setOrdADeclarationDate ||
+    !verificationConfig.value.ordADeclarationDate
+  )
+    return;
+
+  // Apply to valid records that are Ordinary A and don't have a date
+  // Fix timezone issue: parse as local date and convert to ISO without timezone shift
+  const [year, month, day] =
+    verificationConfig.value.ordADeclarationDate.split("-");
+  const localDate = new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    12,
+    0,
+    0,
+  );
+  const dateToApply = localDate.toISOString();
+
+  parseResult.value.valid.forEach((m) => {
+    if (m.membershipType === "Ordinary A" && !m.ordinaryADeclarationDate) {
+      m.ordinaryADeclarationDate = dateToApply;
+    }
   });
 };
 
@@ -529,6 +559,48 @@ const downloadExistingMembers = () => {
                           {{ type }}
                         </option>
                       </select>
+                    </div>
+                  </div>
+
+                  <!-- Ordinary A Declaration Date Section -->
+                  <div
+                    class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                  >
+                    <div class="flex items-center gap-2 mb-3">
+                      <input
+                        type="checkbox"
+                        id="setOrdADate"
+                        v-model="verificationConfig.setOrdADeclarationDate"
+                        @change="handleBulkOrdADateChange"
+                        class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      />
+                      <label
+                        for="setOrdADate"
+                        class="text-sm font-medium text-gray-900"
+                      >
+                        Bulk Set Ordinary A Declaration Date
+                      </label>
+                    </div>
+
+                    <div
+                      v-if="verificationConfig.setOrdADeclarationDate"
+                      class="space-y-2"
+                    >
+                      <label class="block text-xs font-medium text-gray-700">
+                        Declaration Date for New Ordinary A Members
+                      </label>
+                      <input
+                        v-model="verificationConfig.ordADeclarationDate"
+                        type="date"
+                        @change="handleBulkOrdADateChange"
+                        class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                      <p class="text-xs text-blue-800">
+                        This date will be applied to all Ordinary A members in
+                        the upload who don't already have a declaration date
+                        set. Only NCS events after this date will count toward
+                        graduation.
+                      </p>
                     </div>
                   </div>
 

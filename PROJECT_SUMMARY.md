@@ -232,6 +232,11 @@ Your Club Membership Management Portal is now fully built and ready to use. This
 - [x] Automatic name uppercase conversion
 - [x] Automatic email lowercase conversion
 - [x] Support for 17 fields including NCS/ISS event tracking
+- [x] Intelligent upsert (add new, update existing members)
+- [x] Partial update mode (only update provided fields)
+- [x] Verification mode (identify missing Ordinary A members from upload list)
+- [x] **Bulk Ordinary A Declaration Date** - Set declaration dates for multiple members at once
+- [x] **Excel date serial number conversion** - Automatic handling of Excel's numeric date format
 - [x] Bulk Import Help modal with comprehensive guide
 
 ### 7. Data Validation ✅

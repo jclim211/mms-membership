@@ -188,7 +188,29 @@ firebase deploy --only hosting
    - Edit the downloaded file (all columns included)
    - Re-upload to update members in bulk
 
-### Issue 4: Attendance Import Created "Incomplete" Members
+### Issue 4: Ordinary A Declaration Date Shows as 1970
+
+**Symptoms**: Members have declaration date showing as "1 Jan 1970" or very old date
+
+**Solutions**:
+
+1. **Excel Date Format Issue**
+   - This happens when Excel stores dates as numbers but they're not converted properly
+   - **Fix**: Re-upload using the bulk import with the "Bulk Set Ordinary A Declaration Date" feature
+
+2. **Using Bulk Set Feature**
+   - Upload your member list via Bulk Import
+   - In the preview step, check **"Bulk Set Ordinary A Declaration Date"**
+   - Select the correct date (e.g., when they joined the track)
+   - Click Import - this will fix all members missing a proper date
+
+3. **Manual Fix for Individual Members**
+   - Open member profile
+   - Scroll to "Ordinary A Declaration Date" section
+   - Enter or update the date manually
+   - Save changes
+
+### Issue 5: Attendance Import Created "Incomplete" Members
 
 **Symptoms**: You imported attendance (via Event page) and new members show as "Associate" with "Unknown" school.
 
@@ -300,6 +322,34 @@ To delete multiple members at once:
   Year of admission (e.g., 2024).
 </p>
 ```
+
+### Bulk Setting Ordinary A Declaration Dates
+
+**When to use**: When you need to set declaration dates for multiple Ordinary A members at once.
+
+**Steps**:
+
+1. **Prepare your data**
+   - Export current members or use existing Excel file
+   - Ensure "Membership Type" column has "Ordinary A" for relevant members
+   - Leave "Ordinary A Declaration Date" column empty (or with old dates to update)
+
+2. **Import with bulk date setting**
+   - Click "Bulk Import" on Dashboard
+   - Upload your Excel file
+   - Click "Continue Import" (or "Verify & Clean")
+   - In preview step, check ✅ **"Bulk Set Ordinary A Declaration Date"**
+   - Select the appropriate date
+   - Click "Import"
+
+3. **Result**
+   - All Ordinary A members without a declaration date will get the date you selected
+   - Members who already have a valid date are not affected
+   - Only NCS events after this date will count toward graduation
+
+**Example scenario**: You imported members in January 2024 but forgot to set declaration dates.
+Now it's January 2026 and you need to fix this. Export all Ordinary A members, re-upload them
+with the bulk date feature set to "2024-01-15", and all members will be corrected.
 
 ### Adding a New School
 

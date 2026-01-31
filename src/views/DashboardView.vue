@@ -173,9 +173,9 @@ const handleBulkDelete = async () => {
       selectedMembers.value.clear();
       isBulkDeleteMode.value = false; // Exit mode after delete
     } catch (error) {
-      alert('Bulk delete failed: ' + error.message);
+      alert("Bulk delete failed: " + error.message);
       if (import.meta.env.DEV) {
-        console.error('Bulk delete error:', error);
+        console.error("Bulk delete error:", error);
       }
     } finally {
       isBulkDeleting.value = false;
@@ -365,9 +365,9 @@ const handleExport = async () => {
     }));
     exportToExcel(membersWithSubsidy);
   } catch (error) {
-    alert('Export failed: ' + error.message);
+    alert("Export failed: " + error.message);
     if (import.meta.env.DEV) {
-      console.error('Export error:', error);
+      console.error("Export error:", error);
     }
   }
 };
@@ -411,9 +411,9 @@ const exportTelegramNotAdded = () => {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch (error) {
-    alert('Export failed: ' + error.message);
+    alert("Export failed: " + error.message);
     if (import.meta.env.DEV) {
-      console.error('Telegram export error:', error);
+      console.error("Telegram export error:", error);
     }
   }
 };

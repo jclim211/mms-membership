@@ -56,6 +56,11 @@ A centralized, secure dashboard for club administrators to manage member data, t
   - Drag & drop file upload
   - 4-step validation workflow
   - Case-insensitive field mapping
+  - Intelligent upsert (add new, update existing)
+  - Partial update mode (update only filled columns)
+  - Verification mode for list cleanup (identify missing Ordinary A members)
+  - **Bulk Ordinary A Declaration Date setting** for mass date assignment
+  - Support for Excel date serial numbers (automatic conversion)
   - Comprehensive error reporting
   - Support for 24+ fields including event history
 - 📥 **Smart Export** - Multiple export options:

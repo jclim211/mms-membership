@@ -22,7 +22,7 @@ export const authService = {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
       return { user: userCredential.user, error: null };
     } catch (error) {
