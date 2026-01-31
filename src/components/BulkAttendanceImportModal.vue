@@ -30,6 +30,7 @@ const isProcessing = ref(false);
 const step = ref(1); // 1: Upload, 2: Preview, 3: Results
 const importResults = ref({});
 const isDragging = ref(false);
+const actualNewStudentsImported = ref(0);
 
 // Handle file upload
 const handleFileSelect = (event) => {
@@ -165,6 +166,7 @@ const processImportData = (data) => {
       memberId: existingMember?.id,
       member: existingMember, // Store member object for subsidy calculation
       rowNum,
+      selected: !!existingMember, // Existing members auto-selected, new members not selected by default
     });
   });
 
@@ -272,13 +274,17 @@ const downloadExistingData = () => {
 // Import attendance
 const handleImport = async () => {
   isProcessing.value = true;
+  actualNewStudentsImported.value = 0;
 
   try {
     // Create attendance object
     const attendance = {};
     const newStudents = [];
 
-    for (const row of parsedData.value) {
+    // Filter to only process selected rows
+    const selectedRows = parsedData.value.filter((r) => r.selected);
+
+    for (const row of selectedRows) {
       if (row.isExisting) {
         // Existing student - add to attendance
         if (props.event.type === "NCS") {
@@ -356,6 +362,7 @@ const handleImport = async () => {
       const result = await memberStore.addMember(memberData);
 
       if (!result.error && result.id) {
+        actualNewStudentsImported.value++; // Track successful addition
         // Add to attendance
         if (props.event.type === "NCS") {
           attendance[result.id] = {
@@ -429,6 +436,39 @@ const newStudentsCount = computed(() => {
 const existingStudentsCount = computed(() => {
   return parsedData.value.filter((r) => r.isExisting).length;
 });
+
+const selectedNewStudentsCount = computed(() => {
+  return parsedData.value.filter((r) => !r.isExisting && r.selected).length;
+});
+
+const allNewStudentsSelected = computed(() => {
+  const newStudents = parsedData.value.filter((r) => !r.isExisting);
+  return newStudents.length > 0 && newStudents.every((r) => r.selected);
+});
+
+const newStudents = computed(() => {
+  return parsedData.value.filter((r) => !r.isExisting);
+});
+
+const existingStudents = computed(() => {
+  return parsedData.value.filter((r) => r.isExisting);
+});
+
+const totalSelectedCount = computed(() => {
+  return existingStudentsCount.value + selectedNewStudentsCount.value;
+});
+
+const toggleNewStudentSelection = (row) => {
+  row.selected = !row.selected;
+};
+
+const toggleAllNewStudents = () => {
+  const newStudents = parsedData.value.filter((r) => !r.isExisting);
+  const allSelected = newStudents.every((r) => r.selected);
+  newStudents.forEach((r) => {
+    r.selected = !allSelected;
+  });
+};
 </script>
 
 <template>
@@ -581,16 +621,30 @@ const existingStudentsCount = computed(() => {
             <h4 class="text-lg font-semibold text-gray-900 mb-2">
               Preview Import Data
             </h4>
-            <div class="flex gap-4 text-sm">
-              <span class="text-gray-600">
-                <strong>Total:</strong> {{ parsedData.length }} students
-              </span>
-              <span class="text-green-600">
-                <strong>Existing:</strong> {{ existingStudentsCount }}
-              </span>
-              <span class="text-amber-600">
-                <strong>New:</strong> {{ newStudentsCount }}
-              </span>
+            <div class="flex items-center justify-between">
+              <div class="flex gap-4 text-sm">
+                <span class="text-gray-600">
+                  <strong>Total:</strong> {{ parsedData.length }} students
+                </span>
+                <span class="text-green-600">
+                  <strong>Existing:</strong> {{ existingStudentsCount }}
+                </span>
+                <span class="text-amber-600">
+                  <strong>New:</strong> {{ newStudentsCount }}
+                  <span v-if="newStudentsCount > 0">
+                    ({{ selectedNewStudentsCount }} selected)
+                  </span>
+                </span>
+              </div>
+              <button
+                v-if="newStudentsCount > 0"
+                @click="toggleAllNewStudents"
+                class="text-xs px-3 py-1.5 border border-amber-500 text-amber-700 hover:bg-amber-50 rounded-lg font-medium transition-colors"
+              >
+                {{
+                  allNewStudentsSelected ? "Deselect All New" : "Select All New"
+                }}
+              </button>
             </div>
           </div>
 
@@ -618,93 +672,203 @@ const existingStudentsCount = computed(() => {
           </div>
 
           <!-- Preview Table -->
-          <div class="border border-gray-200 rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th
-                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                  >
-                    Email
-                  </th>
-                  <th
-                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                  >
-                    Name
-                  </th>
-                  <th
-                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                  >
-                    Student ID
-                  </th>
-                  <th
-                    v-if="event.type === 'NCS'"
-                    class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                  >
-                    Session 1
-                  </th>
-                  <th
-                    v-if="event.type === 'NCS'"
-                    class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                  >
-                    Session 2
-                  </th>
-                  <th
-                    v-if="event.type !== 'NCS'"
-                    class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                  >
-                    Attended
-                  </th>
-                  <th
-                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                  >
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="row in parsedData" :key="row.email">
-                  <td class="px-4 py-3 text-sm">{{ row.email }}</td>
-                  <td class="px-4 py-3 text-sm">{{ row.name }}</td>
-                  <td class="px-4 py-3 text-sm font-mono">
-                    {{ row.studentId }}
-                  </td>
-                  <td v-if="event.type === 'NCS'" class="px-4 py-3 text-center">
-                    <span v-if="row.session1" class="text-green-600">✓</span>
-                    <span v-else class="text-gray-300">-</span>
-                  </td>
-                  <td v-if="event.type === 'NCS'" class="px-4 py-3 text-center">
-                    <span v-if="row.session2" class="text-green-600">✓</span>
-                    <span v-else class="text-gray-300">-</span>
-                  </td>
-                  <td v-if="event.type !== 'NCS'" class="px-4 py-3 text-center">
-                    <span
-                      v-if="row.attendedExplicit === true"
-                      class="text-green-600"
-                      >✓</span
+          <!-- New Students Section -->
+          <div v-if="newStudents.length > 0" class="mb-6">
+            <h5
+              class="text-md font-semibold text-amber-700 mb-3 flex items-center gap-2"
+            >
+              <AlertCircle :size="18" />
+              New Students ({{ selectedNewStudentsCount }} of
+              {{ newStudents.length }} selected)
+            </h5>
+            <div class="border border-amber-200 rounded-lg overflow-hidden">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-amber-50">
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16"
                     >
-                    <span
-                      v-else-if="row.attendedExplicit === false"
-                      class="text-red-400"
-                      >✕</span
+                      Select
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                     >
-                    <span v-else class="text-gray-400">Default (✓)</span>
-                  </td>
-                  <td class="px-4 py-3 text-sm">
-                    <span
-                      v-if="row.isExisting"
-                      class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs"
-                      >Existing</span
+                      Email
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                     >
-                    <span
-                      v-else
-                      class="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs"
-                      >New</span
+                      Name
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                     >
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      Student ID
+                    </th>
+                    <th
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Session 1
+                    </th>
+                    <th
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Session 2
+                    </th>
+                    <th
+                      v-if="event.type !== 'NCS'"
+                      class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Attended
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr
+                    v-for="row in newStudents"
+                    :key="row.email"
+                    :class="{ 'bg-gray-50': !row.selected }"
+                  >
+                    <td class="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        :checked="row.selected"
+                        @change="toggleNewStudentSelection(row)"
+                        class="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer"
+                        title="Select to import this new member"
+                      />
+                    </td>
+                    <td class="px-4 py-3 text-sm">{{ row.email }}</td>
+                    <td class="px-4 py-3 text-sm">{{ row.name }}</td>
+                    <td class="px-4 py-3 text-sm font-mono">
+                      {{ row.studentId }}
+                    </td>
+                    <td
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center"
+                    >
+                      <span v-if="row.session1" class="text-green-600">✓</span>
+                      <span v-else class="text-gray-300">-</span>
+                    </td>
+                    <td
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center"
+                    >
+                      <span v-if="row.session2" class="text-green-600">✓</span>
+                      <span v-else class="text-gray-300">-</span>
+                    </td>
+                    <td
+                      v-if="event.type !== 'NCS'"
+                      class="px-4 py-3 text-center"
+                    >
+                      <span
+                        v-if="row.attendedExplicit === true"
+                        class="text-green-600"
+                        >✓</span
+                      >
+                      <span
+                        v-else-if="row.attendedExplicit === false"
+                        class="text-red-400"
+                        >✕</span
+                      >
+                      <span v-else class="text-gray-400">Default (✓)</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Existing Students Section -->
+          <div v-if="existingStudents.length > 0">
+            <h5
+              class="text-md font-semibold text-green-700 mb-3 flex items-center gap-2"
+            >
+              <Check :size="18" />
+              Existing Students ({{ existingStudents.length }})
+            </h5>
+            <div class="border border-green-200 rounded-lg overflow-hidden">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-green-50">
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Email
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Name
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Student ID
+                    </th>
+                    <th
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Session 1
+                    </th>
+                    <th
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Session 2
+                    </th>
+                    <th
+                      v-if="event.type !== 'NCS'"
+                      class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                    >
+                      Attended
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="row in existingStudents" :key="row.email">
+                    <td class="px-4 py-3 text-sm">{{ row.email }}</td>
+                    <td class="px-4 py-3 text-sm">{{ row.name }}</td>
+                    <td class="px-4 py-3 text-sm font-mono">
+                      {{ row.studentId }}
+                    </td>
+                    <td
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center"
+                    >
+                      <span v-if="row.session1" class="text-green-600">✓</span>
+                      <span v-else class="text-gray-300">-</span>
+                    </td>
+                    <td
+                      v-if="event.type === 'NCS'"
+                      class="px-4 py-3 text-center"
+                    >
+                      <span v-if="row.session2" class="text-green-600">✓</span>
+                      <span v-else class="text-gray-300">-</span>
+                    </td>
+                    <td
+                      v-if="event.type !== 'NCS'"
+                      class="px-4 py-3 text-center"
+                    >
+                      <span
+                        v-if="row.attendedExplicit === true"
+                        class="text-green-600"
+                        >✓</span
+                      >
+                      <span
+                        v-else-if="row.attendedExplicit === false"
+                        class="text-red-400"
+                        >✕</span
+                      >
+                      <span v-else class="text-gray-400">Default (✓)</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -735,8 +899,11 @@ const existingStudentsCount = computed(() => {
             {{ Object.keys(importResults.attendance || {}).length }} students.
           </p>
 
-          <p v-if="newStudentsCount > 0" class="text-amber-600 mt-2">
-            {{ newStudentsCount }} new students processed.
+          <p v-if="actualNewStudentsImported > 0" class="text-amber-600 mt-2">
+            {{ actualNewStudentsImported }} new student{{
+              actualNewStudentsImported > 1 ? "s" : ""
+            }}
+            added to the system.
           </p>
 
           <!-- Import Errors -->
@@ -779,14 +946,14 @@ const existingStudentsCount = computed(() => {
           v-if="step === 2"
           @click="handleImport"
           :disabled="
-            isProcessing || parsedData.length === 0 || errors.length > 0
+            isProcessing || totalSelectedCount === 0 || errors.length > 0
           "
           class="px-6 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{
             isProcessing
               ? "Importing..."
-              : `Import ${parsedData.length} Students`
+              : `Import ${totalSelectedCount} Student${totalSelectedCount !== 1 ? "s" : ""}`
           }}
         </button>
         <button

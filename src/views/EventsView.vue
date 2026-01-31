@@ -13,6 +13,8 @@ import {
   Trash2,
   AlertCircle,
   Upload,
+  Search,
+  X,
 } from "lucide-vue-next";
 import EventModal from "../components/EventModal.vue";
 import AttendanceModal from "../components/AttendanceModal.vue";
@@ -31,13 +33,44 @@ const showBulkImportModal = ref(false);
 const editingEvent = ref(null);
 const selectedEvent = ref(null);
 const confirmDelete = ref(null);
+const searchQuery = ref("");
+const selectedYear = ref("all");
 
-// Get events based on active tab
+// Get events based on active tab with search and year filtering
 const currentEvents = computed(() => {
-  if (activeTab.value === "ISM") return eventStore.ismEvents;
-  if (activeTab.value === "ISS") return eventStore.issEvents;
-  if (activeTab.value === "NCS") return eventStore.ncsEvents;
-  return [];
+  let events = [];
+  if (activeTab.value === "ISM") events = eventStore.ismEvents;
+  else if (activeTab.value === "ISS") events = eventStore.issEvents;
+  else if (activeTab.value === "NCS") events = eventStore.ncsEvents;
+
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    events = events.filter((event) => event.name.toLowerCase().includes(query));
+  }
+
+  // Apply year filter
+  if (selectedYear.value !== "all") {
+    events = events.filter((event) => {
+      const eventYear = new Date(event.date).getFullYear();
+      return eventYear === parseInt(selectedYear.value);
+    });
+  }
+
+  return events;
+});
+
+// Get unique years from all events
+const availableYears = computed(() => {
+  const allEvents = [
+    ...eventStore.ismEvents,
+    ...eventStore.issEvents,
+    ...eventStore.ncsEvents,
+  ];
+  const years = new Set(
+    allEvents.map((event) => new Date(event.date).getFullYear()),
+  );
+  return Array.from(years).sort((a, b) => b - a);
 });
 
 // Format date for display
@@ -479,11 +512,46 @@ const handleBulkImportSave = async (attendance) => {
 
         <!-- Tab Content -->
         <div class="p-6">
-          <!-- Create Event Button -->
-          <div class="mb-6">
+          <!-- Search and Filter Bar -->
+          <div class="mb-6 flex flex-col sm:flex-row gap-3">
+            <!-- Search Bar -->
+            <div class="relative flex-1">
+              <div
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <Search :size="18" class="text-gray-400" />
+              </div>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search events by name..."
+                class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm"
+              />
+              <button
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-700 text-gray-400 transition-colors"
+                title="Clear search"
+              >
+                <X :size="18" />
+              </button>
+            </div>
+
+            <!-- Year Picker -->
+            <select
+              v-model="selectedYear"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm font-medium"
+            >
+              <option value="all">All Years</option>
+              <option v-for="year in availableYears" :key="year" :value="year">
+                {{ year }}
+              </option>
+            </select>
+
+            <!-- Create Event Button -->
             <button
               @click="openCreateModal"
-              class="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors font-medium"
+              class="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors font-medium whitespace-nowrap"
             >
               <Plus :size="18" />
               <span>Create {{ activeTab }} Event</span>

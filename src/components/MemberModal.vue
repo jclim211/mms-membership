@@ -213,6 +213,10 @@ const doesNCSEventCount = (ncsEvent) => {
 // Toggle force valid status for an NCS event
 const toggleNCSForceValid = (event) => {
   event.forceValid = !event.forceValid;
+  // Clear reason if disabling force valid
+  if (!event.forceValid) {
+    event.forceValidReason = undefined;
+  }
   // Trigger update logic
   const index = formData.value.ncsEvents.indexOf(event);
   if (index !== -1) {
@@ -1315,7 +1319,7 @@ const handleSave = async () => {
                         </span>
                         <span
                           v-if="
-                            !doesNCSEventCount(event) &&
+                            (event.forceValid || !doesNCSEventCount(event)) &&
                             (event.session1 || event.session2)
                           "
                           class="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full"
@@ -1354,6 +1358,22 @@ const handleSave = async () => {
                           }}
                         </button>
                       </div>
+                      <!-- Force Valid Reason -->
+                      <div v-if="event.forceValid" class="mt-2">
+                        <input
+                          v-model="event.forceValidReason"
+                          type="text"
+                          placeholder="Reason for manual override (optional)"
+                          class="w-full text-xs px-2 py-1 border border-purple-300 bg-purple-50 rounded focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          @click.stop
+                        />
+                      </div>
+                      <p
+                        v-if="event.forceValidReason"
+                        class="text-xs text-purple-700 mt-1 italic"
+                      >
+                        Reason: {{ event.forceValidReason }}
+                      </p>
                       <p
                         v-if="!doesNCSEventCount(event)"
                         class="text-xs text-gray-600 mt-1"

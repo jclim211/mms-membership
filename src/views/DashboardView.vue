@@ -80,6 +80,13 @@ const showBulkImportHelp = ref(false);
 const editingMember = ref(null);
 const confirmDelete = ref(null);
 const showFilterPanel = ref(false);
+const membershipFilterExpanded = ref(false);
+const studentStatusFilterExpanded = ref(false);
+const yearFilterExpanded = ref(false);
+const schoolFilterExpanded = ref(false);
+const trackFilterExpanded = ref(false);
+const ncsCompletionFilterExpanded = ref(false);
+const incompleteFilterExpanded = ref(false);
 const sortField = ref("createdAt");
 const isBulkDeleteMode = ref(false); // Toggle for bulk delete mode
 const selectedMembers = ref(new Set()); // Track selected members
@@ -94,13 +101,13 @@ const itemsPerPageOptions = [10, 25, 50, 100];
 
 const activeFiltersCount = computed(() => {
   let count = 0;
-  if (memberStore.membershipFilter !== "all") count++;
-  if (memberStore.studentStatusFilter !== "all") count++;
-  if (memberStore.yearFilter !== "all") count++;
-  if (memberStore.schoolFilter !== "all") count++;
-  if (memberStore.trackFilter !== "all") count++;
-  if (memberStore.ncsCompletionFilter !== "all") count++;
-  if (memberStore.incompleteFilter !== "all") count++;
+  if (memberStore.membershipFilter.length > 0) count++;
+  if (memberStore.studentStatusFilter.length > 0) count++;
+  if (memberStore.yearFilter.length > 0) count++;
+  if (memberStore.schoolFilter.length > 0) count++;
+  if (memberStore.trackFilter.length > 0) count++;
+  if (memberStore.ncsCompletionFilter.length > 0) count++;
+  if (memberStore.incompleteFilter.length > 0) count++;
   return count;
 });
 
@@ -169,13 +176,198 @@ const toggleBulkDeleteMode = () => {
 };
 
 const clearAllFilters = () => {
-  memberStore.membershipFilter = "all";
-  memberStore.studentStatusFilter = "all";
-  memberStore.yearFilter = "all";
-  memberStore.schoolFilter = "all";
-  memberStore.trackFilter = "all";
-  memberStore.ncsCompletionFilter = "all";
-  memberStore.incompleteFilter = "all";
+  memberStore.membershipFilter = [];
+  memberStore.studentStatusFilter = [];
+  memberStore.yearFilter = [];
+  memberStore.schoolFilter = [];
+  memberStore.trackFilter = [];
+  memberStore.ncsCompletionFilter = [];
+  memberStore.incompleteFilter = [];
+};
+
+const toggleYearFilter = (year) => {
+  const index = memberStore.yearFilter.indexOf(year);
+  if (index > -1) {
+    memberStore.yearFilter.splice(index, 1);
+  } else {
+    memberStore.yearFilter.push(year);
+  }
+};
+
+const allYearsSelected = computed(() => {
+  return (
+    availableYears.value.length > 0 &&
+    memberStore.yearFilter.length === availableYears.value.length
+  );
+});
+
+const toggleSelectAllYears = () => {
+  if (allYearsSelected.value) {
+    memberStore.yearFilter = [];
+  } else {
+    memberStore.yearFilter = [...availableYears.value];
+  }
+};
+
+// Membership Type Filter
+const membershipTypes = ["Exco", "Ordinary A", "Ordinary B", "Associate"];
+
+const toggleMembershipFilter = (type) => {
+  const index = memberStore.membershipFilter.indexOf(type);
+  if (index > -1) {
+    memberStore.membershipFilter.splice(index, 1);
+  } else {
+    memberStore.membershipFilter.push(type);
+  }
+};
+
+const allMembershipTypesSelected = computed(() => {
+  return (
+    membershipTypes.length > 0 &&
+    memberStore.membershipFilter.length === membershipTypes.length
+  );
+});
+
+const toggleSelectAllMembershipTypes = () => {
+  if (allMembershipTypesSelected.value) {
+    memberStore.membershipFilter = [];
+  } else {
+    memberStore.membershipFilter = [...membershipTypes];
+  }
+};
+
+// Student Status Filter
+const toggleStudentStatusFilter = (status) => {
+  const index = memberStore.studentStatusFilter.indexOf(status);
+  if (index > -1) {
+    memberStore.studentStatusFilter.splice(index, 1);
+  } else {
+    memberStore.studentStatusFilter.push(status);
+  }
+};
+
+const allStudentStatusesSelected = computed(() => {
+  return (
+    STUDENT_STATUSES.length > 0 &&
+    memberStore.studentStatusFilter.length === STUDENT_STATUSES.length
+  );
+});
+
+const toggleSelectAllStudentStatuses = () => {
+  if (allStudentStatusesSelected.value) {
+    memberStore.studentStatusFilter = [];
+  } else {
+    memberStore.studentStatusFilter = [...STUDENT_STATUSES];
+  }
+};
+
+// School Filter
+const toggleSchoolFilter = (school) => {
+  const index = memberStore.schoolFilter.indexOf(school);
+  if (index > -1) {
+    memberStore.schoolFilter.splice(index, 1);
+  } else {
+    memberStore.schoolFilter.push(school);
+  }
+};
+
+const allSchoolsSelected = computed(() => {
+  return (
+    availableSchools.value.length > 0 &&
+    memberStore.schoolFilter.length === availableSchools.value.length
+  );
+});
+
+const toggleSelectAllSchools = () => {
+  if (allSchoolsSelected.value) {
+    memberStore.schoolFilter = [];
+  } else {
+    memberStore.schoolFilter = [...availableSchools.value];
+  }
+};
+
+// Track Filter
+const tracks = ["ITT", "MBOT"];
+
+const toggleTrackFilter = (track) => {
+  const index = memberStore.trackFilter.indexOf(track);
+  if (index > -1) {
+    memberStore.trackFilter.splice(index, 1);
+  } else {
+    memberStore.trackFilter.push(track);
+  }
+};
+
+const allTracksSelected = computed(() => {
+  return tracks.length > 0 && memberStore.trackFilter.length === tracks.length;
+});
+
+const toggleSelectAllTracks = () => {
+  if (allTracksSelected.value) {
+    memberStore.trackFilter = [];
+  } else {
+    memberStore.trackFilter = [...tracks];
+  }
+};
+
+// NCS Completion Filter
+const ncsCompletionOptions = [
+  { value: "completed", label: "Completed" },
+  { value: "not-completed", label: "Not Completed" },
+];
+
+const toggleNCSCompletionFilter = (value) => {
+  const index = memberStore.ncsCompletionFilter.indexOf(value);
+  if (index > -1) {
+    memberStore.ncsCompletionFilter.splice(index, 1);
+  } else {
+    memberStore.ncsCompletionFilter.push(value);
+  }
+};
+
+const allNCSCompletionSelected = computed(() => {
+  return (
+    ncsCompletionOptions.length > 0 &&
+    memberStore.ncsCompletionFilter.length === ncsCompletionOptions.length
+  );
+});
+
+const toggleSelectAllNCSCompletion = () => {
+  if (allNCSCompletionSelected.value) {
+    memberStore.ncsCompletionFilter = [];
+  } else {
+    memberStore.ncsCompletionFilter = ncsCompletionOptions.map((o) => o.value);
+  }
+};
+
+// Profile Completion Filter
+const profileCompletionOptions = [
+  { value: "incomplete", label: "Incomplete Profiles" },
+  { value: "complete", label: "Complete Profiles" },
+];
+
+const toggleIncompleteFilter = (value) => {
+  const index = memberStore.incompleteFilter.indexOf(value);
+  if (index > -1) {
+    memberStore.incompleteFilter.splice(index, 1);
+  } else {
+    memberStore.incompleteFilter.push(value);
+  }
+};
+
+const allProfileCompletionSelected = computed(() => {
+  return (
+    profileCompletionOptions.length > 0 &&
+    memberStore.incompleteFilter.length === profileCompletionOptions.length
+  );
+});
+
+const toggleSelectAllProfileCompletion = () => {
+  if (allProfileCompletionSelected.value) {
+    memberStore.incompleteFilter = [];
+  } else {
+    memberStore.incompleteFilter = profileCompletionOptions.map((o) => o.value);
+  }
 };
 
 // Dynamic filter options from actual data
@@ -768,8 +960,16 @@ watch(
                 v-model="memberStore.searchQuery"
                 type="text"
                 placeholder="Search by name, ID, email, or Telegram handle..."
-                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm"
+                class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm"
               />
+              <button
+                v-if="memberStore.searchQuery"
+                @click="memberStore.searchQuery = ''"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-700 text-gray-400 transition-colors"
+                title="Clear search"
+              >
+                <X :size="18" />
+              </button>
             </div>
 
             <!-- Filter Button -->
@@ -1012,8 +1212,15 @@ watch(
                 v-else-if="memberStore.filteredMembers.length === 0"
                 class="hover:bg-gray-50"
               >
-                <td colspan="10" class="px-6 py-8 text-center text-gray-500">
-                  No members found
+                <td colspan="10" class="px-6 py-8 text-center">
+                  <p class="text-gray-500 mb-4">No members found</p>
+                  <button
+                    @click="openAddModal"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors font-medium"
+                  >
+                    <Plus :size="18" />
+                    <span>Add Member</span>
+                  </button>
                 </td>
               </tr>
               <tr
@@ -1337,16 +1544,58 @@ watch(
               <Users :size="18" class="text-indigo-600" />
               Membership Type
             </label>
-            <select
-              v-model="memberStore.membershipFilter"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            <button
+              @click="membershipFilterExpanded = !membershipFilterExpanded"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
             >
-              <option value="all">All Membership Types</option>
-              <option value="Exco">Exco</option>
-              <option value="Ordinary A">Ordinary A</option>
-              <option value="Ordinary B">Ordinary B</option>
-              <option value="Associate">Associate</option>
-            </select>
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.membershipFilter.length === 0"
+                  >All Membership Types</span
+                >
+                <span v-else class="font-medium text-indigo-600">
+                  {{ memberStore.membershipFilter.length }} type{{
+                    memberStore.membershipFilter.length !== 1 ? "s" : ""
+                  }}
+                  selected
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': membershipFilterExpanded }"
+              />
+            </button>
+            <div
+              v-if="membershipFilterExpanded"
+              class="mt-2 space-y-1 border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors border-b border-indigo-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allMembershipTypesSelected"
+                  @change="toggleSelectAllMembershipTypes"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm font-semibold text-indigo-700"
+                  >Select All</span
+                >
+              </label>
+              <label
+                v-for="type in membershipTypes"
+                :key="type"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  :checked="memberStore.membershipFilter.includes(type)"
+                  @change="toggleMembershipFilter(type)"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">{{ type }}</span>
+              </label>
+            </div>
           </div>
 
           <!-- Student Status -->
@@ -1357,19 +1606,60 @@ watch(
               <CheckCircle :size="18" class="text-indigo-600" />
               Student Status
             </label>
-            <select
-              v-model="memberStore.studentStatusFilter"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            <button
+              @click="
+                studentStatusFilterExpanded = !studentStatusFilterExpanded
+              "
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
             >
-              <option value="all">Any Status</option>
-              <option
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.studentStatusFilter.length === 0"
+                  >Any Status</span
+                >
+                <span v-else class="font-medium text-indigo-600">
+                  {{ memberStore.studentStatusFilter.length }} status{{
+                    memberStore.studentStatusFilter.length !== 1 ? "es" : ""
+                  }}
+                  selected
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': studentStatusFilterExpanded }"
+              />
+            </button>
+            <div
+              v-if="studentStatusFilterExpanded"
+              class="mt-2 space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors border-b border-indigo-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allStudentStatusesSelected"
+                  @change="toggleSelectAllStudentStatuses"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm font-semibold text-indigo-700"
+                  >Select All</span
+                >
+              </label>
+              <label
                 v-for="status in STUDENT_STATUSES"
                 :key="status"
-                :value="status"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
               >
-                {{ status }}
-              </option>
-            </select>
+                <input
+                  type="checkbox"
+                  :checked="memberStore.studentStatusFilter.includes(status)"
+                  @change="toggleStudentStatusFilter(status)"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">{{ status }}</span>
+              </label>
+            </div>
           </div>
 
           <!-- Admit Year -->
@@ -1377,15 +1667,66 @@ watch(
             <label class="text-sm font-semibold text-gray-700 mb-3 block">
               Admit Year
             </label>
-            <select
-              v-model="memberStore.yearFilter"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            <!-- Collapsed View -->
+            <button
+              @click="yearFilterExpanded = !yearFilterExpanded"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
             >
-              <option value="all">Any Year</option>
-              <option v-for="year in availableYears" :key="year" :value="year">
-                {{ year }}
-              </option>
-            </select>
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.yearFilter.length === 0">Any Year</span>
+                <span v-else class="font-medium text-indigo-600">
+                  {{ memberStore.yearFilter.length }} year{{
+                    memberStore.yearFilter.length !== 1 ? "s" : ""
+                  }}
+                  selected
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': yearFilterExpanded }"
+              />
+            </button>
+            <!-- Expanded Checkbox List -->
+            <div
+              v-if="yearFilterExpanded"
+              class="mt-2 space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <!-- Select All -->
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors border-b border-indigo-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allYearsSelected"
+                  @change="toggleSelectAllYears"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm font-semibold text-indigo-700"
+                  >Select All</span
+                >
+              </label>
+              <!-- Individual Years -->
+              <label
+                v-for="year in availableYears"
+                :key="year"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  :checked="memberStore.yearFilter.includes(year)"
+                  @change="toggleYearFilter(year)"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">{{ year }}</span>
+              </label>
+              <p
+                v-if="availableYears.length === 0"
+                class="text-sm text-gray-500 text-center py-2"
+              >
+                No years available
+              </p>
+            </div>
           </div>
 
           <!-- School -->
@@ -1393,19 +1734,64 @@ watch(
             <label class="text-sm font-semibold text-gray-700 mb-3 block">
               School
             </label>
-            <select
-              v-model="memberStore.schoolFilter"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            <button
+              @click="schoolFilterExpanded = !schoolFilterExpanded"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
             >
-              <option value="all">All Schools</option>
-              <option
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.schoolFilter.length === 0"
+                  >All Schools</span
+                >
+                <span v-else class="font-medium text-indigo-600">
+                  {{ memberStore.schoolFilter.length }} school{{
+                    memberStore.schoolFilter.length !== 1 ? "s" : ""
+                  }}
+                  selected
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': schoolFilterExpanded }"
+              />
+            </button>
+            <div
+              v-if="schoolFilterExpanded"
+              class="mt-2 space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors border-b border-indigo-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allSchoolsSelected"
+                  @change="toggleSelectAllSchools"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm font-semibold text-indigo-700"
+                  >Select All</span
+                >
+              </label>
+              <label
                 v-for="school in availableSchools"
                 :key="school"
-                :value="school"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
               >
-                {{ school }}
-              </option>
-            </select>
+                <input
+                  type="checkbox"
+                  :checked="memberStore.schoolFilter.includes(school)"
+                  @change="toggleSchoolFilter(school)"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">{{ school }}</span>
+              </label>
+              <p
+                v-if="availableSchools.length === 0"
+                class="text-sm text-gray-500 text-center py-2"
+              >
+                No schools available
+              </p>
+            </div>
           </div>
 
           <!-- Track -->
@@ -1413,14 +1799,58 @@ watch(
             <label class="text-sm font-semibold text-gray-700 mb-3 block">
               Track
             </label>
-            <select
-              v-model="memberStore.trackFilter"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            <button
+              @click="trackFilterExpanded = !trackFilterExpanded"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
             >
-              <option value="all">All Tracks</option>
-              <option value="ITT">ITT</option>
-              <option value="MBOT">MBOT</option>
-            </select>
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.trackFilter.length === 0"
+                  >All Tracks</span
+                >
+                <span v-else class="font-medium text-indigo-600">
+                  {{ memberStore.trackFilter.length }} track{{
+                    memberStore.trackFilter.length !== 1 ? "s" : ""
+                  }}
+                  selected
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': trackFilterExpanded }"
+              />
+            </button>
+            <div
+              v-if="trackFilterExpanded"
+              class="mt-2 space-y-1 border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors border-b border-indigo-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allTracksSelected"
+                  @change="toggleSelectAllTracks"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm font-semibold text-indigo-700"
+                  >Select All</span
+                >
+              </label>
+              <label
+                v-for="track in tracks"
+                :key="track"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  :checked="memberStore.trackFilter.includes(track)"
+                  @change="toggleTrackFilter(track)"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">{{ track }}</span>
+              </label>
+            </div>
           </div>
 
           <!-- NCS Completion -->
@@ -1428,14 +1858,62 @@ watch(
             <label class="text-sm font-semibold text-gray-700 mb-3 block">
               NCS Completion
             </label>
-            <select
-              v-model="memberStore.ncsCompletionFilter"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            <button
+              @click="
+                ncsCompletionFilterExpanded = !ncsCompletionFilterExpanded
+              "
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
             >
-              <option value="all">All Members</option>
-              <option value="completed">Completed</option>
-              <option value="not-completed">Not Completed</option>
-            </select>
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.ncsCompletionFilter.length === 0"
+                  >All Members</span
+                >
+                <span v-else class="font-medium text-indigo-600">
+                  {{ memberStore.ncsCompletionFilter.length }} option{{
+                    memberStore.ncsCompletionFilter.length !== 1 ? "s" : ""
+                  }}
+                  selected
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': ncsCompletionFilterExpanded }"
+              />
+            </button>
+            <div
+              v-if="ncsCompletionFilterExpanded"
+              class="mt-2 space-y-1 border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors border-b border-indigo-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allNCSCompletionSelected"
+                  @change="toggleSelectAllNCSCompletion"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm font-semibold text-indigo-700"
+                  >Select All</span
+                >
+              </label>
+              <label
+                v-for="option in ncsCompletionOptions"
+                :key="option.value"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  :checked="
+                    memberStore.ncsCompletionFilter.includes(option.value)
+                  "
+                  @change="toggleNCSCompletionFilter(option.value)"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">{{ option.label }}</span>
+              </label>
+            </div>
           </div>
 
           <!-- Profile Completion -->
@@ -1446,30 +1924,68 @@ watch(
               <AlertTriangle :size="18" class="text-orange-600" />
               Profile Completion
             </label>
-            <select
-              v-model="memberStore.incompleteFilter"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            <button
+              @click="incompleteFilterExpanded = !incompleteFilterExpanded"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
             >
-              <option value="all">All Profiles</option>
-              <option value="incomplete">Incomplete Profiles</option>
-              <option value="complete">Complete Profiles</option>
-            </select>
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.incompleteFilter.length === 0"
+                  >All Profiles</span
+                >
+                <span v-else class="font-medium text-indigo-600">
+                  {{ memberStore.incompleteFilter.length }} option{{
+                    memberStore.incompleteFilter.length !== 1 ? "s" : ""
+                  }}
+                  selected
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': incompleteFilterExpanded }"
+              />
+            </button>
+            <div
+              v-if="incompleteFilterExpanded"
+              class="mt-2 space-y-1 border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors border-b border-indigo-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allProfileCompletionSelected"
+                  @change="toggleSelectAllProfileCompletion"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm font-semibold text-indigo-700"
+                  >Select All</span
+                >
+              </label>
+              <label
+                v-for="option in profileCompletionOptions"
+                :key="option.value"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  :checked="memberStore.incompleteFilter.includes(option.value)"
+                  @change="toggleIncompleteFilter(option.value)"
+                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="text-sm text-gray-700">{{ option.label }}</span>
+              </label>
+            </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="p-6 border-t border-gray-200 flex gap-3">
+        <div class="p-6 border-t border-gray-200">
           <button
             @click="clearAllFilters"
-            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
           >
             Clear All
-          </button>
-          <button
-            @click="showFilterPanel = false"
-            class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-          >
-            Apply Filters
           </button>
         </div>
       </div>

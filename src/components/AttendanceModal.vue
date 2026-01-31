@@ -513,11 +513,15 @@ const handleQuickAddStudent = async (studentData) => {
           </div>
 
           <!-- Empty State -->
-          <div
-            v-if="filteredMembers.length === 0"
-            class="text-center py-8 text-gray-500"
-          >
-            No members found
+          <div v-if="filteredMembers.length === 0" class="text-center py-8">
+            <p class="text-gray-500 mb-4">No members found</p>
+            <button
+              @click="showQuickAddModal = true"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-emerald text-white rounded-lg hover:bg-emerald/90 transition-colors text-sm font-medium"
+            >
+              <UserPlus :size="18" />
+              <span>Add Student</span>
+            </button>
           </div>
         </div>
       </div>

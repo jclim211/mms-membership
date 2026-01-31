@@ -10,13 +10,13 @@ export const useMemberStore = defineStore("members", () => {
   const loading = ref(false);
   const error = ref(null);
   const searchQuery = ref("");
-  const membershipFilter = ref("all");
-  const studentStatusFilter = ref("all");
-  const yearFilter = ref("all");
-  const schoolFilter = ref("all");
-  const trackFilter = ref("all");
-  const ncsCompletionFilter = ref("all");
-  const incompleteFilter = ref("complete"); // Default to showing only complete profiles
+  const membershipFilter = ref([]);
+  const studentStatusFilter = ref([]);
+  const yearFilter = ref([]);
+  const schoolFilter = ref([]);
+  const trackFilter = ref([]);
+  const ncsCompletionFilter = ref([]);
+  const incompleteFilter = ref(["complete"]); // Default to showing only complete profiles // Default to showing only complete profiles
   const realtimeEnabled = ref(true); // Toggle for real-time sync
   const lastSyncTime = ref(null); // Track last sync time
   let unsubscribe = null; // Store the unsubscribe function
@@ -88,42 +88,44 @@ export const useMemberStore = defineStore("members", () => {
     }
 
     // Apply membership type filter
-    if (membershipFilter.value !== "all") {
-      filtered = filtered.filter(
-        (member) => member.membershipType === membershipFilter.value,
+    if (membershipFilter.value.length > 0) {
+      filtered = filtered.filter((member) =>
+        membershipFilter.value.includes(member.membershipType),
       );
     }
 
     // Apply student status filter
-    if (studentStatusFilter.value !== "all") {
-      filtered = filtered.filter(
-        (member) => member.studentStatus === studentStatusFilter.value,
+    if (studentStatusFilter.value.length > 0) {
+      filtered = filtered.filter((member) =>
+        studentStatusFilter.value.includes(member.studentStatus),
       );
     }
 
     // Apply year filter
-    if (yearFilter.value !== "all") {
-      filtered = filtered.filter(
-        (member) => member.admitYear === yearFilter.value,
+    if (yearFilter.value.length > 0) {
+      filtered = filtered.filter((member) =>
+        yearFilter.value.includes(member.admitYear),
       );
     }
 
     // Apply school filter
-    if (schoolFilter.value !== "all") {
-      filtered = filtered.filter(
-        (member) => member.school === schoolFilter.value,
+    if (schoolFilter.value.length > 0) {
+      filtered = filtered.filter((member) =>
+        schoolFilter.value.includes(member.school),
       );
     }
 
     // Apply track filter
-    if (trackFilter.value !== "all") {
+    if (trackFilter.value.length > 0) {
       filtered = filtered.filter(
-        (member) => member.tracks && member.tracks.includes(trackFilter.value),
+        (member) =>
+          member.tracks &&
+          trackFilter.value.some((track) => member.tracks.includes(track)),
       );
     }
 
     // Apply NCS completion filter
-    if (ncsCompletionFilter.value !== "all") {
+    if (ncsCompletionFilter.value.length > 0) {
       filtered = filtered.filter((member) => {
         const tracks = member.tracks || [];
         const hasBothTracks = tracks.includes("ITT") && tracks.includes("MBOT");
@@ -131,17 +133,19 @@ export const useMemberStore = defineStore("members", () => {
         const requiredNCS = hasBothTracks ? 5 : hasAnyTrack ? 3 : 0;
         const ncsCompleted = getValidNCSCount(member);
 
-        if (ncsCompletionFilter.value === "completed") {
-          return requiredNCS > 0 && ncsCompleted >= requiredNCS;
-        } else if (ncsCompletionFilter.value === "not-completed") {
-          return requiredNCS > 0 && ncsCompleted < requiredNCS;
-        }
-        return true;
+        return ncsCompletionFilter.value.some((filter) => {
+          if (filter === "completed") {
+            return requiredNCS > 0 && ncsCompleted >= requiredNCS;
+          } else if (filter === "not-completed") {
+            return requiredNCS > 0 && ncsCompleted < requiredNCS;
+          }
+          return false;
+        });
       });
     }
 
     // Apply Profile Completion filter
-    if (incompleteFilter.value !== "all") {
+    if (incompleteFilter.value.length > 0) {
       filtered = filtered.filter((member) => {
         // Check required fields - must exist and not be empty string
         const isEmpty = (val) =>
@@ -164,12 +168,14 @@ export const useMemberStore = defineStore("members", () => {
           isProfileIncomplete = hasMissingFields || !hasTracks;
         }
 
-        if (incompleteFilter.value === "incomplete") {
-          return isProfileIncomplete || member.isIncomplete === true;
-        } else if (incompleteFilter.value === "complete") {
-          return !isProfileIncomplete && !member.isIncomplete;
-        }
-        return true;
+        return incompleteFilter.value.some((filter) => {
+          if (filter === "incomplete") {
+            return isProfileIncomplete || member.isIncomplete === true;
+          } else if (filter === "complete") {
+            return !isProfileIncomplete && !member.isIncomplete;
+          }
+          return false;
+        });
       });
     }
 
