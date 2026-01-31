@@ -1364,6 +1364,7 @@ const handleSave = async () => {
                         </p>
                         <!-- Force Valid Toggle -->
                         <button
+                          v-if="!doesNCSEventCount(event) || event.forceValid"
                           type="button"
                           @click="toggleNCSForceValid(event)"
                           class="text-xs flex items-center gap-1 px-2 py-0.5 rounded border transition-colors"
