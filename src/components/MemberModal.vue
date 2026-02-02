@@ -1420,7 +1420,8 @@ const handleSave = async () => {
                         <span
                           v-if="
                             (event.forceValid || !doesNCSEventCount(event)) &&
-                            (event.session1 || event.session2)
+                            (event.session1 || event.session2) &&
+                            !(event.session1 && event.session2)
                           "
                           class="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full"
                         >
