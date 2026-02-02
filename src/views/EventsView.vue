@@ -237,6 +237,7 @@ const updateMemberRecords = async (event, attendance) => {
               subsidyUsed: subsidyToUse,
               date: event.date,
               isAuto: isAuto,
+              eventId: event.id,
             },
           ];
         } else {
@@ -278,6 +279,7 @@ const updateMemberRecords = async (event, attendance) => {
             {
               eventName: event.name,
               date: event.date,
+              eventId: event.id,
             },
           ];
           updatedData.issAttended = (member.issAttended || 0) + 1;
@@ -300,6 +302,7 @@ const updateMemberRecords = async (event, attendance) => {
                 date: event.date,
                 session1: attendanceData.session1 || false,
                 session2: attendanceData.session2 || false,
+                eventId: event.id,
               },
             ];
           } else {

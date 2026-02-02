@@ -24,7 +24,7 @@ const router = useRouter();
   <div class="min-h-screen bg-light-grey">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center gap-4">
           <button
             @click="router.push('/dashboard')"
@@ -44,7 +44,7 @@ const router = useRouter();
       </div>
     </header>
 
-    <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Quick Start Guide -->
       <div
         class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"

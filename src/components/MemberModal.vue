@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   ShieldOff,
+  Link2,
+  Unlink,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -240,7 +242,8 @@ const toggleNCSForceValid = (event) => {
   event.forceValid = !event.forceValid;
   // Clear reason if disabling force valid
   if (!event.forceValid) {
-    event.forceValidReason = undefined;
+    event.forceValidReason = "";
+    delete event.forceValid;
   }
   // Trigger update logic
   const index = formData.value.ncsEvents.indexOf(event);
@@ -342,6 +345,7 @@ const addISMAttendance = () => {
     eventName: newISMEvent.value.eventName,
     subsidyUsed: subsidyToUse,
     date: eventDate,
+    isManual: true,
   });
 
   // Reset form
@@ -400,6 +404,7 @@ const addNCSEvent = () => {
     // Initialize sessions as false for new manual events
     session1: false,
     session2: false,
+    isManual: true,
   });
 
   // Recalculate counter
@@ -445,6 +450,7 @@ const addISSEvent = () => {
   formData.value.issEvents.push({
     eventName: newISSEvent.value.eventName,
     date: eventDate,
+    isManual: true,
   });
 
   // Increment counter
@@ -1171,7 +1177,27 @@ const handleSave = async () => {
                   class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                 >
                   <div class="flex-1">
-                    <p class="font-medium text-gray-900">{{ ism.eventName }}</p>
+                    <div class="flex items-center gap-2">
+                      <p class="font-medium text-gray-900">
+                        {{ ism.eventName }}
+                      </p>
+                      <span
+                        v-if="ism.eventId"
+                        class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded"
+                        title="Synced with Event Store"
+                      >
+                        <Link2 :size="10" />
+                        Synced
+                      </span>
+                      <span
+                        v-else-if="ism.isManual"
+                        class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded"
+                        title="Manual entry - not linked to Event Store"
+                      >
+                        <Unlink :size="10" />
+                        Manual
+                      </span>
+                    </div>
                     <div class="flex items-center gap-4 mt-1">
                       <p class="text-sm text-gray-600">
                         Subsidy: {{ ism.subsidyUsed }}%
@@ -1440,10 +1466,26 @@ const handleSave = async () => {
                     "
                   >
                     <div class="flex-1">
-                      <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-2 flex-wrap">
                         <p class="font-medium text-gray-900">
                           {{ event.eventName }}
                         </p>
+                        <span
+                          v-if="event.eventId"
+                          class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded"
+                          title="Synced with Event Store"
+                        >
+                          <Link2 :size="10" />
+                          Synced
+                        </span>
+                        <span
+                          v-else-if="event.isManual"
+                          class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded"
+                          title="Manual entry - not linked to Event Store"
+                        >
+                          <Unlink :size="10" />
+                          Manual
+                        </span>
                         <span
                           v-if="doesNCSEventCount(event)"
                           class="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-emerald text-white rounded-full"
@@ -1677,9 +1719,27 @@ const handleSave = async () => {
                     class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     <div class="flex-1">
-                      <p class="font-medium text-gray-900">
-                        {{ event.eventName }}
-                      </p>
+                      <div class="flex items-center gap-2">
+                        <p class="font-medium text-gray-900">
+                          {{ event.eventName }}
+                        </p>
+                        <span
+                          v-if="event.eventId"
+                          class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded"
+                          title="Synced with Event Store"
+                        >
+                          <Link2 :size="10" />
+                          Synced
+                        </span>
+                        <span
+                          v-else-if="event.isManual"
+                          class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded"
+                          title="Manual entry - not linked to Event Store"
+                        >
+                          <Unlink :size="10" />
+                          Manual
+                        </span>
+                      </div>
                       <p class="text-sm text-gray-500 mt-1">
                         {{ formatDate(event.date) }}
                       </p>

@@ -935,8 +935,8 @@ watch(
             <p class="text-sm font-medium text-amber-800">💾 Backup Reminder</p>
             <p class="text-sm text-amber-700 mt-1">
               Always backup your data frequently by clicking
-              <span class="font-semibold">Export All</span>
-              to prevent data loss.
+              <span class="font-semibold">Export All/Filtered</span>
+              to prevent data loss. Export as JSON function is available and it's under Admin Management page.
             </p>
           </div>
         </div>

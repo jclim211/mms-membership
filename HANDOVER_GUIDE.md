@@ -107,27 +107,61 @@ Instead of manually editing each member, you can use the **Events Page**:
    - You can toggle attendance for existing members.
    - **Quick Add**: If a student isn't in the database, you can "Quick Add" them right there. They will be added as "Associate" members.
    - **ISM Events**: System automatically calculates subsidy rates, but you can override if needed.
+   - **Event Linking**: Attendance marked through Events page is automatically linked to the event (shows "Synced" badge in member profile).
 4. **Bulk Attendance Import**: Inside an event, click "Bulk Import" to upload attendance for that specific event.
    - **Drag & Drop**: Simply drag your Excel file into the upload zone.
    - **Download Existing**: Export current attendees to edit and re-upload.
    - System supports subsidy parsing and calculation.
-5. **Deleting Events**: You can choose whether to delete the event _only_ from the list, or also remove it from every student's history (cleaning up their profiles).
+5. **Deleting Events**: A confirmation modal will appear asking you to confirm. You can choose whether to delete the event _only_ from the list, or also remove it from every student's history (cleaning up their profiles).
+
+> 💡 **Synced vs Manual Events**:
+>
+> - Events added through the Events page show a blue "Synced" badge
+> - Events added manually in member profiles show an amber "Manual" badge
+> - Synced events update automatically when you rename/delete an event in Event Store
 
 ---
 
-## 4. Where is the data?
+## 4. Data Backup & Restore ✨ **NEW in v2.1.0**
+
+### Exporting Data
+
+1. Go to **Admin Management** page.
+2. Scroll to "Export Data" section.
+3. **Select collections**: Check/uncheck Members, Events, Admins.
+4. Click **Export Selected** to download a single JSON backup file.
+
+### Importing Data (Restore)
+
+1. Go to **Admin Management** page.
+2. Scroll to "Import Data" section.
+3. **Drag & drop** your JSON backup file.
+4. Review the preview (shows record counts).
+5. **Select collections** to import.
+6. Choose import mode:
+   - **Replace**: ⚠️ Deletes existing data, then imports
+   - **Merge**: Keeps existing data, adds/updates from file
+7. Click **Import Selected Data**.
+8. Type "IMPORT" in the confirmation modal to proceed.
+
+> ⚠️ **Warning**: Import is a powerful feature. Always export a backup BEFORE importing!
+
+---
+
+## 5. Where is the data?
 
 All data is stored in **Google Firebase**, a secure cloud database.
 
 - **Safe**: It's backed up by Google.
-- **Exportable**: You can click **Export All** on the dashboard to download a full Excel backup at any time.
+- **Exportable**: You can click **Export Selected** on the Admin Management page to download a JSON backup.
+- **Restorable**: You can import JSON backups to restore data.
 - **Secure**: Only logged-in admins can see or change data.
 
-> ⚠️ **Important**: Make it a habit to click **Export All** once a week and save the file on your computer. This is your ultimate backup.
+> ⚠️ **Important**: Make it a habit to export your data once a week and save the file on your computer. This is your ultimate backup.
 
 ---
 
-## 5. If something breaks...
+## 6. If something breaks...
 
 Don't panic!
 
@@ -142,4 +176,5 @@ Don't panic!
 - **[HANDOVER_GUIDE.md](HANDOVER_GUIDE.md)**: **You are reading this.**
 - **[NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md)**: Simple technical guide for non-coders.
 - **[SETUP_GUIDE.md](SETUP_GUIDE.md)**: How to set up the website from scratch.
+- **[CHANGELOG.md](CHANGELOG.md)**: Version history and feature changes.
 - **[README.md](README.md)**: Technical manual for developers (you can ignore this mostly).

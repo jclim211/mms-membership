@@ -371,7 +371,13 @@ export const useMemberStore = defineStore("members", () => {
       let updatedData = {};
       let needsUpdate = false;
 
+      // Match by eventId first (preferred), fall back to name+date for legacy records
       const isSameEvent = (e) => {
+        // If both have eventId, use that for matching (most reliable)
+        if (event.id && e.eventId) {
+          return e.eventId === event.id;
+        }
+        // Fall back to name+date matching for legacy records without eventId
         return (
           normalize(e.eventName) === eventNameNormalized &&
           toLocalYMD(e.date) === eventDateFormatted
@@ -494,13 +500,19 @@ export const useMemberStore = defineStore("members", () => {
         let listChanged = false;
 
         const newList = eventList.map((e) => {
-          const eDateFormatted = toLocalYMD(e.date);
-          const eNameNormalized = normalize(e.eventName);
+          // Match by eventId first (preferred), fall back to name+date for legacy records
+          let isMatch = false;
+          if (oldEvent.id && e.eventId) {
+            isMatch = e.eventId === oldEvent.id;
+          } else {
+            const eDateFormatted = toLocalYMD(e.date);
+            const eNameNormalized = normalize(e.eventName);
+            isMatch =
+              eNameNormalized === oldNameNormalized &&
+              eDateFormatted === oldDateFormatted;
+          }
 
-          if (
-            eNameNormalized === oldNameNormalized &&
-            eDateFormatted === oldDateFormatted
-          ) {
+          if (isMatch) {
             listChanged = true;
             return {
               ...e,

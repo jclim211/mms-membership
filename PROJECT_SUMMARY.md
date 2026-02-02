@@ -292,6 +292,38 @@ Your Club Membership Management Portal is now fully built and ready to use. This
 - [x] Helpful tooltips
 - [x] Keyboard shortcuts support
 
+### 9. Event ID Tracking System ✅ [v2.1.0]
+
+- [x] **Event ID Linking**: Member event records linked to Event Store via `eventId`
+- [x] **Manual Entry Detection**: Events added manually marked with `isManual: true`
+- [x] **Visual Indicators**: Synced (blue) vs Manual (amber) badges in Member Modal
+- [x] **Reliable Sync**: Event renames/deletes now update member records correctly
+- [x] **Fallback Matching**: Legacy records use name+date matching
+
+### 10. Data Backup & Restore ✅ [v2.1.0]
+
+**Export:**
+
+- [x] Selective collection export (Members, Events, Admins)
+- [x] Single JSON file with metadata (timestamp, version)
+- [x] Record counts displayed before export
+
+**Import:**
+
+- [x] Drag-and-drop JSON file upload
+- [x] File preview with record counts
+- [x] Collection selection for import
+- [x] Two import modes: Replace (⚠️ dangerous) and Merge
+- [x] Strong confirmation modal (type "IMPORT" to confirm)
+- [x] Batch processing for large datasets
+- [x] Admin import disabled by default for safety
+
+### 11. Event Deletion Safety ✅ [v2.1.0]
+
+- [x] Confirmation modal before deleting events
+- [x] Separate confirmation for syncing deletions to members
+- [x] Clear visual warnings (red styling)
+
 ---
 
 ## 📊 Data Schema
@@ -318,7 +350,24 @@ Your Club Membership Management Portal is now fully built and ready to use. This
   ismAttendance: Array<{
     eventName: String,
     subsidyUsed: Number,
-    date: String
+    date: String,
+    eventId: String,     // [v2.1.0] Links to Event Store document
+    isManual: Boolean    // [v2.1.0] True if manually added
+  }>,
+  ncsEvents: Array<{
+    eventName: String,
+    date: String,
+    sessions: Array<Number>,
+    forceCount: Boolean,
+    forceReason: String,
+    eventId: String,     // [v2.1.0] Links to Event Store document
+    isManual: Boolean    // [v2.1.0] True if manually added
+  }>,
+  issEvents: Array<{
+    eventName: String,
+    date: String,
+    eventId: String,     // [v2.1.0] Links to Event Store document
+    isManual: Boolean    // [v2.1.0] True if manually added
   }>,
   ncsTotalAttended: Number,  // Total NCS events with any participation
   validNcsAttended: Number,   // Valid NCS events counting toward graduation

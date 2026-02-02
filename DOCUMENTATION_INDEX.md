@@ -48,6 +48,15 @@ Welcome to the Club Membership Management Portal documentation! This index will 
    - Emergency procedures
    - No coding knowledge required!
 
+### For Version History
+
+6. **[CHANGELOG.md](CHANGELOG.md)** 🆕
+   - Version history and release notes
+   - New features and improvements
+   - Bug fixes
+   - Migration notes
+   - File changes summary
+
 ---
 
 ## 📖 Detailed Documentation
