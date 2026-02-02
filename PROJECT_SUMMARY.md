@@ -320,7 +320,9 @@ Your Club Membership Management Portal is now fully built and ready to use. This
     subsidyUsed: Number,
     date: String
   }>,
-  ncsAttended: Number,
+  ncsTotalAttended: Number,  // Total NCS events with any participation
+  validNcsAttended: Number,   // Valid NCS events counting toward graduation
+  ncsAttended: Number,        // Legacy field (kept for backward compatibility)
   issAttended: Number,
 
   // Scholarship

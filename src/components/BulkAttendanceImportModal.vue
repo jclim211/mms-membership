@@ -339,7 +339,9 @@ const handleImport = async () => {
           school: "Unknown",
           tracks: [],
           ismAttendance: [],
-          ncsAttended: 0,
+          ncsTotalAttended: 0,
+          validNcsAttended: 0,
+          ncsAttended: 0, // Legacy support
           issAttended: 0,
           ncsEvents: [],
           issEvents: [],

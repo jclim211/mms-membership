@@ -53,9 +53,31 @@ export const useMemberStore = defineStore("members", () => {
     return eventDate >= declarationDate;
   };
 
+  // Helper: Calculate total NCS count (any event with at least one session attended)
+  const getTotalNCSCount = (member) => {
+    // If ncsTotalAttended is present (cached), use it
+    if (
+      member.ncsTotalAttended !== undefined &&
+      member.ncsTotalAttended !== null
+    ) {
+      return member.ncsTotalAttended;
+    }
+
+    if (!member.ncsEvents) return 0;
+    return member.ncsEvents.filter((event) => event.session1 || event.session2)
+      .length;
+  };
+
   // Helper: Calculate valid NCS count based on declaration date
   const getValidNCSCount = (member) => {
-    // If ncsAttended is present (manual override or cached), use it
+    // Read from validNcsAttended first, fallback to legacy ncsAttended field
+    if (
+      member.validNcsAttended !== undefined &&
+      member.validNcsAttended !== null
+    ) {
+      return member.validNcsAttended;
+    }
+    // Legacy support: read from old ncsAttended field if exists
     if (member.ncsAttended !== undefined && member.ncsAttended !== null) {
       return member.ncsAttended;
     }
@@ -375,7 +397,19 @@ export const useMemberStore = defineStore("members", () => {
         const ncsEvents = member.ncsEvents || [];
         if (ncsEvents.some(isSameEvent)) {
           updatedData.ncsEvents = ncsEvents.filter((e) => !isSameEvent(e));
-          updatedData.ncsAttended = Math.max(0, (member.ncsAttended || 0) - 1);
+
+          // Recalculate both counts after removal
+          const remainingEvents = updatedData.ncsEvents;
+          updatedData.ncsTotalAttended = remainingEvents.filter(
+            (e) => e.session1 || e.session2,
+          ).length;
+          // Write to both old and new field names during migration
+          const validCount = remainingEvents.filter((e) =>
+            isNCSEventValid(member, e),
+          ).length;
+          updatedData.validNcsAttended = validCount;
+          updatedData.ncsAttended = validCount; // Legacy support
+
           needsUpdate = true;
         }
       }
@@ -564,6 +598,7 @@ export const useMemberStore = defineStore("members", () => {
     addMember,
     updateMember,
     deleteMember,
+    getTotalNCSCount,
     getValidNCSCount,
     isNCSEventValid,
     removeEventFromAllMembers,

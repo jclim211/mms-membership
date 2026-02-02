@@ -420,19 +420,46 @@ const emit = defineEmits(["close"]);
               <!-- Attendance Numbers -->
               <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">
-                  NCS Attended & ISS Attended
+                  Total NCS Attended & Valid NCS (Counting Toward Graduation)
                 </h4>
                 <p class="text-sm text-gray-700 mb-2">
                   <strong class="text-red-600"
                     >⚠️ These fields are auto-calculated and NOT
                     imported.</strong
                   >
-                  They appear in downloads for reference only. The system
+                  They appear in downloads for reference only.
+                </p>
+                <div class="bg-white rounded p-2 text-sm space-y-2">
+                  <div>
+                    <span class="text-gray-500">Total NCS Attended:</span>
+                    <code class="ml-2 text-gray-700 font-mono">5</code>
+                    <span class="ml-2 text-xs text-gray-600"
+                      >(Any participation)</span
+                    >
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Valid NCS:</span>
+                    <code class="ml-2 text-blue-700 font-mono">3</code>
+                    <span class="ml-2 text-xs text-gray-600"
+                      >(Full attendance & after declaration)</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <!-- ISS Attended -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">ISS Attended</h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  <strong class="text-red-600"
+                    >⚠️ This field is auto-calculated and NOT imported.</strong
+                  >
+                  It appears in downloads for reference only. The system
                   automatically counts events from the member's event records.
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Example value:</span>
-                  <code class="ml-2 text-gray-500 font-mono">3</code>
+                  <code class="ml-2 text-gray-500 font-mono">2</code>
                 </div>
               </div>
 

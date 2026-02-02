@@ -338,7 +338,9 @@ mms-membership/
       date: "2024-03-15T00:00:00.000Z"
     }
   ],
-  ncsAttended: 2,
+  ncsTotalAttended: 3,      // Total NCS events with any participation
+  validNcsAttended: 2,       // Valid NCS events counting toward graduation
+  ncsAttended: 2,            // Legacy field (kept for backward compatibility)
   issAttended: 1,
   scholarshipAwarded: false,
   reasonForOrdinaryB: "",

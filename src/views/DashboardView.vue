@@ -1305,12 +1305,20 @@ watch(
                   </span>
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <span
-                    class="text-base sm:text-lg font-bold"
-                    :class="getNCSProgressColor(member)"
-                  >
-                    {{ getNCSProgress(member) }}
-                  </span>
+                  <div class="text-sm">
+                    <div
+                      class="text-base sm:text-lg font-bold"
+                      :class="getNCSProgressColor(member)"
+                    >
+                      {{ getNCSProgress(member) }}
+                    </div>
+                    <div
+                      v-if="memberStore.getTotalNCSCount(member) > 0"
+                      class="text-xs text-gray-500 mt-0.5"
+                    >
+                      Total: {{ memberStore.getTotalNCSCount(member) }}
+                    </div>
+                  </div>
                 </td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   <div class="flex items-center gap-1 sm:gap-2">

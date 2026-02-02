@@ -20,4 +20,16 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+// Expose to window for migration scripts (browser console)
+// Only in development mode for security
+if (import.meta.env.DEV) {
+  import("firebase/firestore").then(
+    ({ collection, getDocs, writeBatch, doc }) => {
+      window.db = db;
+      window.firebaseFirestore = { collection, getDocs, writeBatch, doc };
+      console.log("🔧 Firebase exposed on window (dev mode only)");
+    },
+  );
+}
+
 export default app;

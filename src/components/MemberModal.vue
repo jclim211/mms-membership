@@ -49,7 +49,16 @@ const formData = ref({
   ismAttendance: props.member?.ismAttendance
     ? [...props.member.ismAttendance]
     : [],
-  ncsAttended: props.member?.ncsAttended || 0,
+  ncsTotalAttended:
+    props.member?.ncsTotalAttended ??
+    (props.member?.ncsEvents || []).filter((e) => e.session1 || e.session2)
+      .length,
+  validNcsAttended:
+    props.member?.validNcsAttended ??
+    props.member?.ncsAttended ??
+    (props.member?.ncsEvents || []).filter((e) =>
+      memberStore.isNCSEventValid(props.member, e),
+    ).length,
   issAttended: props.member?.issAttended || 0,
   // Deep copy NCS events to ensure we can modify forceValid property
   ncsEvents: props.member?.ncsEvents
@@ -115,7 +124,16 @@ watch(
       formData.value.issEvents = newMember.issEvents
         ? [...newMember.issEvents]
         : [];
-      formData.value.ncsAttended = newMember.ncsAttended || 0;
+      formData.value.ncsTotalAttended =
+        newMember.ncsTotalAttended ??
+        (newMember.ncsEvents || []).filter((e) => e.session1 || e.session2)
+          .length;
+      formData.value.validNcsAttended =
+        newMember.validNcsAttended ??
+        newMember.ncsAttended ??
+        (newMember.ncsEvents || []).filter((e) =>
+          memberStore.isNCSEventValid(newMember, e),
+        ).length;
       formData.value.issAttended = newMember.issAttended || 0;
     }
   },
@@ -352,12 +370,19 @@ const confirmDeleteISM = () => {
 };
 
 // Add NCS event
-// Recalculate NCS Attended count based on valid events
+// Recalculate NCS Attended counts (both total and valid)
 const recalculateNCSAttended = () => {
+  // Total: Any event with at least one session attended
+  const totalCount = formData.value.ncsEvents.filter(
+    (event) => event.session1 || event.session2,
+  ).length;
+  formData.value.ncsTotalAttended = totalCount;
+
+  // Valid: Only events that count toward graduation
   const validCount = formData.value.ncsEvents.filter((event) =>
     doesNCSEventCount(event),
   ).length;
-  formData.value.ncsAttended = validCount;
+  formData.value.validNcsAttended = validCount;
 };
 
 const addNCSEvent = () => {
@@ -1338,19 +1363,36 @@ const handleSave = async () => {
                   ></textarea>
                 </div>
 
-                <!-- NCS Attended -->
+                <!-- NCS Counts -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
-                    # NCS Attended
+                    Total NCS Attended
+                  </label>
+                  <div class="flex items-center">
+                    <span
+                      class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 text-lg font-semibold rounded-lg"
+                    >
+                      {{ formData.ncsTotalAttended }}
+                    </span>
+                    <span class="ml-2 text-xs text-gray-500"
+                      >Any participation</span
+                    >
+                  </div>
+                </div>
+
+                <!-- Valid NCS (Counting Toward Graduation) -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Valid NCS (Counting Toward Graduation)
                   </label>
                   <div class="flex items-center">
                     <span
                       class="inline-flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-800 text-lg font-semibold rounded-lg"
                     >
-                      {{ formData.ncsAttended }}
+                      {{ formData.validNcsAttended }}
                     </span>
                     <span class="ml-2 text-xs text-gray-500"
-                      >Auto-calculated from events</span
+                      >Full attendance & after declaration</span
                     >
                   </div>
                 </div>

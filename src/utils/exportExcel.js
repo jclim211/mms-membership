@@ -84,7 +84,9 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
       "Next Subsidy Rate": member.nextSubsidyRate
         ? `${member.nextSubsidyRate}%`
         : "",
-      "NCS Attended": member.ncsAttended || 0,
+      "Total NCS Attended": member.ncsTotalAttended || 0,
+      "Valid NCS (Counting Toward Graduation)":
+        member.validNcsAttended ?? member.ncsAttended ?? 0,
       "NCS Events (comma-separated)": ncsNames,
       "ISS Attended": member.issAttended || 0,
       "ISS Events (comma-separated)": issNames,

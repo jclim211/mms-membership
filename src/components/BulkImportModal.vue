@@ -313,7 +313,9 @@ const downloadExistingMembers = () => {
       "Added to Telegram Group (1=Yes, 0=No)": member.addedToTelegram ? 1 : 0,
       "Phone Number": member.phoneNumber || "",
       "ISM Attendance": ismAttendance,
-      "NCS Attended": member.ncsAttended || 0,
+      "Total NCS Attended": member.ncsTotalAttended || 0,
+      "Valid NCS (Counting Toward Graduation)":
+        member.validNcsAttended ?? member.ncsAttended ?? 0,
       "ISS Attended": member.issAttended || 0,
       "NCS Events (comma-separated)": ncsEvents,
       "ISS Events (comma-separated)": issEvents,

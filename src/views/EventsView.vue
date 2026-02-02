@@ -130,7 +130,7 @@ const openAttendanceModal = (event) => {
 
 const openDeleteModal = (event) => {
   confirmDelete.value = event;
-  deleteFromRecords.value = false; // Reset default
+  deleteFromRecords.value = true; // Default to checked for data integrity
 };
 
 const handleSaveEvent = async (eventData) => {
@@ -316,14 +316,22 @@ const updateMemberRecords = async (event, attendance) => {
             );
           }
 
-          // Recalculate ncsAttended count
-          // We need to use the NEW list of events to calculate the count
+          // Recalculate NCS counts
+          // We need to use the NEW list of events to calculate the counts
           const currentEvents = updatedData.ncsEvents || ncsEvents;
+
+          // Total: Any event with at least one session
+          const totalCount = currentEvents.filter(
+            (e) => e.session1 || e.session2,
+          ).length;
+          updatedData.ncsTotalAttended = totalCount;
+
+          // Valid: Only events that count toward graduation
           const validCount = currentEvents.filter((e) =>
             memberStore.isNCSEventValid(member, e),
           ).length;
-
-          updatedData.ncsAttended = validCount;
+          updatedData.validNcsAttended = validCount;
+          updatedData.ncsAttended = validCount; // Legacy support
         } else {
           // If neither session attended, remove it
           if (exists) {
@@ -335,12 +343,21 @@ const updateMemberRecords = async (event, attendance) => {
                 ),
             );
 
-            // Recalculate ncsAttended count after removal
+            // Recalculate NCS counts after removal
             const currentEvents = updatedData.ncsEvents;
+
+            // Total: Any event with at least one session
+            const totalCount = currentEvents.filter(
+              (e) => e.session1 || e.session2,
+            ).length;
+            updatedData.ncsTotalAttended = totalCount;
+
+            // Valid: Only events that count toward graduation
             const validCount = currentEvents.filter((e) =>
               memberStore.isNCSEventValid(member, e),
             ).length;
-            updatedData.ncsAttended = validCount;
+            updatedData.validNcsAttended = validCount;
+            updatedData.ncsAttended = validCount; // Legacy support
           }
         }
       }
@@ -397,7 +414,17 @@ const updateMemberRecords = async (event, attendance) => {
                 toLocalYMD(e.date) === toLocalYMD(event.date)
               ),
           );
-          updatedData.ncsAttended = Math.max(0, (member.ncsAttended || 0) - 1);
+
+          // Recalculate both counts after removal
+          const remainingEvents = updatedData.ncsEvents;
+          updatedData.ncsTotalAttended = remainingEvents.filter(
+            (e) => e.session1 || e.session2,
+          ).length;
+          const validCount = remainingEvents.filter((e) =>
+            memberStore.isNCSEventValid(member, e),
+          ).length;
+          updatedData.validNcsAttended = validCount;
+          updatedData.ncsAttended = validCount; // Legacy support
         }
       }
     }
@@ -409,7 +436,7 @@ const updateMemberRecords = async (event, attendance) => {
   }
 };
 
-const deleteFromRecords = ref(false);
+const deleteFromRecords = ref(true);
 
 const handleDeleteEvent = async () => {
   if (confirmDelete.value) {
@@ -422,7 +449,7 @@ const handleDeleteEvent = async () => {
       alert(result.error);
     }
     confirmDelete.value = null;
-    deleteFromRecords.value = false; // Reset checkbox
+    deleteFromRecords.value = true; // Reset to default (checked)
   }
 };
 
@@ -700,8 +727,8 @@ const handleBulkImportSave = async (attendance) => {
               >?
             </p>
             <p class="text-sm text-gray-500 mb-4">
-              This will remove the event from the system. Member attendance
-              records will not be affected.
+              This will remove the event from the system and from all member
+              records. Attendance counts will be recalculated.
             </p>
             <div class="mb-4">
               <label
@@ -717,11 +744,10 @@ const handleBulkImportSave = async (attendance) => {
                 >
               </label>
               <p
-                v-if="deleteFromRecords"
-                class="text-xs text-red-500 mt-1 pl-2"
+                v-if="!deleteFromRecords"
+                class="text-xs text-amber-600 mt-1 pl-2"
               >
-                ⚠️ This will affect attendance counts and subsidies for all
-                attendees.
+                ⚠️ Event will be deleted but member records will keep this attendance.
               </p>
             </div>
             <div class="flex justify-end gap-3">
