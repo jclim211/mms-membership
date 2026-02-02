@@ -54,24 +54,46 @@ const filteredMembers = computed(() => {
   return filtered;
 });
 
-// Calculate subsidies for ISM events
-const getMemberSubsidy = (member) => {
+// Helper to normalize dates to YYYY-MM-DD format
+const toLocalYMD = (d) => {
+  if (!d) return "";
+  if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  try {
+    const dateObj = new Date(d);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    return "";
+  }
+};
+
+// Calculate the AUTO subsidy rate (ignoring saved attendance)
+const getAutoCalculatedSubsidy = (member) => {
   if (props.event.type !== "ISM") return null;
 
-  // Helper to normalize dates to YYYY-MM-DD format
-  const toLocalYMD = (d) => {
-    if (!d) return "";
-    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-    try {
-      const dateObj = new Date(d);
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    } catch (e) {
-      return "";
-    }
-  };
+  // Calculate based on history (excluding current event)
+  const subsidyHistory = (member.ismAttendance || [])
+    .filter((a) => {
+      // Exclude current event from history
+      const isSameEvent =
+        a.eventName === props.event.name &&
+        toLocalYMD(a.date) === toLocalYMD(props.event.date);
+      return !isSameEvent && a.isAutoSubsidy !== false;
+    })
+    .map((a) => a.subsidyUsed);
+
+  return calculateNextSubsidyRate(
+    member.membershipType,
+    member.isExco || false,
+    subsidyHistory,
+  );
+};
+
+// Calculate subsidies for ISM events (returns saved if exists, otherwise auto)
+const getMemberSubsidy = (member) => {
+  if (props.event.type !== "ISM") return null;
 
   // Check if member already has attendance for THIS specific event
   const existingAttendance = (member.ismAttendance || []).find(
@@ -85,12 +107,8 @@ const getMemberSubsidy = (member) => {
     return existingAttendance.subsidyUsed;
   }
 
-  // Otherwise, calculate the next subsidy based on history
-  // Only count auto-applied subsidies in history
-  const subsidyHistory = (member.ismAttendance || [])
-    .filter((a) => a.isAuto !== false) // Include undefined (old data) and true
-    .map((a) => a.subsidyUsed);
-  return calculateNextSubsidyRate(member.membershipType, subsidyHistory);
+  // Otherwise, return auto-calculated subsidy
+  return getAutoCalculatedSubsidy(member);
 };
 
 // Track manual subsidy overrides
@@ -122,8 +140,8 @@ const initializeSubsidyOverrides = () => {
         toLocalYMD(ism.date) === toLocalYMD(props.event.date),
     );
 
-    // Only set override if attendance already exists for this event
-    if (existingAttendance && attendance.value[member.id]?.attended) {
+    // Set override if member has previously attended this event (saved subsidy)
+    if (existingAttendance) {
       subsidyOverrides.value[member.id] = existingAttendance.subsidyUsed;
     }
   });
@@ -253,6 +271,19 @@ const toggleBothSessions = (memberId) => {
     attendance.value[memberId].session1 = !currentBoth;
     attendance.value[memberId].session2 = !currentBoth;
     attendance.value[memberId].attended = !currentBoth;
+  }
+};
+
+// Clear all attendance
+const clearAllAttendance = () => {
+  if (
+    confirm(
+      "Are you sure you want to clear all attendance? This cannot be undone.",
+    )
+  ) {
+    attendance.value = {};
+    subsidyOverrides.value = {};
+    manuallyModified.value = {};
   }
 };
 
@@ -396,9 +427,18 @@ const handleQuickAddStudent = async (studentData) => {
             Showing {{ filteredMembers.length }} of
             {{ memberStore.totalMembers }} members
           </span>
-          <span class="font-semibold text-navy">
-            {{ attendedCount }} marked as attended
-          </span>
+          <div class="flex items-center gap-3">
+            <span class="font-semibold text-navy">
+              {{ attendedCount }} marked as attended
+            </span>
+            <button
+              v-if="attendedCount > 0"
+              @click="clearAllAttendance"
+              class="px-3 py-1 text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 border border-red-600 rounded-lg transition-colors"
+            >
+              Clear All
+            </button>
+          </div>
         </div>
       </div>
 
@@ -451,7 +491,12 @@ const handleQuickAddStudent = async (studentData) => {
                     :key="option"
                     :value="option"
                   >
-                    {{ option }}%
+                    {{ option === getAutoCalculatedSubsidy(member) ? "★ " : ""
+                    }}{{ option }}%{{
+                      option === getAutoCalculatedSubsidy(member)
+                        ? " (Auto)"
+                        : ""
+                    }}
                   </option>
                 </select>
                 <span

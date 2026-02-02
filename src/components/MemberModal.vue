@@ -87,13 +87,32 @@ const formData = ref({
 const errors = ref({});
 const isSaving = ref(false);
 const showAddISM = ref(false);
-const newISMEvent = ref({ eventName: "", subsidyUsed: 0, date: "" });
+const newISMEvent = ref({
+  eventName: "",
+  originalEventName: "",
+  subsidyUsed: 0,
+  date: "",
+  selectedEventId: null,
+});
 const showAddNCS = ref(false);
-const newNCSEvent = ref({ eventName: "", date: "" });
+const newNCSEvent = ref({
+  eventName: "",
+  originalEventName: "",
+  date: "",
+  selectedEventId: null,
+  session1: false,
+  session2: false,
+});
 const showAddISS = ref(false);
 const ismSectionRef = ref(null);
 const ncsSectionRef = ref(null);
-const newISSEvent = ref({ eventName: "", date: "" });
+const newISSEvent = ref({
+  eventName: "",
+  originalEventName: "",
+  date: "",
+  selectedEventId: null,
+});
+const issSearchQuery = ref("");
 const newDynamicField = ref({ key: "", value: "" });
 const editingReasonForEvent = ref(null);
 const deleteConfirmation = ref({
@@ -107,7 +126,12 @@ const deleteConfirmation = ref({
 const originalMembershipType = ref(props.member?.membershipType || null);
 
 // Scroll to section if specified
-onMounted(() => {
+onMounted(async () => {
+  // Ensure events are loaded for dropdown population
+  if (eventStore.events.length === 0) {
+    await eventStore.fetchEvents();
+  }
+
   if (props.scrollSection) {
     nextTick(() => {
       let targetRef = null;
@@ -182,35 +206,35 @@ const schools = SCHOOLS;
 // Tracks list
 const tracksOptions = TRACKS;
 
-// Get unique event names from all members for autocomplete
+// Get events from Event Store for autocomplete and selection
 const existingISMEvents = computed(() => {
-  const events = new Set();
-  memberStore.members.forEach((member) => {
-    member.ismAttendance?.forEach((ism) => {
-      if (ism.eventName) events.add(ism.eventName);
-    });
-  });
-  return Array.from(events).sort();
+  return eventStore.ismEvents
+    .map((event) => ({
+      id: event.id,
+      name: event.name,
+      date: event.date,
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, most recent first
 });
 
 const existingNCSEvents = computed(() => {
-  const events = new Set();
-  memberStore.members.forEach((member) => {
-    member.ncsEvents?.forEach((event) => {
-      if (event.eventName) events.add(event.eventName);
-    });
-  });
-  return Array.from(events).sort();
+  return eventStore.ncsEvents
+    .map((event) => ({
+      id: event.id,
+      name: event.name,
+      date: event.date,
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, most recent first
 });
 
 const existingISSEvents = computed(() => {
-  const events = new Set();
-  memberStore.members.forEach((member) => {
-    member.issEvents?.forEach((event) => {
-      if (event.eventName) events.add(event.eventName);
-    });
-  });
-  return Array.from(events).sort();
+  return eventStore.issEvents
+    .map((event) => ({
+      id: event.id,
+      name: event.name,
+      date: event.date,
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, most recent first
 });
 
 // Calculate scholarship eligibility
@@ -231,7 +255,7 @@ const nextSubsidyRate = computed(() => {
   // Otherwise calculate based on membership type and history
   // Only count auto-applied subsidies in history
   const subsidyHistory = formData.value.ismAttendance
-    .filter((ism) => ism.isAuto !== false) // Include undefined (old data) and true
+    .filter((ism) => ism.isAutoSubsidy !== false) // Include undefined (old data) and true
     .map((ism) => ism.subsidyUsed);
   return calculateNextSubsidyRate(
     formData.value.membershipType,
@@ -239,6 +263,18 @@ const nextSubsidyRate = computed(() => {
     subsidyHistory,
   );
 });
+
+// Check if both NCS sessions are selected
+const isBothNCSSessionsSelected = computed(() => {
+  return newNCSEvent.value.session1 && newNCSEvent.value.session2;
+});
+
+// Toggle both NCS sessions
+const toggleBothNCSessions = () => {
+  const currentBoth = isBothNCSSessionsSelected.value;
+  newNCSEvent.value.session1 = !currentBoth;
+  newNCSEvent.value.session2 = !currentBoth;
+};
 
 // Identify missing required fields (only for existing members)
 const missingFields = computed(() => {
@@ -251,7 +287,6 @@ const missingFields = computed(() => {
   if (!formData.value.firstDegree) missing.push("First Degree");
   if (!formData.value.school || formData.value.school === "Unknown")
     missing.push("School");
-  
 
   // Check if School matches the selected First Degree
   if (
@@ -447,6 +482,75 @@ watch(
   { deep: true },
 );
 
+// Watch for ISM event name changes to detect datalist selection
+watch(
+  () => newISMEvent.value.eventName,
+  (newName) => {
+    if (!newName || newISMEvent.value.selectedEventId) return;
+
+    // Check if the entered name matches an existing event
+    const match = existingISMEvents.value.find(
+      (e) => `[${formatDateOnly(e.date)}] ${e.name}` === newName,
+    );
+
+    if (match) {
+      handleISMEventSelect(match.id);
+    }
+  },
+);
+
+// Watch for NCS event name changes to detect datalist selection
+watch(
+  () => newNCSEvent.value.eventName,
+  (newName) => {
+    if (!newName || newNCSEvent.value.selectedEventId) return;
+
+    const match = existingNCSEvents.value.find(
+      (e) => `[${formatDateOnly(e.date)}] ${e.name}` === newName,
+    );
+
+    if (match) {
+      handleNCSEventSelect(match.id);
+    }
+  },
+);
+
+// Watch for ISS event name changes to detect datalist selection
+watch(
+  () => newISSEvent.value.eventName,
+  (newName) => {
+    if (!newName || newISSEvent.value.selectedEventId) return;
+
+    const match = existingISSEvents.value.find(
+      (e) => `[${formatDateOnly(e.date)}] ${e.name}` === newName,
+    );
+
+    if (match) {
+      handleISSEventSelect(match.id);
+    }
+  },
+);
+
+// Handle ISM event selection from dropdown
+const handleISMEventSelect = (eventId) => {
+  if (eventId === "CLEAR") {
+    // Clear selection
+    newISMEvent.value.eventName = "";
+    newISMEvent.value.originalEventName = "";
+    newISMEvent.value.date = "";
+    newISMEvent.value.selectedEventId = null;
+    return;
+  }
+
+  const selectedEvent = existingISMEvents.value.find((e) => e.id === eventId);
+  if (selectedEvent) {
+    newISMEvent.value.eventName = `[${formatDateOnly(selectedEvent.date)}] ${selectedEvent.name}`;
+    newISMEvent.value.originalEventName = selectedEvent.name; // Store original for saving
+    newISMEvent.value.date = selectedEvent.date.split("T")[0]; // Format as YYYY-MM-DD for input
+    newISMEvent.value.selectedEventId = eventId;
+  }
+};
+
 // Add ISM attendance
 const addISMAttendance = () => {
   if (!newISMEvent.value.eventName) {
@@ -459,15 +563,72 @@ const addISMAttendance = () => {
     ? new Date(newISMEvent.value.date).toISOString()
     : new Date().toISOString();
 
-  formData.value.ismAttendance.push({
-    eventName: newISMEvent.value.eventName,
+  // Check for duplicates
+  // If selecting an existing event, check by eventId (most reliable)
+  if (newISMEvent.value.selectedEventId) {
+    const isDuplicate = formData.value.ismAttendance.some(
+      (ism) => ism.eventId === newISMEvent.value.selectedEventId,
+    );
+    if (isDuplicate) {
+      alert("This ISM event has already been added to this member.");
+      return;
+    }
+  } else {
+    // For manual entries, check by name and date
+    const toLocalYMD = (d) => {
+      if (!d) return "";
+      if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const dateObj = new Date(d);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        return "";
+      }
+    };
+
+    const isDuplicate = formData.value.ismAttendance.some(
+      (ism) =>
+        ism.eventName.toLowerCase().trim() ===
+          newISMEvent.value.eventName.toLowerCase().trim() &&
+        toLocalYMD(ism.date) === toLocalYMD(eventDate),
+    );
+
+    if (isDuplicate) {
+      alert("This ISM event has already been added to this member.");
+      return;
+    }
+  }
+
+  const attendanceRecord = {
+    eventName: newISMEvent.value.selectedEventId
+      ? newISMEvent.value.originalEventName
+      : newISMEvent.value.eventName,
     subsidyUsed: subsidyToUse,
     date: eventDate,
-    isManual: true,
-  });
+    isAutoSubsidy: true, // Subsidy is always auto-calculated in MemberModal
+  };
+
+  // If an existing event was selected, add eventId and don't mark as manual
+  if (newISMEvent.value.selectedEventId) {
+    attendanceRecord.eventId = newISMEvent.value.selectedEventId;
+  } else {
+    // Only mark as manual if it's a new event not in Event Store
+    attendanceRecord.isManualEvent = true;
+  }
+
+  formData.value.ismAttendance.push(attendanceRecord);
 
   // Reset form
-  newISMEvent.value = { eventName: "", subsidyUsed: 0, date: "" };
+  newISMEvent.value = {
+    eventName: "",
+    originalEventName: "",
+    subsidyUsed: 0,
+    date: "",
+    selectedEventId: null,
+  };
   showAddISM.value = false;
 };
 
@@ -507,6 +668,26 @@ const recalculateNCSAttended = () => {
   formData.value.validNcsAttended = validCount;
 };
 
+// Handle NCS event selection from dropdown
+const handleNCSEventSelect = (eventId) => {
+  if (eventId === "CLEAR") {
+    // Clear selection
+    newNCSEvent.value.eventName = "";
+    newNCSEvent.value.originalEventName = "";
+    newNCSEvent.value.date = "";
+    newNCSEvent.value.selectedEventId = null;
+    return;
+  }
+
+  const selectedEvent = existingNCSEvents.value.find((e) => e.id === eventId);
+  if (selectedEvent) {
+    newNCSEvent.value.eventName = `[${formatDateOnly(selectedEvent.date)}] ${selectedEvent.name}`;
+    newNCSEvent.value.originalEventName = selectedEvent.name; // Store original for saving
+    newNCSEvent.value.date = selectedEvent.date.split("T")[0]; // Format as YYYY-MM-DD for input
+    newNCSEvent.value.selectedEventId = eventId;
+  }
+};
+
 const addNCSEvent = () => {
   if (!newNCSEvent.value.eventName) {
     return;
@@ -516,20 +697,76 @@ const addNCSEvent = () => {
     ? new Date(newNCSEvent.value.date).toISOString()
     : new Date().toISOString();
 
-  formData.value.ncsEvents.push({
-    eventName: newNCSEvent.value.eventName,
+  // Check for duplicates
+  // If selecting an existing event, check by eventId (most reliable)
+  if (newNCSEvent.value.selectedEventId) {
+    const isDuplicate = formData.value.ncsEvents.some(
+      (event) => event.eventId === newNCSEvent.value.selectedEventId,
+    );
+    if (isDuplicate) {
+      alert("This NCS event has already been added to this member.");
+      return;
+    }
+  } else {
+    // For manual entries, check by name and date
+    const toLocalYMD = (d) => {
+      if (!d) return "";
+      if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const dateObj = new Date(d);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        return "";
+      }
+    };
+
+    const isDuplicate = formData.value.ncsEvents.some(
+      (event) =>
+        event.eventName.toLowerCase().trim() ===
+          newNCSEvent.value.eventName.toLowerCase().trim() &&
+        toLocalYMD(event.date) === toLocalYMD(eventDate),
+    );
+
+    if (isDuplicate) {
+      alert("This NCS event has already been added to this member.");
+      return;
+    }
+  }
+
+  const ncsRecord = {
+    eventName: newNCSEvent.value.selectedEventId
+      ? newNCSEvent.value.originalEventName
+      : newNCSEvent.value.eventName,
     date: eventDate,
-    // Initialize sessions as false for new manual events
-    session1: false,
-    session2: false,
-    isManual: true,
-  });
+    session1: newNCSEvent.value.session1,
+    session2: newNCSEvent.value.session2,
+  };
+
+  // If an existing event was selected, add eventId and don't mark as manual
+  if (newNCSEvent.value.selectedEventId) {
+    ncsRecord.eventId = newNCSEvent.value.selectedEventId;
+  } else {
+    // Only mark as manual if it's a new event not in Event Store
+    ncsRecord.isManualEvent = true;
+  }
+
+  formData.value.ncsEvents.push(ncsRecord);
 
   // Recalculate counter
   recalculateNCSAttended();
 
   // Reset form
-  newNCSEvent.value = { eventName: "", date: "" };
+  newNCSEvent.value = {
+    eventName: "",
+    originalEventName: "",
+    date: "",
+    selectedEventId: null,
+    session1: false,
+    session2: false,
+  };
   showAddNCS.value = false;
 };
 
@@ -555,6 +792,26 @@ const confirmDeleteNCS = () => {
   };
 };
 
+// Handle ISS event selection from dropdown
+const handleISSEventSelect = (eventId) => {
+  if (eventId === "CLEAR") {
+    // Clear selection
+    newISSEvent.value.eventName = "";
+    newISSEvent.value.originalEventName = "";
+    newISSEvent.value.date = "";
+    newISSEvent.value.selectedEventId = null;
+    return;
+  }
+
+  const selectedEvent = existingISSEvents.value.find((e) => e.id === eventId);
+  if (selectedEvent) {
+    newISSEvent.value.eventName = `[${formatDateOnly(selectedEvent.date)}] ${selectedEvent.name}`;
+    newISSEvent.value.originalEventName = selectedEvent.name; // Store original for saving
+    newISSEvent.value.date = selectedEvent.date.split("T")[0]; // Format as YYYY-MM-DD for input
+    newISSEvent.value.selectedEventId = eventId;
+  }
+};
+
 // Add ISS event
 const addISSEvent = () => {
   if (!newISSEvent.value.eventName) {
@@ -565,17 +822,72 @@ const addISSEvent = () => {
     ? new Date(newISSEvent.value.date).toISOString()
     : new Date().toISOString();
 
-  formData.value.issEvents.push({
-    eventName: newISSEvent.value.eventName,
+  // Check for duplicates
+  // If selecting an existing event, check by eventId (most reliable)
+  if (newISSEvent.value.selectedEventId) {
+    const isDuplicate = formData.value.issEvents.some(
+      (event) => event.eventId === newISSEvent.value.selectedEventId,
+    );
+    if (isDuplicate) {
+      alert("This ISS event has already been added to this member.");
+      return;
+    }
+  } else {
+    // For manual entries, check by name and date
+    const toLocalYMD = (d) => {
+      if (!d) return "";
+      if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const dateObj = new Date(d);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        return "";
+      }
+    };
+
+    const isDuplicate = formData.value.issEvents.some(
+      (event) =>
+        event.eventName.toLowerCase().trim() ===
+          newISSEvent.value.eventName.toLowerCase().trim() &&
+        toLocalYMD(event.date) === toLocalYMD(eventDate),
+    );
+
+    if (isDuplicate) {
+      alert("This ISS event has already been added to this member.");
+      return;
+    }
+  }
+
+  const issRecord = {
+    eventName: newISSEvent.value.selectedEventId
+      ? newISSEvent.value.originalEventName
+      : newISSEvent.value.eventName,
     date: eventDate,
-    isManual: true,
-  });
+  };
+
+  // If an existing event was selected, add eventId and don't mark as manual
+  if (newISSEvent.value.selectedEventId) {
+    issRecord.eventId = newISSEvent.value.selectedEventId;
+  } else {
+    // Only mark as manual if it's a new event not in Event Store
+    issRecord.isManualEvent = true;
+  }
+
+  formData.value.issEvents.push(issRecord);
 
   // Increment counter
   formData.value.issAttended = (formData.value.issAttended || 0) + 1;
 
   // Reset form
-  newISSEvent.value = { eventName: "", date: "" };
+  newISSEvent.value = {
+    eventName: "",
+    originalEventName: "",
+    date: "",
+    selectedEventId: null,
+  };
   showAddISS.value = false;
 };
 
@@ -1416,7 +1728,7 @@ const handleSave = async () => {
                         Synced
                       </span>
                       <span
-                        v-else-if="ism.isManual"
+                        v-else-if="ism.isManualEvent"
                         class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded"
                         title="Manual entry - not linked to Event Store"
                       >
@@ -1428,14 +1740,14 @@ const handleSave = async () => {
                       <p class="text-sm text-gray-600">
                         Subsidy: {{ ism.subsidyUsed }}%
                         <span
-                          v-if="ism.isAuto === false"
+                          v-if="ism.isAutoSubsidy === false"
                           class="text-xs text-orange-600 font-medium ml-1"
                           title="Manually set - not counted in auto calculation"
                         >
                           (Manual)
                         </span>
                         <span
-                          v-else-if="ism.isAuto === true"
+                          v-else-if="ism.isAutoSubsidy === true"
                           class="text-xs text-emerald font-medium ml-1"
                           title="Auto-applied - counted in calculation"
                         >
@@ -1527,28 +1839,42 @@ const handleSave = async () => {
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2"
-                    >ISM Event Name</label
+                    >ISM Event</label
                   >
-                  <input
-                    v-model="newISMEvent.eventName"
-                    type="text"
-                    list="ism-events-list"
-                    placeholder="e.g., ISM Beijing 2024"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                  />
-                  <datalist id="ism-events-list">
-                    <option
-                      v-for="event in existingISMEvents"
-                      :key="event"
-                      :value="event"
+                  <div class="relative">
+                    <input
+                      v-model="newISMEvent.eventName"
+                      type="text"
+                      list="ism-searchable-events"
+                      placeholder="Search existing events or enter new event name"
+                      :disabled="!!newISMEvent.selectedEventId"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                      :class="{
+                        'bg-gray-100 cursor-not-allowed pr-16':
+                          !!newISMEvent.selectedEventId,
+                      }"
                     />
-                  </datalist>
+                    <datalist id="ism-searchable-events">
+                      <option
+                        v-for="event in existingISMEvents"
+                        :key="event.id"
+                        :value="`[${formatDateOnly(event.date)}] ${event.name}`"
+                      />
+                    </datalist>
+                    <button
+                      v-if="newISMEvent.selectedEventId"
+                      type="button"
+                      @click="handleISMEventSelect('CLEAR')"
+                      class="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 rounded"
+                    >
+                      ✕ Clear
+                    </button>
+                  </div>
                   <p class="mt-1 text-xs text-gray-500">
-                    {{
-                      existingISMEvents.length > 0
-                        ? "Select from existing events or type a new one"
-                        : "Type event name"
-                    }}
+                    <strong>Selecting existing:</strong> Will auto-sync with
+                    Event Store when saved.<br />
+                    <strong>Entering new:</strong> Creates manual entry (not
+                    synced to Event Store).
                   </p>
                 </div>
                 <div>
@@ -1558,10 +1884,19 @@ const handleSave = async () => {
                   <input
                     v-model="newISMEvent.date"
                     type="date"
+                    :disabled="!!newISMEvent.selectedEventId"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    :class="{
+                      'bg-gray-100 cursor-not-allowed':
+                        !!newISMEvent.selectedEventId,
+                    }"
                   />
                   <p class="mt-1 text-xs text-gray-500">
-                    Leave blank to use current date
+                    {{
+                      newISMEvent.selectedEventId
+                        ? "Date set by selected event"
+                        : "Leave blank to use current date"
+                    }}
                   </p>
                 </div>
                 <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -1690,7 +2025,7 @@ const handleSave = async () => {
                           Synced
                         </span>
                         <span
-                          v-else-if="event.isManual"
+                          v-else-if="event.isManualEvent"
                           class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded"
                           title="Manual entry - not linked to Event Store"
                         >
@@ -1857,28 +2192,85 @@ const handleSave = async () => {
 
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"
-                      >NCS Event Name</label
+                      >NCS Event</label
                     >
-                    <input
-                      v-model="newNCSEvent.eventName"
-                      type="text"
-                      list="ncs-events-list"
-                      placeholder="e.g., Tanker Chartering Workshop 2025"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                    />
-                    <datalist id="ncs-events-list">
-                      <option
-                        v-for="event in existingNCSEvents"
-                        :key="event"
-                        :value="event"
+                    <div class="relative">
+                      <input
+                        v-model="newNCSEvent.eventName"
+                        type="text"
+                        list="ncs-searchable-events"
+                        placeholder="Search existing events or enter new event name"
+                        :disabled="!!newNCSEvent.selectedEventId"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                        :class="{
+                          'bg-gray-100 cursor-not-allowed pr-16':
+                            !!newNCSEvent.selectedEventId,
+                        }"
                       />
-                    </datalist>
+                      <datalist id="ncs-searchable-events">
+                        <option
+                          v-for="event in existingNCSEvents"
+                          :key="event.id"
+                          :value="`[${formatDateOnly(event.date)}] ${event.name}`"
+                        />
+                      </datalist>
+                      <button
+                        v-if="newNCSEvent.selectedEventId"
+                        type="button"
+                        @click="handleNCSEventSelect('CLEAR')"
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 rounded"
+                      >
+                        ✕ Clear
+                      </button>
+                    </div>
                     <p class="mt-1 text-xs text-gray-500">
-                      {{
-                        existingNCSEvents.length > 0
-                          ? "Select from existing events or type a new one"
-                          : "Type event name"
-                      }}
+                      <strong>Selecting existing:</strong> Will auto-sync with
+                      Event Store when saved.<br />
+                      <strong>Entering new:</strong> Creates manual entry (not
+                      synced to Event Store).
+                    </p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                      >Sessions Attended</label
+                    >
+                    <div class="flex gap-4 items-center">
+                      <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                          v-model="newNCSEvent.session1"
+                          type="checkbox"
+                          class="w-4 h-4 text-navy border-gray-300 rounded focus:ring-navy cursor-pointer"
+                        />
+                        <span class="text-sm text-gray-700">Session 1</span>
+                      </label>
+                      <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                          v-model="newNCSEvent.session2"
+                          type="checkbox"
+                          class="w-4 h-4 text-navy border-gray-300 rounded focus:ring-navy cursor-pointer"
+                        />
+                        <span class="text-sm text-gray-700">Session 2</span>
+                      </label>
+                      <button
+                        type="button"
+                        @click="toggleBothNCSessions"
+                        class="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                        :class="
+                          isBothNCSSessionsSelected
+                            ? 'bg-navy text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        "
+                      >
+                        <CheckCircle2
+                          v-if="isBothNCSSessionsSelected"
+                          :size="16"
+                          class="inline mr-1"
+                        />
+                        Both
+                      </button>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">
+                      Select which session(s) the member attended.
                     </p>
                   </div>
                   <div>
@@ -1888,10 +2280,19 @@ const handleSave = async () => {
                     <input
                       v-model="newNCSEvent.date"
                       type="date"
+                      :disabled="!!newNCSEvent.selectedEventId"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                      :class="{
+                        'bg-gray-100 cursor-not-allowed':
+                          !!newNCSEvent.selectedEventId,
+                      }"
                     />
                     <p class="mt-1 text-xs text-gray-500">
-                      Leave blank to use current date
+                      {{
+                        newNCSEvent.selectedEventId
+                          ? "Date set by selected event"
+                          : "Leave blank to use current date"
+                      }}
                     </p>
                   </div>
                   <div class="flex gap-2">
@@ -1946,7 +2347,7 @@ const handleSave = async () => {
                           Synced
                         </span>
                         <span
-                          v-else-if="event.isManual"
+                          v-else-if="event.isManualEvent"
                           class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded"
                           title="Manual entry - not linked to Event Store"
                         >
@@ -2008,28 +2409,42 @@ const handleSave = async () => {
 
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"
-                      >ISS Event Name</label
+                      >ISS Event</label
                     >
-                    <input
-                      v-model="newISSEvent.eventName"
-                      type="text"
-                      list="iss-events-list"
-                      placeholder="e.g., ISS Networking Night 2025"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                    />
-                    <datalist id="iss-events-list">
-                      <option
-                        v-for="event in existingISSEvents"
-                        :key="event"
-                        :value="event"
+                    <div class="relative">
+                      <input
+                        v-model="newISSEvent.eventName"
+                        type="text"
+                        list="iss-searchable-events"
+                        placeholder="Search existing events or enter new event name"
+                        :disabled="!!newISSEvent.selectedEventId"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                        :class="{
+                          'bg-gray-100 cursor-not-allowed pr-16':
+                            !!newISSEvent.selectedEventId,
+                        }"
                       />
-                    </datalist>
+                      <datalist id="iss-searchable-events">
+                        <option
+                          v-for="event in existingISSEvents"
+                          :key="event.id"
+                          :value="`[${formatDateOnly(event.date)}] ${event.name}`"
+                        />
+                      </datalist>
+                      <button
+                        v-if="newISSEvent.selectedEventId"
+                        type="button"
+                        @click="handleISSEventSelect('CLEAR')"
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 rounded"
+                      >
+                        ✕ Clear
+                      </button>
+                    </div>
                     <p class="mt-1 text-xs text-gray-500">
-                      {{
-                        existingISSEvents.length > 0
-                          ? "Select from existing events or type a new one"
-                          : "Type event name"
-                      }}
+                      <strong>Selecting existing:</strong> Will auto-sync with
+                      Event Store when saved.<br />
+                      <strong>Entering new:</strong> Creates manual entry (not
+                      synced to Event Store).
                     </p>
                   </div>
                   <div>
@@ -2039,10 +2454,19 @@ const handleSave = async () => {
                     <input
                       v-model="newISSEvent.date"
                       type="date"
+                      :disabled="!!newISSEvent.selectedEventId"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                      :class="{
+                        'bg-gray-100 cursor-not-allowed':
+                          !!newISSEvent.selectedEventId,
+                      }"
                     />
                     <p class="mt-1 text-xs text-gray-500">
-                      Leave blank to use current date
+                      {{
+                        newISSEvent.selectedEventId
+                          ? "Date set by selected event"
+                          : "Leave blank to use current date"
+                      }}
                     </p>
                   </div>
                   <div class="flex gap-2">
@@ -2065,6 +2489,7 @@ const handleSave = async () => {
               </div>
             </div>
 
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               <!-- Scholarship Logic Display -->
               <div

@@ -316,10 +316,11 @@ const handleImport = async () => {
             } else if (row.member) {
               // Auto-calculate subsidy
               const subsidyHistory = (row.member.ismAttendance || [])
-                .filter((a) => a.isAuto !== false)
+                .filter((a) => a.isAutoSubsidy !== false)
                 .map((a) => a.subsidyUsed);
               attendanceData.subsidyOverride = calculateNextSubsidyRate(
                 row.member.membershipType,
+                row.member.isExco || false,
                 subsidyHistory,
               );
             }

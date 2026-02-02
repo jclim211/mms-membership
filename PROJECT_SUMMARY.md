@@ -295,7 +295,7 @@ Your Club Membership Management Portal is now fully built and ready to use. This
 ### 9. Event ID Tracking System ✅ [v2.1.0]
 
 - [x] **Event ID Linking**: Member event records linked to Event Store via `eventId`
-- [x] **Manual Entry Detection**: Events added manually marked with `isManual: true`
+- [x] **Manual Entry Detection**: Events added manually marked with `isManualEvent: true`
 - [x] **Visual Indicators**: Synced (blue) vs Manual (amber) badges in Member Modal
 - [x] **Reliable Sync**: Event renames/deletes now update member records correctly
 - [x] **Fallback Matching**: Legacy records use name+date matching
@@ -352,7 +352,7 @@ Your Club Membership Management Portal is now fully built and ready to use. This
     subsidyUsed: Number,
     date: String,
     eventId: String,     // [v2.1.0] Links to Event Store document
-    isManual: Boolean    // [v2.1.0] True if manually added
+    isManualEvent: Boolean    // [v2.1.0] True if manually added
   }>,
   ncsEvents: Array<{
     eventName: String,
@@ -361,13 +361,13 @@ Your Club Membership Management Portal is now fully built and ready to use. This
     forceCount: Boolean,
     forceReason: String,
     eventId: String,     // [v2.1.0] Links to Event Store document
-    isManual: Boolean    // [v2.1.0] True if manually added
+    isManualEvent: Boolean    // [v2.1.0] True if manually added
   }>,
   issEvents: Array<{
     eventName: String,
     date: String,
     eventId: String,     // [v2.1.0] Links to Event Store document
-    isManual: Boolean    // [v2.1.0] True if manually added
+    isManualEvent: Boolean    // [v2.1.0] True if manually added
   }>,
   ncsTotalAttended: Number,  // Total NCS events with any participation
   validNcsAttended: Number,   // Valid NCS events counting toward graduation

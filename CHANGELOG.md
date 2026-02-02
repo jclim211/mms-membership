@@ -13,7 +13,7 @@ A major improvement to how member event records are linked to the Event Store fo
 #### New Features
 
 - **Event ID Linking**: Member event records (ISM attendance, ISS events, NCS events) now include an `eventId` field that links them to the corresponding Event Store document
-- **Manual Entry Flag**: Events added manually through Member Modal are marked with `isManual: true` to distinguish them from synced events
+- **Manual Entry Flag**: Events added manually through Member Modal are marked with `isManualEvent: true` to distinguish them from synced events
 - **Visual Indicators**:
   - 🔗 Blue "Synced" badge for events linked to Event Store
   - ⚠️ Amber "Manual" badge for manually added events
@@ -22,7 +22,7 @@ A major improvement to how member event records are linked to the Event Store fo
 #### Technical Details
 
 - `eventId` field added when marking attendance in EventsView
-- `isManual: true` added when manually adding events in MemberModal
+- `isManualEvent: true` added when manually adding events in MemberModal
 - `memberStore.js` updated with `isSameEvent()` helper that prioritizes eventId matching
 - Falls back to name+date matching for legacy records without eventId
 
@@ -117,7 +117,7 @@ Added confirmation modals to prevent accidental event deletions.
 
 1. **EventId Migration**: A one-time migration was run to backfill `eventId` into existing member event records
    - Records matched to Event Store entries received `eventId`
-   - Unmatched records were marked as `isManual: true`
+   - Unmatched records were marked as `isManualEvent: true`
 2. **Data Backup**: Export your data before any major changes using the new Export feature in Admin Management
 
 ---
@@ -126,20 +126,20 @@ Added confirmation modals to prevent accidental event deletions.
 
 ### Modified Files
 
-| File                                | Changes                                                     |
-| ----------------------------------- | ----------------------------------------------------------- |
-| `src/views/EventsView.vue`          | Added eventId when syncing attendance to members            |
-| `src/views/AdminManagementView.vue` | Added export/import functionality, removed migration script |
-| `src/components/MemberModal.vue`    | Added isManual flag, sync warnings, Synced/Manual badges    |
-| `src/stores/memberStore.js`         | Updated sync functions to use eventId matching              |
+| File                                | Changes                                                       |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `src/views/EventsView.vue`          | Added eventId when syncing attendance to members              |
+| `src/views/AdminManagementView.vue` | Added export/import functionality, removed migration script   |
+| `src/components/MemberModal.vue`    | Added isManualEvent flag, sync warnings, Synced/Manual badges |
+| `src/stores/memberStore.js`         | Updated sync functions to use eventId matching                |
 
 ### New Data Fields
 
-| Collection              | Field    | Type    | Description                      |
-| ----------------------- | -------- | ------- | -------------------------------- |
-| members.ismAttendance[] | eventId  | string  | Links to Event Store document ID |
-| members.ismAttendance[] | isManual | boolean | True if manually added           |
-| members.issEvents[]     | eventId  | string  | Links to Event Store document ID |
-| members.issEvents[]     | isManual | boolean | True if manually added           |
-| members.ncsEvents[]     | eventId  | string  | Links to Event Store document ID |
-| members.ncsEvents[]     | isManual | boolean | True if manually added           |
+| Collection              | Field         | Type    | Description                      |
+| ----------------------- | ------------- | ------- | -------------------------------- |
+| members.ismAttendance[] | eventId       | string  | Links to Event Store document ID |
+| members.ismAttendance[] | isManualEvent | boolean | True if manually added           |
+| members.issEvents[]     | eventId       | string  | Links to Event Store document ID |
+| members.issEvents[]     | isManualEvent | boolean | True if manually added           |
+| members.ncsEvents[]     | eventId       | string  | Links to Event Store document ID |
+| members.ncsEvents[]     | isManualEvent | boolean | True if manually added           |
