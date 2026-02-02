@@ -191,12 +191,13 @@ const handleImport = async () => {
           }
           if (member.newMembership !== member.membershipType) {
             updates.membershipType = member.newMembership;
-            // Clear tracks if downgraded to Ordinary B or Associate
+            // Clear tracks and ordinaryADeclarationDate if changing away from Ordinary A
             if (
-              member.newMembership === "Ordinary B" ||
-              member.newMembership === "Associate"
+              member.membershipType === "Ordinary A" &&
+              member.newMembership !== "Ordinary A"
             ) {
               updates.tracks = [];
+              updates.ordinaryADeclarationDate = null;
             }
           }
 

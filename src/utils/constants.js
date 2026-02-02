@@ -13,12 +13,7 @@ export const SCHOOLS = [
   "College of Integrative Studies",
 ];
 
-export const MEMBERSHIP_TYPES = [
-  "Exco",
-  "Ordinary A",
-  "Ordinary B",
-  "Associate",
-];
+export const MEMBERSHIP_TYPES = ["Ordinary A", "Ordinary B", "Associate"];
 
 export const STUDENT_STATUSES = [
   "Undergraduate",
@@ -58,10 +53,11 @@ export const SCHOOL_NAME_MAP = {
  * Maps varying input strings to the canonical Membership Type.
  */
 export const MEMBERSHIP_TYPE_MAP = {
-  exco: "Exco",
   "ordinary a": "Ordinary A",
   "ordinary b": "Ordinary B",
   associate: "Associate",
+  // Legacy mapping - Exco becomes Ordinary A with isExco=true
+  exco: "Ordinary A",
 };
 
 /**
@@ -138,4 +134,7 @@ export const DEGREE_PROGRAMS = [
 ];
 
 // Simple list of degree names for dropdowns
-export const DEGREE_OPTIONS = DEGREE_PROGRAMS.map((p) => p.degree).sort();
+export const DEGREE_OPTIONS = [
+  ...DEGREE_PROGRAMS.map((p) => p.degree).sort(),
+  "Other", // Add Other option at the end
+];

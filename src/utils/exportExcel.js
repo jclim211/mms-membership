@@ -70,6 +70,7 @@ export function exportToExcel(members, filename = "members_export.xlsx") {
       "First Degree": member.firstDegree || "",
       "Second Degree": member.secondDegree || "",
       "Membership Type": member.membershipType || "",
+      "Exco Member": member.isExco ? "TRUE" : "FALSE",
       "Ordinary A Declaration Date": member.ordinaryADeclarationDate
         ? new Date(member.ordinaryADeclarationDate).toLocaleDateString("en-GB")
         : "",

@@ -148,6 +148,14 @@ const processImportData = (data) => {
       return;
     }
 
+    // Validate Student ID if provided (should be digits only)
+    if (studentId && !/^\d+$/.test(studentId.toString())) {
+      validationErrors.push(
+        `Row ${rowNum}: Student ID must contain only numbers (found: ${studentId})`,
+      );
+      return; // Skip this row
+    }
+
     // Find existing member by email (case-insensitive)
     const existingMember = memberStore.members.find(
       (m) => m.schoolEmail?.toLowerCase() === email,
@@ -329,14 +337,14 @@ const handleImport = async () => {
         }
 
         const studentData = {
-          campusId: row.studentId || "",
+          campusId: row.studentId ? normalizeCampusId(row.studentId) : "",
           fullName: row.name,
           schoolEmail: row.email,
           isIncomplete: true,
           admitYear: new Date().getFullYear(),
           membershipType: "Associate",
           degree: "Undergraduate",
-          school: "Unknown",
+          school: "", // Empty to be completed later
           tracks: [],
           ismAttendance: [],
           ncsTotalAttended: 0,

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { X } from "lucide-vue-next";
+import { normalizeCampusId } from "../utils/helpers";
 
 const emit = defineEmits(["close", "save"]);
 
@@ -25,6 +26,14 @@ const validateForm = () => {
     errors.value.schoolEmail = "Invalid email format";
   }
 
+  // Validate campus ID if provided (optional field)
+  if (
+    formData.value.campusId &&
+    !/^\d+$/.test(formData.value.campusId.toString())
+  ) {
+    errors.value.campusId = "Campus ID must contain only numbers";
+  }
+
   return Object.keys(errors.value).length === 0;
 };
 
@@ -35,7 +44,9 @@ const handleSave = () => {
 
   // Return minimal student data
   const studentData = {
-    campusId: formData.value.campusId || "", // Empty string if not provided
+    campusId: formData.value.campusId
+      ? normalizeCampusId(formData.value.campusId)
+      : "",
     fullName: formData.value.fullName.toUpperCase(),
     schoolEmail: formData.value.schoolEmail.toLowerCase(), // Ensure lowercase
     isIncomplete: true, // Mark as incomplete
@@ -43,7 +54,7 @@ const handleSave = () => {
     admitYear: new Date().getFullYear(),
     membershipType: "Associate", // Default for quick add
     degree: "Undergraduate",
-    school: "Unknown", // To be completed later
+    school: "", // Empty to be completed later
     tracks: [],
     ismAttendance: [],
     ncsTotalAttended: 0,
@@ -133,11 +144,17 @@ const handleClose = () => {
           <input
             v-model="formData.campusId"
             type="text"
-            maxlength="7"
-            placeholder="e.g., 0143006"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy font-mono"
+            pattern="[0-9]*"
+            inputmode="numeric"
+            maxlength="8"
+            placeholder="e.g., 01234567"
+            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy font-mono"
+            :class="{ 'border-red-500': errors.campusId }"
           />
-          <p class="mt-1 text-xs text-gray-500">
+          <p v-if="errors.campusId" class="mt-1 text-sm text-red-500">
+            {{ errors.campusId }}
+          </p>
+          <p v-else class="mt-1 text-xs text-gray-500">
             Can be added later when completing profile
           </p>
         </div>

@@ -4,9 +4,17 @@ import {
   SCHOOLS,
   MEMBERSHIP_TYPES,
   STUDENT_STATUSES,
+  DEGREE_OPTIONS,
+  DEGREE_PROGRAMS,
 } from "../utils/constants";
 
 const emit = defineEmits(["close"]);
+
+// Create a map of degree to shorthand for display
+const degreeShorthandMap = DEGREE_PROGRAMS.reduce((map, program) => {
+  map[program.degree] = program.shorthand;
+  return map;
+}, {});
 </script>
 
 <template>
@@ -200,8 +208,19 @@ const emit = defineEmits(["close"]);
                   shorthands (e.g., "Accountancy" or "BAcc").
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
-                  <span class="text-gray-500">Example:</span>
-                  <code class="ml-2 text-indigo-600">BAcc</code>
+                  <span class="text-gray-500">Valid options:</span>
+                  <ul class="mt-2 ml-4 space-y-1 text-gray-700">
+                    <li v-for="degree in DEGREE_OPTIONS" :key="degree">
+                      <span v-if="degreeShorthandMap[degree]">
+                        • {{ degree }}
+                        <code
+                          class="ml-2 text-xs text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
+                          >{{ degreeShorthandMap[degree] }}</code
+                        >
+                      </span>
+                      <span v-else> • {{ degree }} </span>
+                    </li>
+                  </ul>
                 </div>
               </div>
 
@@ -306,6 +325,44 @@ const emit = defineEmits(["close"]);
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Example:</span>
                   <code class="ml-2 text-indigo-600">ITT, MBOT</code>
+                </div>
+              </div>
+
+              <!-- Exco Member -->
+              <div
+                class="bg-purple-50 border-2 border-purple-300 rounded-lg p-4"
+              >
+                <h4 class="font-semibold text-gray-900 mb-2">Exco Member</h4>
+                <p class="text-sm text-gray-700 mb-2">
+                  Whether the member is an Executive Committee member. Exco
+                  members receive <strong>95% ISM subsidy</strong> regardless of
+                  their membership tier (Ordinary A, B, or Associate).
+                </p>
+                <div class="bg-white rounded p-2 text-sm space-y-2">
+                  <div>
+                    <span class="text-gray-500">Valid values:</span>
+                    <code class="ml-2 text-purple-600">TRUE</code>
+                    <span class="text-gray-400 mx-2">or</span>
+                    <code class="text-purple-600">FALSE</code>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Alternative formats:</span>
+                    <code class="ml-2 text-gray-600">1</code>
+                    <span class="text-gray-400 mx-1">/</span>
+                    <code class="text-gray-600">0</code>
+                    <span class="text-gray-400 mx-1">or</span>
+                    <code class="text-gray-600">YES</code>
+                    <span class="text-gray-400 mx-1">/</span>
+                    <code class="text-gray-600">NO</code>
+                  </div>
+                </div>
+                <div
+                  class="mt-2 bg-purple-100 border border-purple-200 rounded p-2 text-xs text-purple-900"
+                >
+                  <strong>💡 Important:</strong> Exco status is
+                  <strong>independent</strong> of membership type. An Ordinary A
+                  member can be Exco, and an Associate can be Exco. Exco members
+                  keep their NCS tracking if they're Ordinary A.
                 </div>
               </div>
 

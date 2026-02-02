@@ -11,6 +11,7 @@ export const useMemberStore = defineStore("members", () => {
   const error = ref(null);
   const searchQuery = ref("");
   const membershipFilter = ref([]);
+  const excoFilter = ref([]); // "exco" or "non-exco"
   const studentStatusFilter = ref([]);
   const yearFilter = ref([]);
   const schoolFilter = ref([]);
@@ -116,6 +117,16 @@ export const useMemberStore = defineStore("members", () => {
       );
     }
 
+    // Apply Exco filter
+    if (excoFilter.value.length > 0) {
+      filtered = filtered.filter((member) => {
+        const isExco = member.isExco === true;
+        if (excoFilter.value.includes("exco") && isExco) return true;
+        if (excoFilter.value.includes("non-exco") && !isExco) return true;
+        return false;
+      });
+    }
+
     // Apply student status filter
     if (studentStatusFilter.value.length > 0) {
       filtered = filtered.filter((member) =>
@@ -208,10 +219,7 @@ export const useMemberStore = defineStore("members", () => {
   const totalMembers = computed(() => members.value.length);
 
   const ordinaryAMembers = computed(
-    () =>
-      members.value.filter(
-        (m) => m.membershipType === "Ordinary A" || m.membershipType === "Exco",
-      ).length,
+    () => members.value.filter((m) => m.membershipType === "Ordinary A").length,
   );
 
   const ordinaryBMembers = computed(
@@ -590,6 +598,7 @@ export const useMemberStore = defineStore("members", () => {
     error,
     searchQuery,
     membershipFilter,
+    excoFilter,
     studentStatusFilter,
     yearFilter,
     schoolFilter,

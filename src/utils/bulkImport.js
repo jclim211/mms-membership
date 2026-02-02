@@ -157,7 +157,10 @@ function validateAndTransformData(data, options = {}) {
       errors.push("Campus ID is required");
     } else {
       const campusId = row["Campus ID"].toString();
-      if (seenCampusIds.has(campusId)) {
+      // Validate that Campus ID contains only digits
+      if (!/^\d+$/.test(campusId)) {
+        errors.push("Campus ID must contain only numbers");
+      } else if (seenCampusIds.has(campusId)) {
         errors.push("Duplicate Campus ID in this file");
       } else {
         seenCampusIds.add(campusId);
@@ -237,9 +240,19 @@ function validateAndTransformData(data, options = {}) {
           );
         }
         member.membershipType = type;
+
+        // Legacy: If the input was "Exco", set isExco=true
+        if (rawType.toLowerCase().trim() === "exco") {
+          member.isExco = true;
+        }
       } else if (!isPartial) {
         member.membershipType = null; // Should be caught by required check
       }
+    }
+
+    // Exco Member status
+    if (!isPartial || row["Exco Member"] !== undefined) {
+      member.isExco = parseBooleanField(row["Exco Member"]);
     }
 
     // Student Status (and legacy degree field mapping for safety if needed, but we rely on new one now)
@@ -366,6 +379,12 @@ function validateAndTransformData(data, options = {}) {
     // Skip processing of ISM Attendance, NCS Events, and ISS Events
     // These fields are shown in exports for reference only but are not imported
     // Event attendance should be managed through the Event View bulk attendance import feature
+
+    // Auto-cleanup: Clear tracks and ordinaryADeclarationDate for non-Ordinary A members
+    if (member.membershipType && member.membershipType !== "Ordinary A") {
+      member.tracks = [];
+      member.ordinaryADeclarationDate = null;
+    }
 
     // If errors exist, push to invalid
     if (errors.length > 0) {

@@ -78,9 +78,11 @@ const showMemberModal = ref(false);
 const showBulkImportModal = ref(false);
 const showBulkImportHelp = ref(false);
 const editingMember = ref(null);
+const editingMemberScrollSection = ref(null);
 const confirmDelete = ref(null);
 const showFilterPanel = ref(false);
 const membershipFilterExpanded = ref(false);
+const excoFilterExpanded = ref(false);
 const studentStatusFilterExpanded = ref(false);
 const yearFilterExpanded = ref(false);
 const schoolFilterExpanded = ref(false);
@@ -102,6 +104,7 @@ const itemsPerPageOptions = [10, 25, 50, 100];
 const activeFiltersCount = computed(() => {
   let count = 0;
   if (memberStore.membershipFilter.length > 0) count++;
+  if (memberStore.excoFilter.length > 0) count++;
   if (memberStore.studentStatusFilter.length > 0) count++;
   if (memberStore.yearFilter.length > 0) count++;
   if (memberStore.schoolFilter.length > 0) count++;
@@ -177,6 +180,7 @@ const toggleBulkDeleteMode = () => {
 
 const clearAllFilters = () => {
   memberStore.membershipFilter = [];
+  memberStore.excoFilter = [];
   memberStore.studentStatusFilter = [];
   memberStore.yearFilter = [];
   memberStore.schoolFilter = [];
@@ -210,7 +214,7 @@ const toggleSelectAllYears = () => {
 };
 
 // Membership Type Filter
-const membershipTypes = ["Exco", "Ordinary A", "Ordinary B", "Associate"];
+const membershipTypes = ["Ordinary A", "Ordinary B", "Associate"];
 
 const toggleMembershipFilter = (type) => {
   const index = memberStore.membershipFilter.indexOf(type);
@@ -233,6 +237,36 @@ const toggleSelectAllMembershipTypes = () => {
     memberStore.membershipFilter = [];
   } else {
     memberStore.membershipFilter = [...membershipTypes];
+  }
+};
+
+// Exco Filter
+const excoOptions = [
+  { value: "exco", label: "Exco Members" },
+  { value: "non-exco", label: "Non-Exco Members" },
+];
+
+const toggleExcoFilter = (value) => {
+  const index = memberStore.excoFilter.indexOf(value);
+  if (index > -1) {
+    memberStore.excoFilter.splice(index, 1);
+  } else {
+    memberStore.excoFilter.push(value);
+  }
+};
+
+const allExcoOptionsSelected = computed(() => {
+  return (
+    excoOptions.length > 0 &&
+    memberStore.excoFilter.length === excoOptions.length
+  );
+});
+
+const toggleSelectAllExcoOptions = () => {
+  if (allExcoOptionsSelected.value) {
+    memberStore.excoFilter = [];
+  } else {
+    memberStore.excoFilter = excoOptions.map((o) => o.value);
   }
 };
 
@@ -493,18 +527,21 @@ const toggleSort = (field) => {
 const formatDate = (dateString) => {
   if (!dateString) return "-";
   const date = new Date(dateString);
-  return (
-    date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }) +
-    " " +
-    date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  );
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+// Shorten membership type for compact display
+const shortenMembershipType = (type) => {
+  const shortNames = {
+    "Ordinary A": "Ord A",
+    "Ordinary B": "Ord B",
+    Associate: "Assoc",
+  };
+  return shortNames[type] || type;
 };
 
 onMounted(() => {
@@ -593,8 +630,9 @@ const openAddModal = () => {
   showMemberModal.value = true;
 };
 
-const openEditModal = (member) => {
+const openEditModal = (member, scrollSection = null) => {
   editingMember.value = { ...member };
+  editingMemberScrollSection.value = scrollSection;
   showMemberModal.value = true;
 };
 
@@ -620,7 +658,11 @@ const getNextSubsidyRate = (member) => {
   // Otherwise calculate based on membership type and history
   const subsidyHistory =
     member.ismAttendance?.map((ism) => ism.subsidyUsed) || [];
-  return calculateNextSubsidyRate(member.membershipType, subsidyHistory);
+  return calculateNextSubsidyRate(
+    member.membershipType,
+    member.isExco,
+    subsidyHistory,
+  );
 };
 
 // --- PAGINATION LOGIC ---
@@ -667,6 +709,7 @@ watch(
   [
     () => memberStore.searchQuery,
     () => memberStore.membershipFilter,
+    () => memberStore.excoFilter,
     () => memberStore.studentStatusFilter,
     () => memberStore.yearFilter,
     () => memberStore.schoolFilter,
@@ -936,7 +979,8 @@ watch(
             <p class="text-sm text-amber-700 mt-1">
               Always backup your data frequently by clicking
               <span class="font-semibold">Export All/Filtered</span>
-              to prevent data loss. Export as JSON function is available and it's under Admin Management page.
+              to prevent data loss. Export as JSON function is available and
+              it's under Admin Management page.
             </p>
           </div>
         </div>
@@ -1091,12 +1135,12 @@ watch(
                   />
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Campus ID
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   <button
                     @click="toggleSort('fullName')"
@@ -1121,7 +1165,7 @@ watch(
                   </button>
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   <button
                     @click="toggleSort('admitYear')"
@@ -1146,32 +1190,32 @@ watch(
                   </button>
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   School
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Track
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Membership
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   NCS Progress
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Next Subsidy
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   <button
                     @click="toggleSort('createdAt')"
@@ -1196,7 +1240,7 @@ watch(
                   </button>
                 </th>
                 <th
-                  class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
+                  class="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap"
                 >
                   Actions
                 </th>
@@ -1240,17 +1284,19 @@ watch(
                     class="w-4 h-4 text-navy border-gray-300 rounded focus:ring-navy"
                   />
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                <td class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                   <span class="font-mono text-xs sm:text-sm text-gray-900">{{
                     member.campusId
                   }}</span>
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                <td class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                   <div class="flex items-center gap-2">
-                    <span
-                      class="text-xs sm:text-sm font-medium text-gray-900"
-                      >{{ member.fullName }}</span
+                    <button
+                      @click="openEditModal(member)"
+                      class="text-xs sm:text-sm font-medium text-gray-900 hover:text-navy hover:underline cursor-pointer transition-colors text-left"
                     >
+                      {{ member.fullName }}
+                    </button>
                     <!-- Student Status Pill -->
                     <span
                       v-if="member.studentStatus || member.degree"
@@ -1278,34 +1324,46 @@ watch(
                     </span>
                   </div>
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                <td class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                   <span class="text-xs sm:text-sm text-gray-600">{{
                     member.admitYear
                   }}</span>
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                <td class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                   <span
                     class="text-xs sm:text-sm text-gray-600 max-w-[100px] sm:max-w-none truncate block"
                     >{{ member.school }}</span
                   >
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                <td class="px-2 sm:px-3 py-3 sm:py-4 whitespace-nowrap">
                   <span class="text-xs sm:text-sm text-gray-600">{{
                     member.tracks && member.tracks.length > 0
                       ? member.tracks.join(", ")
                       : "-"
                   }}</span>
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <span
-                    class="inline-flex px-2 sm:px-3 py-1 text-xs font-medium rounded-full"
-                    :class="getMembershipBadgeColor(member.membershipType)"
-                  >
-                    {{ member.membershipType }}
-                  </span>
+                <td class="px-2 sm:px-3 py-3 sm:py-4 whitespace-nowrap">
+                  <div class="flex items-center gap-1">
+                    <span
+                      class="inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full"
+                      :class="getMembershipBadgeColor(member.membershipType)"
+                    >
+                      {{ shortenMembershipType(member.membershipType) }}
+                    </span>
+                    <span
+                      v-if="member.isExco"
+                      class="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-purple-600 text-white rounded-full"
+                      title="Executive Committee - 95% ISM Subsidy"
+                    >
+                      E
+                    </span>
+                  </div>
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <div class="text-sm">
+                <td class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
+                  <button
+                    @click="openEditModal(member, 'ncs')"
+                    class="text-sm hover:opacity-75 cursor-pointer transition-opacity text-left w-full"
+                  >
                     <div
                       class="text-base sm:text-lg font-bold"
                       :class="getNCSProgressColor(member)"
@@ -1318,10 +1376,13 @@ watch(
                     >
                       Total: {{ memberStore.getTotalNCSCount(member) }}
                     </div>
-                  </div>
+                  </button>
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <div class="flex items-center gap-1 sm:gap-2">
+                <td class="px-2 sm:px-3 py-3 sm:py-4 whitespace-nowrap">
+                  <button
+                    @click="openEditModal(member, 'ism')"
+                    class="flex items-center gap-1 sm:gap-2 hover:opacity-75 cursor-pointer transition-opacity"
+                  >
                     <span
                       class="text-base sm:text-lg font-bold"
                       :class="getSubsidyRateColor(getNextSubsidyRate(member))"
@@ -1338,15 +1399,15 @@ watch(
                     >
                       M
                     </span>
-                  </div>
+                  </button>
                 </td>
-                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                <td class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                   <span class="text-xs sm:text-sm text-gray-600">
                     {{ formatDate(member.createdAt) }}
                   </span>
                 </td>
                 <td
-                  class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-left text-sm font-medium"
+                  class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-left text-sm font-medium"
                 >
                   <div class="flex justify-start gap-1 sm:gap-2">
                     <button
@@ -1383,7 +1444,11 @@ watch(
       <MemberModal
         v-if="showMemberModal"
         :member="editingMember"
-        @close="showMemberModal = false"
+        :scrollSection="editingMemberScrollSection"
+        @close="
+          showMemberModal = false;
+          editingMemberScrollSection = null;
+        "
       />
 
       <!-- Bulk Import Modal -->
@@ -1496,26 +1561,56 @@ watch(
         <!-- Navigation -->
         <div class="flex items-center gap-2">
           <button
-            @click="setPage(currentPage - 1)"
+            @click="setPage(1)"
             :disabled="currentPage === 1"
-            class="p-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Previous Page"
+            class="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300 transition-colors"
+            title="First Page"
           >
-            <ChevronUp :size="16" class="rotate-[-90deg]" />
+            <ChevronUp :size="18" class="text-gray-600" />
           </button>
 
-          <span class="text-sm text-gray-700 min-w-[80px] text-center">
-            Page <span class="font-medium">{{ currentPage }}</span> of
-            <span class="font-medium">{{ totalPages }}</span>
-          </span>
+          <button
+            @click="setPage(currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300 transition-colors"
+            title="Previous Page"
+          >
+            <ChevronUp :size="18" class="rotate-[-90deg] text-gray-600" />
+          </button>
+
+          <div class="flex items-center gap-2 text-sm text-gray-700 mx-1">
+            <span class="font-medium">Page</span>
+            <input
+              type="number"
+              :value="currentPage"
+              @change="(e) => setPage(parseInt(e.target.value))"
+              @keyup.enter="(e) => setPage(parseInt(e.target.value))"
+              min="1"
+              :max="totalPages"
+              class="w-16 h-9 px-2 py-1 border border-gray-300 rounded-lg text-center font-medium focus:ring-2 focus:ring-navy focus:border-navy transition-shadow"
+              title="Enter page number and press Enter"
+            />
+            <span
+              >of <span class="font-semibold">{{ totalPages }}</span></span
+            >
+          </div>
 
           <button
             @click="setPage(currentPage + 1)"
             :disabled="currentPage === totalPages"
-            class="p-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300 transition-colors"
             title="Next Page"
           >
-            <ChevronUp :size="16" class="rotate-90" />
+            <ChevronUp :size="18" class="rotate-90 text-gray-600" />
+          </button>
+
+          <button
+            @click="setPage(totalPages)"
+            :disabled="currentPage === totalPages"
+            class="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300 transition-colors"
+            title="Last Page"
+          >
+            <ChevronUp :size="18" class="rotate-180 text-gray-600" />
           </button>
         </div>
       </div>
@@ -1602,6 +1697,68 @@ watch(
                   class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
                 <span class="text-sm text-gray-700">{{ type }}</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Exco Status -->
+          <div>
+            <label
+              class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3"
+            >
+              <Award :size="18" class="text-purple-600" />
+              Exco Status
+            </label>
+            <button
+              @click="excoFilterExpanded = !excoFilterExpanded"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
+            >
+              <span class="text-sm text-gray-700">
+                <span v-if="memberStore.excoFilter.length === 0"
+                  >All Members</span
+                >
+                <span v-else class="font-medium text-purple-600">
+                  {{ memberStore.excoFilter.length }} filter{{
+                    memberStore.excoFilter.length !== 1 ? "s" : ""
+                  }}
+                  active
+                </span>
+              </span>
+              <ChevronDown
+                :size="18"
+                class="text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': excoFilterExpanded }"
+              />
+            </button>
+            <div
+              v-if="excoFilterExpanded"
+              class="mt-2 space-y-1 border border-gray-200 rounded-lg p-2 bg-gray-50"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded transition-colors border-b border-purple-200"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allExcoOptionsSelected"
+                  @change="toggleSelectAllExcoOptions"
+                  class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <span class="text-sm font-semibold text-purple-700"
+                  >Select All</span
+                >
+              </label>
+              <label
+                v-for="option in excoOptions"
+                :key="option.value"
+                class="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  :checked="memberStore.excoFilter.includes(option.value)"
+                  @change="toggleExcoFilter(option.value)"
+                  class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <span class="text-sm text-gray-700">{{ option.label }}</span>
               </label>
             </div>
           </div>

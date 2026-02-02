@@ -1,20 +1,25 @@
 /**
- * Calculate the next subsidy rate for a member based on their membership type
- * and past subsidy usage history.
+ * Calculate the next subsidy rate for a member based on their membership type,
+ * Exco status, and past subsidy usage history.
  *
  * Algorithm:
- * - Exco members: Always 95% (until downgraded to Ordinary A or B)
+ * - Exco members: Always 95% (regardless of membership tier)
  * - Associate members: Always 10%
  * - Ordinary B members: 70% if not used, otherwise 10%
  * - Ordinary A members: Check tiers in order (90%, 70%, 50%), return first unused, otherwise 10%
  *
- * @param {string} membershipType - The membership type ('Exco', 'Associate', 'Ordinary B', 'Ordinary A')
+ * @param {string} membershipType - The membership type ('Associate', 'Ordinary B', 'Ordinary A')
+ * @param {boolean} isExco - Whether the member is an Exco member
  * @param {number[]} subsidyHistory - Array of subsidy percentages already used
  * @returns {number} The next subsidy percentage (95, 90, 70, 50, or 10)
  */
-export function calculateNextSubsidyRate(membershipType, subsidyHistory = []) {
-  // Exco members always get 95%
-  if (membershipType === "Exco") {
+export function calculateNextSubsidyRate(
+  membershipType,
+  isExco = false,
+  subsidyHistory = [],
+) {
+  // Exco members always get 95% regardless of membership tier
+  if (isExco) {
     return 95;
   }
 
@@ -153,17 +158,27 @@ export function getStudentStatusBadge(status) {
 }
 
 /**
- * Normalize Campus ID by padding with leading zero if needed
- * Excel removes leading zeros, so we restore them for 7-digit IDs
+ * Normalize Campus ID by ensuring it's a valid integer with leading zero for 7-digit IDs
+ * Excel may store as number or string, we ensure consistent format
  * @param {string|number} id - Campus ID to normalize
- * @returns {string} Normalized campus ID
+ * @returns {string} Normalized campus ID (with leading zero if 7 digits)
  */
 export function normalizeCampusId(id) {
   if (!id) return "";
-  const campusId = id.toString();
-  // If it's 7 digits, add leading zero
-  if (campusId.length === 7 && /^\d{7}$/.test(campusId)) {
-    return "0" + campusId;
+
+  // Convert to string and remove any whitespace
+  const idStr = id.toString().trim();
+
+  // Check if it's a valid integer (digits only)
+  if (!/^\d+$/.test(idStr)) {
+    return ""; // Return empty for invalid formats
   }
-  return campusId;
+
+  // If it's exactly 7 digits, add leading zero
+  if (idStr.length === 7) {
+    return "0" + idStr;
+  }
+
+  // Otherwise return as-is (as string to preserve any existing leading zeros)
+  return idStr;
 }

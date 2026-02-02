@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { useMemberStore } from "../stores/memberStore";
 import { useEventStore } from "../stores/eventStore";
 import {
@@ -7,6 +7,7 @@ import {
   formatPhoneNumber,
   isValidEmail,
   calculateNextSubsidyRate,
+  normalizeCampusId,
 } from "../utils/helpers";
 import {
   X,
@@ -25,6 +26,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  scrollSection: {
+    type: String,
+    default: null,
+  },
 });
 
 const emit = defineEmits(["close"]);
@@ -39,6 +44,7 @@ const formData = ref({
   fullName: props.member?.fullName || "",
   admitYear: props.member?.admitYear || new Date().getFullYear(),
   membershipType: props.member?.membershipType || "Ordinary A",
+  isExco: props.member?.isExco || false,
   tracks: props.member?.tracks ? [...props.member.tracks] : [],
   studentStatus: props.member?.studentStatus || "Undergraduate",
   school: props.member?.school || "",
@@ -85,6 +91,8 @@ const newISMEvent = ref({ eventName: "", subsidyUsed: 0, date: "" });
 const showAddNCS = ref(false);
 const newNCSEvent = ref({ eventName: "", date: "" });
 const showAddISS = ref(false);
+const ismSectionRef = ref(null);
+const ncsSectionRef = ref(null);
 const newISSEvent = ref({ eventName: "", date: "" });
 const newDynamicField = ref({ key: "", value: "" });
 const editingReasonForEvent = ref(null);
@@ -97,6 +105,24 @@ const deleteConfirmation = ref({
 
 // Track original membership type to detect transitions
 const originalMembershipType = ref(props.member?.membershipType || null);
+
+// Scroll to section if specified
+onMounted(() => {
+  if (props.scrollSection) {
+    nextTick(() => {
+      let targetRef = null;
+      if (props.scrollSection === "ism" && ismSectionRef.value) {
+        targetRef = ismSectionRef.value;
+      } else if (props.scrollSection === "ncs" && ncsSectionRef.value) {
+        targetRef = ncsSectionRef.value;
+      }
+
+      if (targetRef) {
+        targetRef.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+});
 
 // Track if form has changes
 const hasChanges = ref(false);
@@ -209,19 +235,91 @@ const nextSubsidyRate = computed(() => {
     .map((ism) => ism.subsidyUsed);
   return calculateNextSubsidyRate(
     formData.value.membershipType,
+    formData.value.isExco,
     subsidyHistory,
   );
 });
 
-// Watch for membership type changes to clear Ordinary B reason
+// Identify missing required fields (only for existing members)
+const missingFields = computed(() => {
+  if (!isEditMode.value) return [];
+
+  const missing = [];
+  if (!formData.value.campusId) missing.push("Campus ID");
+  if (!formData.value.fullName) missing.push("Full Name");
+  if (!formData.value.admitYear) missing.push("Admit Year");
+  if (!formData.value.firstDegree) missing.push("First Degree");
+  if (!formData.value.school || formData.value.school === "Unknown")
+    missing.push("School");
+  
+
+  // Check if School matches the selected First Degree
+  if (
+    formData.value.firstDegree &&
+    formData.value.school &&
+    formData.value.school !== "Unknown"
+  ) {
+    const degreeProgram = DEGREE_PROGRAMS.find(
+      (p) => p.degree === formData.value.firstDegree,
+    );
+    if (degreeProgram && degreeProgram.school !== formData.value.school) {
+      missing.push("School (must match First Degree)");
+    }
+  }
+
+  return missing;
+});
+
+const hasIncompleteProfile = computed(() => missingFields.value.length > 0);
+
+// Watch for membership type changes to clear Ordinary B reason and Ord A declaration date
 watch(
   () => formData.value.membershipType,
-  (newType) => {
+  (newType, oldType) => {
     if (newType !== "Ordinary B") {
       formData.value.reasonForOrdinaryB = "";
     }
+    if (oldType === "Ordinary A" && newType !== "Ordinary A") {
+      formData.value.ordinaryADeclarationDate = null;
+      formData.value.tracks = []; // Clear tracks when changing away from Ord A
+    }
   },
 );
+
+// Watch for First Degree changes to auto-populate School
+watch(
+  () => formData.value.firstDegree,
+  (newDegree) => {
+    if (newDegree && newDegree !== "Other") {
+      const degreeProgram = DEGREE_PROGRAMS.find((p) => p.degree === newDegree);
+      if (degreeProgram) {
+        formData.value.school = degreeProgram.school;
+      }
+    }
+  },
+);
+
+// Watch for Campus ID changes to normalize (add leading zero if 7 digits)
+watch(
+  () => formData.value.campusId,
+  (newId) => {
+    if (newId) {
+      const normalized = normalizeCampusId(newId);
+      if (normalized !== newId) {
+        formData.value.campusId = normalized;
+      }
+    }
+  },
+);
+
+// Computed property to detect if transitioning to Ordinary A
+const isTransitioningToOrdinaryA = computed(() => {
+  return (
+    formData.value.membershipType === "Ordinary A" &&
+    originalMembershipType.value !== "Ordinary A" &&
+    !formData.value.ordinaryADeclarationDate
+  );
+});
 
 // Watch declaration date change to recalculate NCS
 watch(
@@ -257,11 +355,18 @@ const toggleNCSForceValid = (event) => {
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return (
+    date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }) +
+    " " +
+    date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
 };
 
 // Handle close with confirmation if there are unsaved changes
@@ -283,6 +388,8 @@ const validateForm = () => {
 
   if (!formData.value.campusId) {
     errors.value.campusId = "Campus ID is required";
+  } else if (!/^\d+$/.test(formData.value.campusId.toString())) {
+    errors.value.campusId = "Campus ID must contain only numbers";
   }
 
   if (!formData.value.fullName) {
@@ -810,6 +917,30 @@ const handleSave = async () => {
           </button>
         </div>
 
+        <!-- Incomplete Profile Warning Banner -->
+        <div
+          v-if="hasIncompleteProfile"
+          class="bg-amber-50 border-l-4 border-amber-500 px-4 sm:px-6 py-4 flex-shrink-0"
+        >
+          <div class="flex items-start gap-3">
+            <AlertCircle
+              :size="20"
+              class="text-amber-600 flex-shrink-0 mt-0.5"
+            />
+            <div class="flex-1">
+              <h4 class="text-sm font-semibold text-amber-800 mb-1">
+                ⚠️ Incomplete Profile
+              </h4>
+              <p class="text-sm text-amber-700">
+                Please complete the following required fields:
+                <span class="font-semibold">{{
+                  missingFields.join(", ")
+                }}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Content -->
         <div class="px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto flex-1">
           <form @submit.prevent="handleSave" class="space-y-8">
@@ -829,8 +960,16 @@ const handleSave = async () => {
                   <input
                     v-model="formData.campusId"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy font-mono"
-                    :class="{ 'border-red-500': errors.campusId }"
+                    pattern="[0-9]*"
+                    inputmode="numeric"
+                    maxlength="8"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy font-mono"
+                    :class="{
+                      'border-red-500': errors.campusId,
+                      'border-red-500 bg-amber-50':
+                        !formData.campusId && isEditMode,
+                      'border-gray-300': formData.campusId || !isEditMode,
+                    }"
                   />
                   <p v-if="errors.campusId" class="mt-1 text-sm text-red-500">
                     {{ errors.campusId }}
@@ -845,8 +984,13 @@ const handleSave = async () => {
                   <input
                     v-model="formData.fullName"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                    :class="{ 'border-red-500': errors.fullName }"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    :class="{
+                      'border-red-500': errors.fullName,
+                      'border-red-500 bg-amber-50':
+                        !formData.fullName && isEditMode,
+                      'border-gray-300': formData.fullName || !isEditMode,
+                    }"
                   />
                   <p v-if="errors.fullName" class="mt-1 text-sm text-red-500">
                     {{ errors.fullName }}
@@ -867,6 +1011,25 @@ const handleSave = async () => {
                   />
                 </div>
 
+                <!-- Student Status -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Student Status <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    v-model="formData.studentStatus"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                  >
+                    <option
+                      v-for="status in STUDENT_STATUSES"
+                      :key="status"
+                      :value="status"
+                    >
+                      {{ status }}
+                    </option>
+                  </select>
+                </div>
+
                 <!-- First Degree -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -874,8 +1037,13 @@ const handleSave = async () => {
                   </label>
                   <select
                     v-model="formData.firstDegree"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                    :class="{ 'border-red-500': errors.firstDegree }"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    :class="{
+                      'border-red-500': errors.firstDegree,
+                      'border-red-500 bg-amber-50':
+                        !formData.firstDegree && isEditMode,
+                      'border-gray-300': formData.firstDegree || !isEditMode,
+                    }"
                   >
                     <option value="">Select First Degree</option>
                     <option
@@ -914,25 +1082,6 @@ const handleSave = async () => {
                   </select>
                 </div>
 
-                <!-- Degree (Student Status) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Student Status <span class="text-red-500">*</span>
-                  </label>
-                  <select
-                    v-model="formData.studentStatus"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                  >
-                    <option
-                      v-for="status in STUDENT_STATUSES"
-                      :key="status"
-                      :value="status"
-                    >
-                      {{ status }}
-                    </option>
-                  </select>
-                </div>
-
                 <!-- Membership Type -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -942,11 +1091,36 @@ const handleSave = async () => {
                     v-model="formData.membershipType"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                   >
-                    <option value="Exco">Exco</option>
                     <option value="Ordinary A">Ordinary A</option>
                     <option value="Ordinary B">Ordinary B</option>
                     <option value="Associate">Associate</option>
                   </select>
+                </div>
+
+                <!-- Exco Status -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Executive Committee
+                  </label>
+                  <div
+                    class="h-[42px] flex items-center px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <label
+                      class="flex items-center gap-2 cursor-pointer w-full"
+                    >
+                      <input
+                        type="checkbox"
+                        v-model="formData.isExco"
+                        class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                      <span class="text-sm font-medium text-gray-900"
+                        >Exco Member</span
+                      >
+                      <span class="text-xs text-gray-500 ml-auto"
+                        >(95% ISM subsidy)</span
+                      >
+                    </label>
+                  </div>
                 </div>
 
                 <!-- School -->
@@ -956,8 +1130,16 @@ const handleSave = async () => {
                   </label>
                   <select
                     v-model="formData.school"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                    :class="{ 'border-red-500': errors.school }"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    :class="{
+                      'border-red-500': errors.school,
+                      'border-red-500 bg-amber-50':
+                        (!formData.school || formData.school === 'Unknown') &&
+                        isEditMode,
+                      'border-gray-300':
+                        (formData.school && formData.school !== 'Unknown') ||
+                        !isEditMode,
+                    }"
                   >
                     <option value="">Select School</option>
                     <option
@@ -1044,7 +1226,10 @@ const handleSave = async () => {
                 </div>
 
                 <!-- Tracks -->
-                <div class="md:col-span-2">
+                <div
+                  v-if="formData.membershipType === 'Ordinary A'"
+                  class="md:col-span-2"
+                >
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     Tracks
                   </label>
@@ -1087,6 +1272,12 @@ const handleSave = async () => {
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 cursor-not-allowed mb-3"
               />
               <div
+                v-else-if="isTransitioningToOrdinaryA"
+                class="w-full px-3 py-2 border border-green-300 bg-green-50 rounded-lg text-green-900 font-medium mb-3"
+              >
+                ✓ Today's date will be set automatically when saved
+              </div>
+              <div
                 v-else
                 class="w-full px-3 py-2 border border-amber-300 bg-amber-50 rounded-lg text-amber-900 font-medium mb-3"
               >
@@ -1110,6 +1301,15 @@ const handleSave = async () => {
                   Ordinary A. Only NCS events attended after this date count
                   toward graduation requirements.
                 </span>
+                <span
+                  v-else-if="isTransitioningToOrdinaryA"
+                  class="text-green-800 font-medium"
+                >
+                  <strong>📅 Auto-Setting Date:</strong> The declaration date
+                  will be set to today's date when you save. Only NCS events
+                  attended after today will count toward graduation
+                  requirements.
+                </span>
                 <span v-else class="text-amber-800 font-medium">
                   <strong>⚠️ Grandfathered Member:</strong> No declaration date
                   set. All NCS events count toward graduation requirements
@@ -1118,8 +1318,23 @@ const handleSave = async () => {
               </p>
             </div>
 
+            <!-- Reason for Ordinary B -->
+            <div
+              v-if="formData.membershipType === 'Ordinary B'"
+              class="md:col-span-2"
+            >
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Reason for Ordinary B
+              </label>
+              <textarea
+                v-model="formData.reasonForOrdinaryB"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+              ></textarea>
+            </div>
+
             <!-- ISM Attendance & Subsidy Section -->
-            <div>
+            <div ref="ismSectionRef">
               <h4
                 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200"
               >
@@ -1366,7 +1581,7 @@ const handleSave = async () => {
             </div>
 
             <!-- Optional Fields Section -->
-            <div>
+            <div ref="ncsSectionRef">
               <h4
                 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200"
               >
@@ -1374,21 +1589,6 @@ const handleSave = async () => {
               </h4>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Reason for Ordinary B -->
-                <div
-                  v-if="formData.membershipType === 'Ordinary B'"
-                  class="md:col-span-2"
-                >
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Reason for Ordinary B
-                  </label>
-                  <textarea
-                    v-model="formData.reasonForOrdinaryB"
-                    rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                  ></textarea>
-                </div>
-
                 <!-- NCS Counts -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -1406,8 +1606,8 @@ const handleSave = async () => {
                   </div>
                 </div>
 
-                <!-- Valid NCS (Counting Toward Graduation) -->
-                <div>
+                <!-- Valid NCS (Counting Toward Graduation) - Only for Ordinary A -->
+                <div v-if="formData.membershipType === 'Ordinary A'">
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     Valid NCS (Counting Toward Graduation)
                   </label>
@@ -1487,7 +1687,10 @@ const handleSave = async () => {
                           Manual
                         </span>
                         <span
-                          v-if="doesNCSEventCount(event)"
+                          v-if="
+                            formData.membershipType === 'Ordinary A' &&
+                            doesNCSEventCount(event)
+                          "
                           class="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-emerald text-white rounded-full"
                         >
                           <span v-if="event.forceValid" title="Manually forced">
@@ -1496,7 +1699,7 @@ const handleSave = async () => {
                           ✓ COUNTS
                         </span>
                         <span
-                          v-else
+                          v-else-if="formData.membershipType === 'Ordinary A'"
                           class="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 rounded-full"
                         >
                           ✗ DOESN'T COUNT
