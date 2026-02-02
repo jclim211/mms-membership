@@ -747,7 +747,8 @@ const handleBulkImportSave = async (attendance) => {
                 v-if="!deleteFromRecords"
                 class="text-xs text-amber-600 mt-1 pl-2"
               >
-                ⚠️ Event will be deleted but member records will keep this attendance.
+                ⚠️ Event will be deleted but member records will keep this
+                attendance.
               </p>
             </div>
             <div class="flex justify-end gap-3">
