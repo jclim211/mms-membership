@@ -351,7 +351,7 @@ const toggleNCSForceValid = (event) => {
   recalculateNCSAttended();
 };
 
-// Format date for display
+// Format date for display (with time - for created/updated dates)
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -367,6 +367,17 @@ const formatDate = (dateString) => {
       minute: "2-digit",
     })
   );
+};
+
+// Format date without time (for event dates - ISM, NCS, ISS)
+const formatDateOnly = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 // Handle close with confirmation if there are unsaved changes
@@ -1432,7 +1443,7 @@ const handleSave = async () => {
                         </span>
                       </p>
                       <p class="text-sm text-gray-500">
-                        {{ formatDate(ism.date) }}
+                        {{ formatDateOnly(ism.date) }}
                       </p>
                     </div>
                   </div>
@@ -1719,7 +1730,7 @@ const handleSave = async () => {
                       </div>
                       <div class="flex items-center gap-2 mt-1">
                         <p class="text-sm text-gray-500">
-                          {{ formatDate(event.date) }}
+                          {{ formatDateOnly(event.date) }}
                         </p>
                         <!-- Force Valid Toggle -->
                         <button
@@ -1944,7 +1955,7 @@ const handleSave = async () => {
                         </span>
                       </div>
                       <p class="text-sm text-gray-500 mt-1">
-                        {{ formatDate(event.date) }}
+                        {{ formatDateOnly(event.date) }}
                       </p>
                     </div>
                     <button
