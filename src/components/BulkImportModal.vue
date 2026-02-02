@@ -383,10 +383,39 @@ const downloadExistingMembers = () => {
               <h3 class="text-lg font-semibold text-gray-900 mb-2">
                 Upload Excel File
               </h3>
-              <p class="text-sm text-gray-600 mb-6">
+              <p class="text-sm text-gray-600 mb-4">
                 <strong>Important:</strong> Please download and use our template
                 to ensure proper data formatting
               </p>
+
+              <!-- Help Guide Call-to-Action -->
+              <div
+                class="max-w-lg mx-auto mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl shadow-sm"
+              >
+                <div class="flex items-start gap-3">
+                  <div
+                    class="flex-shrink-0 w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center animate-pulse"
+                  >
+                    <HelpCircle :size="20" class="text-white" />
+                  </div>
+                  <div class="flex-1 text-left">
+                    <p class="text-sm font-semibold text-amber-900 mb-1">
+                      📚 Not sure how to fill the template?
+                    </p>
+                    <p class="text-xs text-amber-800 mb-2">
+                      Check out our comprehensive guide for step-by-step
+                      instructions and tips!
+                    </p>
+                    <button
+                      @click="showHelp = true"
+                      class="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900 underline decoration-2 underline-offset-2 hover:decoration-amber-900 transition-colors"
+                    >
+                      <span>Read the Import Guide</span>
+                      <span class="text-lg">→</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               <!-- Download Template Button -->
               <div class="mb-8">

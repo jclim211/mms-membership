@@ -1400,7 +1400,7 @@ const handleSave = async () => {
                 <!-- ISS Attended -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
-                    # ISS Attended
+                    Total ISS Attended
                   </label>
                   <div class="flex items-center">
                     <span
