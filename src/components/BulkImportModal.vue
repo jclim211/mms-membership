@@ -963,14 +963,20 @@ const downloadExistingMembers = () => {
                       </h4>
                     </div>
                     <div class="flex items-center gap-3">
-                      <span class="text-sm text-gray-600">
-                        {{ selectedEditsCount }} of
-                        {{ memberEdits.length }} selected
-                      </span>
+                      <div class="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-1.5 rounded-lg border border-indigo-200">
+                        <span class="text-sm font-medium text-gray-700">
+                          <span class="text-indigo-600 font-bold">{{ selectedEditsCount }}</span> of {{ memberEdits.length }}
+                        </span>
+                      </div>
                       <button
                         @click="toggleAllEdits(!allEditsSelected)"
-                        class="text-sm font-medium text-indigo-600 hover:text-indigo-700 underline"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
+                        :class="allEditsSelected 
+                          ? 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white' 
+                          : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white'"
                       >
+                        <CheckCircle v-if="!allEditsSelected" :size="16" />
+                        <X v-else :size="16" />
                         {{ allEditsSelected ? "Deselect All" : "Select All" }}
                       </button>
                     </div>
