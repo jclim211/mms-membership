@@ -553,7 +553,13 @@ export function detectMemberChanges(existingMember, importedMember) {
   const changes = [];
 
   // Define risky fields that should be highlighted
-  const riskyFields = ["membershipType", "studentStatus", "campusId"];
+  const riskyFields = [
+    "membershipType",
+    "studentStatus",
+    "campusId",
+    "firstDegree",
+    "school",
+  ];
 
   // Define all comparable fields
   const fieldsToCompare = [
@@ -649,6 +655,33 @@ export function detectMemberChanges(existingMember, importedMember) {
       });
     }
   });
+
+  // Additional validation: Check for school-degree mismatch
+  // Only flag if both school and firstDegree are present in the imported data
+  if (importedMember.school && importedMember.firstDegree) {
+    const expectedSchoolForDegree = DEGREE_PROGRAMS.find(
+      (p) => p.degree === importedMember.firstDegree,
+    )?.school;
+
+    // Only validate if:
+    // 1. The degree is in DEGREE_PROGRAMS (not "Other" or "Exchange")
+    // 2. The school doesn't match the expected school
+    if (
+      expectedSchoolForDegree &&
+      importedMember.school !== expectedSchoolForDegree &&
+      importedMember.firstDegree !== "Other" &&
+      importedMember.school !== "Exchange"
+    ) {
+      // Add a warning change to highlight the mismatch
+      changes.push({
+        field: "schoolDegreeMismatch",
+        label: "⚠️ School-Degree Mismatch",
+        oldValue: `${existingMember.school || "(not set)"} / ${existingMember.firstDegree || "(not set)"}`,
+        newValue: `${importedMember.school} / ${importedMember.firstDegree} (Expected: ${expectedSchoolForDegree})`,
+        isRisky: true,
+      });
+    }
+  }
 
   return changes;
 }

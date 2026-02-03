@@ -567,6 +567,7 @@ const handleExport = async () => {
       ...member,
       nextSubsidyRate: calculateNextSubsidyRate(
         member.membershipType,
+        member.isExco || false,
         member.ismAttendance?.map((ism) => ism.subsidyUsed) || [],
       ),
     }));
