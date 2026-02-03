@@ -542,3 +542,113 @@ export async function bulkImportMembers(members, memberService, onProgress) {
 
   return results;
 }
+
+/**
+ * Detect changes between existing member and imported member
+ * @param {Object} existingMember - Current member in database
+ * @param {Object} importedMember - Member data from Excel
+ * @returns {Array} - Array of change objects with field, oldValue, newValue, isRisky
+ */
+export function detectMemberChanges(existingMember, importedMember) {
+  const changes = [];
+
+  // Define risky fields that should be highlighted
+  const riskyFields = ["membershipType", "studentStatus", "campusId"];
+
+  // Define all comparable fields
+  const fieldsToCompare = [
+    { key: "fullName", label: "Full Name" },
+    { key: "campusId", label: "Campus ID" },
+    { key: "schoolEmail", label: "School Email" },
+    { key: "personalEmail", label: "Personal Email" },
+    { key: "admitYear", label: "Admit Year" },
+    { key: "membershipType", label: "Membership Type" },
+    { key: "studentStatus", label: "Student Status" },
+    { key: "firstDegree", label: "First Degree" },
+    { key: "secondDegree", label: "Second Degree" },
+    { key: "school", label: "School" },
+    { key: "tracks", label: "Tracks", isArray: true },
+    {
+      key: "ordinaryADeclarationDate",
+      label: "Ordinary A Declaration Date",
+      isDate: true,
+    },
+    { key: "telegramHandle", label: "Telegram Handle" },
+    {
+      key: "addedToTelegramGroup",
+      label: "Added to Telegram Group",
+      isBoolean: true,
+    },
+    { key: "phoneNumber", label: "Phone Number" },
+    {
+      key: "scholarshipAwarded",
+      label: "Scholarship Awarded",
+      isBoolean: true,
+    },
+    { key: "scholarshipYear", label: "Scholarship Year" },
+    { key: "reasonForOrdinaryB", label: "Reason for Ordinary B" },
+    { key: "isExco", label: "Exco Member", isBoolean: true },
+  ];
+
+  fieldsToCompare.forEach((field) => {
+    // Skip if imported member doesn't have this field (partial update)
+    if (!(field.key in importedMember)) {
+      return;
+    }
+
+    const oldValue = existingMember[field.key];
+    const newValue = importedMember[field.key];
+
+    // Handle different value types
+    let isDifferent = false;
+    let displayOldValue = oldValue;
+    let displayNewValue = newValue;
+
+    if (field.isArray) {
+      // Compare arrays
+      const oldArray = Array.isArray(oldValue) ? oldValue : [];
+      const newArray = Array.isArray(newValue) ? newValue : [];
+      isDifferent =
+        JSON.stringify(oldArray.sort()) !== JSON.stringify(newArray.sort());
+      displayOldValue = oldArray.join(", ") || "(empty)";
+      displayNewValue = newArray.join(", ") || "(empty)";
+    } else if (field.isDate) {
+      // Compare dates (normalize to date string)
+      const oldDate = oldValue
+        ? new Date(oldValue).toISOString().split("T")[0]
+        : null;
+      const newDate = newValue
+        ? new Date(newValue).toISOString().split("T")[0]
+        : null;
+      isDifferent = oldDate !== newDate;
+      displayOldValue = oldDate || "(not set)";
+      displayNewValue = newDate || "(not set)";
+    } else if (field.isBoolean) {
+      // Compare booleans
+      const oldBool = Boolean(oldValue);
+      const newBool = Boolean(newValue);
+      isDifferent = oldBool !== newBool;
+      displayOldValue = oldBool ? "Yes" : "No";
+      displayNewValue = newBool ? "Yes" : "No";
+    } else {
+      // Compare primitive values
+      const normalizedOld = oldValue == null ? "" : String(oldValue).trim();
+      const normalizedNew = newValue == null ? "" : String(newValue).trim();
+      isDifferent = normalizedOld !== normalizedNew;
+      displayOldValue = normalizedOld || "(empty)";
+      displayNewValue = normalizedNew || "(empty)";
+    }
+
+    if (isDifferent) {
+      changes.push({
+        field: field.key,
+        label: field.label,
+        oldValue: displayOldValue,
+        newValue: displayNewValue,
+        isRisky: riskyFields.includes(field.key),
+      });
+    }
+  });
+
+  return changes;
+}

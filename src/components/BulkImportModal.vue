@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import {
   parseExcelFile,
   bulkImportMembers,
   downloadTemplate,
+  detectMemberChanges,
 } from "../utils/bulkImport";
 import * as XLSX from "xlsx";
 import { MEMBERSHIP_TYPES, STUDENT_STATUSES } from "../utils/constants";
@@ -17,6 +18,8 @@ import {
   CheckCircle,
   Loader,
   HelpCircle,
+  FileEdit,
+  UserPlus,
 } from "lucide-vue-next";
 import BulkImportHelp from "./BulkImportHelp.vue";
 
@@ -32,6 +35,11 @@ const importResults = ref(null);
 const isProcessing = ref(false);
 
 const showHelp = ref(false);
+
+// Edit Confirmation State
+const memberEdits = ref([]); // Members with changes detected
+const newMembers = ref([]); // Members to be created
+const unchangedMembers = ref([]); // Members with no changes
 
 // Verification Mode State
 const verifyMode = ref(false);
@@ -90,6 +98,9 @@ const handleParseFile = async (isVerification = false) => {
       isPartial: isPartialUpdate.value,
     });
 
+    // Categorize members into new, edits, and unchanged
+    categorizeMembersForImport();
+
     // If in verification mode, identify missing members
     if (isVerification) {
       identifyMissingMembers();
@@ -101,6 +112,46 @@ const handleParseFile = async (isVerification = false) => {
   } finally {
     isProcessing.value = false;
   }
+};
+
+// Categorize members into new, edits, and unchanged
+const categorizeMembersForImport = () => {
+  if (!parseResult.value) return;
+
+  newMembers.value = [];
+  memberEdits.value = [];
+  unchangedMembers.value = [];
+
+  parseResult.value.valid.forEach((importedMember) => {
+    const existingMember = memberStore.members.find(
+      (m) => m.campusId === importedMember.campusId,
+    );
+
+    if (!existingMember) {
+      // New member
+      newMembers.value.push(importedMember);
+    } else {
+      // Existing member - detect changes
+      const changes = detectMemberChanges(existingMember, importedMember);
+
+      if (changes.length > 0) {
+        // Has changes - add to edits
+        memberEdits.value.push({
+          imported: importedMember,
+          existing: existingMember,
+          changes: changes,
+          selected: true, // Default: all selected
+          isRisky: changes.some((c) => c.isRisky),
+        });
+      } else {
+        // No changes
+        unchangedMembers.value.push({
+          imported: importedMember,
+          existing: existingMember,
+        });
+      }
+    }
+  });
 };
 
 // Identify members in DB (Ord A, !Alumni) missing from Excel
@@ -171,6 +222,31 @@ const handleBulkOrdADateChange = () => {
   });
 };
 
+// Select/Unselect all edits
+const toggleAllEdits = (selected) => {
+  memberEdits.value.forEach((edit) => {
+    edit.selected = selected;
+  });
+};
+
+// Computed: Count of selected edits
+const selectedEditsCount = computed(() => {
+  return memberEdits.value.filter((e) => e.selected).length;
+});
+
+// Computed: Are all edits selected
+const allEditsSelected = computed(() => {
+  return (
+    memberEdits.value.length > 0 && memberEdits.value.every((e) => e.selected)
+  );
+});
+
+// Computed: Are some edits selected (for indeterminate state)
+const someEditsSelected = computed(() => {
+  const selectedCount = selectedEditsCount.value;
+  return selectedCount > 0 && selectedCount < memberEdits.value.length;
+});
+
 // Import members
 const handleImport = async () => {
   if (!parseResult.value || parseResult.value.valid.length === 0) return;
@@ -220,14 +296,27 @@ const handleImport = async () => {
       }
     }
 
-    // 2. Process Standard Import
+    // 2. Prepare members list for import (only selected edits + all new members)
+    const membersToImport = [
+      ...newMembers.value,
+      ...memberEdits.value
+        .filter((edit) => edit.selected)
+        .map((edit) => edit.imported),
+    ];
+
+    // 3. Process Standard Import
     importResults.value = await bulkImportMembers(
-      parseResult.value.valid,
+      membersToImport,
       memberService,
       (progress) => {
         importProgress.value = progress;
       },
     );
+
+    // Add info about skipped edits
+    importResults.value.skippedEdits = memberEdits.value.filter(
+      (e) => !e.selected,
+    ).length;
 
     // Merge verification results into importResults for display
     if (verifyMode.value) {
@@ -794,62 +883,279 @@ const downloadExistingMembers = () => {
 
               <!-- Valid Records Preview -->
               <div v-if="parseResult.valid.length > 0">
-                <p class="text-sm text-gray-700 mb-3">
-                  Preview of valid records (showing first 5):
-                </p>
-                <div class="overflow-x-auto border border-gray-200 rounded-lg">
-                  <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                      <tr>
-                        <th
-                          class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                <!-- New Members Section -->
+                <div v-if="newMembers.length > 0" class="mb-6">
+                  <div class="flex items-center gap-2 mb-3">
+                    <div class="bg-green-100 p-2 rounded-full">
+                      <UserPlus :size="20" class="text-green-600" />
+                    </div>
+                    <h4 class="text-base font-semibold text-gray-900">
+                      New Members to Add ({{ newMembers.length }})
+                    </h4>
+                  </div>
+                  <p class="text-sm text-gray-700 mb-3">
+                    Preview of new members (showing first 5):
+                  </p>
+                  <div
+                    class="overflow-x-auto border border-green-200 rounded-lg"
+                  >
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-green-50">
+                        <tr>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Campus ID
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Full Name
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Email
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Membership
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Status
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200 text-sm">
+                        <tr
+                          v-for="(member, idx) in newMembers.slice(0, 5)"
+                          :key="idx"
                         >
-                          Campus ID
-                        </th>
-                        <th
-                          class="px-4 py-2 text-left text-xs font-medium text-gray-500"
-                        >
-                          Full Name
-                        </th>
-                        <th
-                          class="px-4 py-2 text-left text-xs font-medium text-gray-500"
-                        >
-                          Email
-                        </th>
-                        <th
-                          class="px-4 py-2 text-left text-xs font-medium text-gray-500"
-                        >
-                          Membership
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                      <tr
-                        v-for="(member, idx) in parseResult.valid.slice(0, 5)"
-                        :key="idx"
-                      >
-                        <td class="px-4 py-2 text-sm text-gray-900">
-                          {{ member.campusId }}
-                        </td>
-                        <td class="px-4 py-2 text-sm text-gray-900">
-                          {{ member.fullName }}
-                        </td>
-                        <td class="px-4 py-2 text-sm text-gray-600">
-                          {{ member.schoolEmail }}
-                        </td>
-                        <td class="px-4 py-2 text-sm text-gray-600">
-                          {{ member.membershipType }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                          <td class="px-4 py-2">{{ member.campusId }}</td>
+                          <td class="px-4 py-2">{{ member.fullName }}</td>
+                          <td class="px-4 py-2">{{ member.schoolEmail }}</td>
+                          <td class="px-4 py-2">{{ member.membershipType }}</td>
+                          <td class="px-4 py-2">{{ member.studentStatus }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p
+                    v-if="newMembers.length > 5"
+                    class="text-xs text-gray-500 mt-2"
+                  >
+                    ...and {{ newMembers.length - 5 }} more
+                  </p>
                 </div>
-                <p
-                  v-if="parseResult.valid.length > 5"
-                  class="text-xs text-gray-500 mt-2"
+
+                <!-- Member Edits Section -->
+                <div v-if="memberEdits.length > 0" class="mb-6">
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                      <div class="bg-amber-100 p-2 rounded-full">
+                        <FileEdit :size="20" class="text-amber-600" />
+                      </div>
+                      <h4 class="text-base font-semibold text-gray-900">
+                        Members with Changes ({{ memberEdits.length }})
+                      </h4>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm text-gray-600">
+                        {{ selectedEditsCount }} of
+                        {{ memberEdits.length }} selected
+                      </span>
+                      <button
+                        @click="toggleAllEdits(!allEditsSelected)"
+                        class="text-sm font-medium text-indigo-600 hover:text-indigo-700 underline"
+                      >
+                        {{ allEditsSelected ? "Deselect All" : "Select All" }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4"
+                  >
+                    <div class="flex items-start gap-2">
+                      <AlertCircle
+                        :size="16"
+                        class="text-amber-600 flex-shrink-0 mt-0.5"
+                      />
+                      <p class="text-xs text-amber-800">
+                        Review the changes below. Only
+                        <strong>checked rows</strong> will be updated. Unchecked
+                        rows will be skipped (no changes applied).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="space-y-3 max-h-96 overflow-y-auto">
+                    <div
+                      v-for="(edit, idx) in memberEdits"
+                      :key="idx"
+                      class="border rounded-lg transition-all"
+                      :class="
+                        edit.selected
+                          ? edit.isRisky
+                            ? 'border-red-300 bg-red-50'
+                            : 'border-amber-200 bg-white'
+                          : 'border-gray-200 bg-gray-50 opacity-60'
+                      "
+                    >
+                      <div class="p-4">
+                        <!-- Header with checkbox -->
+                        <div class="flex items-start gap-3 mb-3">
+                          <input
+                            type="checkbox"
+                            v-model="edit.selected"
+                            class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mt-1 flex-shrink-0"
+                          />
+                          <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                              <h5 class="font-semibold text-gray-900">
+                                {{ edit.existing.fullName }}
+                              </h5>
+                              <span class="text-sm text-gray-500"
+                                >({{ edit.existing.campusId }})</span
+                              >
+                              <span
+                                v-if="edit.isRisky"
+                                class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded"
+                              >
+                                ⚠️ Critical Change
+                              </span>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                              {{ edit.changes.length }} field{{
+                                edit.changes.length !== 1 ? "s" : ""
+                              }}
+                              will be updated
+                            </p>
+                          </div>
+                        </div>
+
+                        <!-- Changes list -->
+                        <div class="ml-8 space-y-2">
+                          <div
+                            v-for="(change, changeIdx) in edit.changes"
+                            :key="changeIdx"
+                            class="flex items-start gap-2 text-sm"
+                          >
+                            <div class="w-40 flex-shrink-0">
+                              <span class="font-medium text-gray-700"
+                                >{{ change.label }}:</span
+                              >
+                            </div>
+                            <div class="flex-1">
+                              <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-gray-500 line-through">{{
+                                  change.oldValue
+                                }}</span>
+                                <span class="text-gray-400">→</span>
+                                <span
+                                  class="font-semibold"
+                                  :class="
+                                    change.isRisky
+                                      ? 'text-red-600'
+                                      : 'text-green-600'
+                                  "
+                                >
+                                  {{ change.newValue }}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Unchanged Members (Collapsed Info) -->
+                <div v-if="unchangedMembers.length > 0" class="mb-6">
+                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center gap-2">
+                      <CheckCircle :size="20" class="text-gray-400" />
+                      <p class="text-sm text-gray-600">
+                        <strong>{{ unchangedMembers.length }}</strong> member{{
+                          unchangedMembers.length !== 1 ? "s" : ""
+                        }}
+                        in the file with no changes (will be skipped)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Old Preview Table (fallback if no categorization) -->
+                <div
+                  v-if="
+                    newMembers.length === 0 &&
+                    memberEdits.length === 0 &&
+                    unchangedMembers.length === 0
+                  "
                 >
-                  ... and {{ parseResult.valid.length - 5 }} more
-                </p>
+                  <p class="text-sm text-gray-700 mb-3">
+                    Preview of valid records (showing first 5):
+                  </p>
+                  <div
+                    class="overflow-x-auto border border-gray-200 rounded-lg"
+                  >
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Campus ID
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Full Name
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Email
+                          </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Membership
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200">
+                        <tr
+                          v-for="(member, idx) in parseResult.valid.slice(0, 5)"
+                          :key="idx"
+                        >
+                          <td class="px-4 py-2 text-sm text-gray-900">
+                            {{ member.campusId }}
+                          </td>
+                          <td class="px-4 py-2 text-sm text-gray-900">
+                            {{ member.fullName }}
+                          </td>
+                          <td class="px-4 py-2 text-sm text-gray-600">
+                            {{ member.schoolEmail }}
+                          </td>
+                          <td class="px-4 py-2 text-sm text-gray-600">
+                            {{ member.membershipType }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p
+                    v-if="parseResult.valid.length > 5"
+                    class="text-xs text-gray-500 mt-2"
+                  >
+                    ... and {{ parseResult.valid.length - 5 }} more
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -950,6 +1256,24 @@ const downloadExistingMembers = () => {
                 </p>
               </div>
 
+              <!-- Skipped Edits Info -->
+              <div
+                v-if="
+                  importResults.skippedEdits && importResults.skippedEdits > 0
+                "
+                class="bg-gray-50 border border-gray-200 rounded-lg p-4"
+              >
+                <p class="text-sm text-gray-600 font-medium">
+                  Edits Skipped (Not Selected)
+                </p>
+                <p class="text-3xl font-bold text-gray-700">
+                  {{ importResults.skippedEdits }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  These members were not updated as you unchecked them.
+                </p>
+              </div>
+
               <!-- Failed Verification -->
               <div
                 v-if="
@@ -1002,15 +1326,34 @@ const downloadExistingMembers = () => {
           >
             Back
           </button>
-          <button
-            @click="handleImport"
-            :disabled="
-              !parseResult || parseResult.valid.length === 0 || isProcessing
-            "
-            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Import {{ parseResult?.valid.length || 0 }} Members
-          </button>
+          <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-600">
+              <span class="font-medium">Will import:</span>
+              <span v-if="newMembers.length > 0" class="ml-2 text-green-700"
+                >{{ newMembers.length }} new</span
+              >
+              <span v-if="selectedEditsCount > 0" class="ml-2 text-amber-700"
+                >{{ selectedEditsCount }} edits</span
+              >
+              <span
+                v-if="memberEdits.length > selectedEditsCount"
+                class="ml-2 text-gray-500"
+                >({{ memberEdits.length - selectedEditsCount }} edits
+                skipped)</span
+              >
+            </div>
+            <button
+              @click="handleImport"
+              :disabled="
+                !parseResult ||
+                (newMembers.length === 0 && selectedEditsCount === 0) ||
+                isProcessing
+              "
+              class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Import {{ newMembers.length + selectedEditsCount }} Members
+            </button>
+          </div>
         </div>
       </div>
     </div>
