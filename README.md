@@ -289,9 +289,9 @@ mms-membership/
 - Campus ID
 - Full Name
 - Admit Year
-- Student Status (Undergraduate/Postgraduate/Graduated)
+- Student Status (Undergraduate/Postgraduate/Alumni/Exchange Student)
 - Membership Type (Ordinary A/B/Associate)
-- School
+- School (Auto-set to "Exchange" for Exchange Students)
 - School Email
 
 **ISM Attendance:**

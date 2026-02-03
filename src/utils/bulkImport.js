@@ -279,6 +279,11 @@ function validateAndTransformData(data, options = {}) {
       member.school = "";
     }
 
+    // Auto-set School to "Exchange" if Student Status is "Exchange Student"
+    if (member.studentStatus === "Exchange Student" && !rawSchool) {
+      member.school = "Exchange";
+    }
+
     // Degrees
     const firstDegree = row["First Degree"];
     if (firstDegree) {

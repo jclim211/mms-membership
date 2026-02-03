@@ -158,10 +158,11 @@ Your Club Membership Management Portal is now fully built and ready to use. This
   - Student Status dropdown
   - Membership Type dropdown
   - Tracks (checkboxes)
-  - School dropdown (all 7 schools, case-insensitive)
+  - School dropdown (8 schools including Exchange, case-insensitive)
   - School Email (validation, auto-converts to lowercase)
   - Telegram Handle (auto-adds @)
   - Phone Number
+  - Auto-sets School to "Exchange" when Student Status is "Exchange Student"
 
 - [x] **ISM Attendance & Subsidy Section**:
   - Display of next subsidy rate with manual override option

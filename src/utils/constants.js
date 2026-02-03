@@ -11,7 +11,22 @@ export const SCHOOLS = [
   "Law",
   "Social Sciences",
   "College of Integrative Studies",
+  "Exchange",
 ];
+
+/**
+ * Maps school names to their shorthands for display purposes.
+ */
+export const SCHOOL_SHORTHANDS = {
+  Accountancy: "SOA",
+  Business: "SOB",
+  Economics: "SOE",
+  "Computing & Information Systems": "SCIS",
+  Law: "SOL",
+  "Social Sciences": "SOSS",
+  "College of Integrative Studies": "CIS",
+  Exchange: "EXCH",
+};
 
 export const MEMBERSHIP_TYPES = ["Ordinary A", "Ordinary B", "Associate"];
 
@@ -47,6 +62,8 @@ export const SCHOOL_NAME_MAP = {
   soss: "Social Sciences",
   cis: "College of Integrative Studies", // CIS usually refers to College of Integrative Studies
   integrative: "College of Integrative Studies",
+  exchange: "Exchange",
+  exch: "Exchange",
 };
 
 /**

@@ -230,7 +230,8 @@ const degreeShorthandMap = DEGREE_PROGRAMS.reduce((map, program) => {
                 <p class="text-sm text-gray-700 mb-2">
                   Full school name.
                   <strong>Optional if First Degree is valid</strong> (will be
-                  auto-filled).
+                  auto-filled). <strong>Auto-set to "Exchange"</strong> if
+                  Student Status is "Exchange Student".
                 </p>
                 <div class="bg-white rounded p-2 text-sm">
                   <span class="text-gray-500">Valid options:</span>
@@ -239,6 +240,13 @@ const degreeShorthandMap = DEGREE_PROGRAMS.reduce((map, program) => {
                       • {{ school }}
                     </li>
                   </ul>
+                </div>
+                <div
+                  class="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-800"
+                >
+                  <strong>💡 Note:</strong> When Student Status is set to
+                  "Exchange Student", the School will automatically be set to
+                  "Exchange" if not already specified.
                 </div>
               </div>
 
@@ -299,6 +307,12 @@ const degreeShorthandMap = DEGREE_PROGRAMS.reduce((map, program) => {
                       >{{ status }}</code
                     >{{ index < STUDENT_STATUSES.length - 1 ? "," : "" }}
                   </span>
+                </div>
+                <div
+                  class="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-800"
+                >
+                  <strong>💡 Tip:</strong> Setting Student Status to "Exchange
+                  Student" will automatically set School to "Exchange".
                 </div>
               </div>
 

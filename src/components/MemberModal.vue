@@ -321,6 +321,16 @@ watch(
   },
 );
 
+// Watch for Student Status changes to auto-populate School for Exchange Students
+watch(
+  () => formData.value.studentStatus,
+  (newStatus) => {
+    if (newStatus === "Exchange Student") {
+      formData.value.school = "Exchange";
+    }
+  },
+);
+
 // Watch for First Degree changes to auto-populate School
 watch(
   () => formData.value.firstDegree,
@@ -2489,7 +2499,6 @@ const handleSave = async () => {
               </div>
             </div>
 
-            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               <!-- Scholarship Logic Display -->
               <div

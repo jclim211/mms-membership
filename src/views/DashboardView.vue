@@ -12,7 +12,7 @@ import {
   getSubsidyRateColor,
   getStudentStatusBadge,
 } from "../utils/helpers";
-import { STUDENT_STATUSES } from "../utils/constants";
+import { STUDENT_STATUSES, SCHOOL_SHORTHANDS } from "../utils/constants";
 import {
   LogOut,
   Search,
@@ -1331,8 +1331,11 @@ watch(
                 </td>
                 <td class="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                   <span
-                    class="text-xs sm:text-sm text-gray-600 max-w-[100px] sm:max-w-none truncate block"
-                    >{{ member.school }}</span
+                    class="text-xs sm:text-sm text-gray-600 font-medium"
+                    :title="member.school"
+                    >{{
+                      SCHOOL_SHORTHANDS[member.school] || member.school
+                    }}</span
                   >
                 </td>
                 <td class="px-2 sm:px-3 py-3 sm:py-4 whitespace-nowrap">
