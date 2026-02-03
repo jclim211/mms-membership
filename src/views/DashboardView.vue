@@ -1356,7 +1356,7 @@ watch(
                     <span
                       v-if="member.isExco"
                       class="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-purple-600 text-white rounded-full"
-                      title="Executive Committee - 95% ISM Subsidy"
+                      title="Exco"
                     >
                       E
                     </span>

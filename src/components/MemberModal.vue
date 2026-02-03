@@ -1449,9 +1449,6 @@ const handleSave = async () => {
                       <span class="text-sm font-medium text-gray-900"
                         >Exco Member</span
                       >
-                      <span class="text-xs text-gray-500 ml-auto"
-                        >(95% ISM subsidy)</span
-                      >
                     </label>
                   </div>
                 </div>
