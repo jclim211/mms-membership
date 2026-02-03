@@ -5,6 +5,7 @@ import DashboardView from "../views/DashboardView.vue";
 import AdminManagementView from "../views/AdminManagementView.vue";
 import HelpView from "../views/HelpView.vue";
 import EventsView from "../views/EventsView.vue";
+import AnalyticsView from "../views/AnalyticsView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,6 +41,12 @@ const router = createRouter({
     {
       path: "/events",
       component: EventsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/analytics",
+      name: "analytics",
+      component: AnalyticsView,
       meta: { requiresAuth: true },
     },
     {

@@ -35,6 +35,8 @@ import {
   Radio,
   Calendar,
   AlertTriangle,
+  BarChart3,
+  Menu,
 } from "lucide-vue-next";
 import MemberModal from "../components/MemberModal.vue";
 import BulkImportModal from "../components/BulkImportModal.vue";
@@ -77,6 +79,7 @@ const router = useRouter();
 const showMemberModal = ref(false);
 const showBulkImportModal = ref(false);
 const showBulkImportHelp = ref(false);
+const showMenu = ref(false);
 const editingMember = ref(null);
 const editingMemberScrollSection = ref(null);
 const confirmDelete = ref(null);
@@ -732,65 +735,102 @@ watch(
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <!-- Mobile Layout: Two rows -->
-        <div class="lg:hidden space-y-3">
-          <!-- Row 1: Logo, Title, and Email -->
+        <!-- Mobile Layout -->
+        <div class="lg:hidden">
           <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="flex items-center gap-3 min-w-0">
               <img
                 src="/logo.png"
                 alt="MMS Logo"
                 class="h-10 w-10 object-contain flex-shrink-0"
               />
-              <div class="min-w-0 flex-1">
-                <h1 class="text-base font-bold text-gray-900 truncate">MMS</h1>
-                <p class="text-xs text-gray-600">Admin Dashboard</p>
+              <div class="min-w-0">
+                <h1 class="text-base font-bold text-gray-900 truncate">
+                  MMS Dashboard
+                </h1>
+                <p class="text-xs text-gray-600 truncate">
+                  {{ authStore.user?.email }}
+                </p>
               </div>
             </div>
-            <div class="text-right flex-shrink-0">
-              <p
-                class="text-xs font-medium text-gray-700 truncate max-w-[120px]"
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <button
+                @click="router.push('/events')"
+                class="flex items-center justify-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
               >
-                {{ authStore.user?.email }}
-              </p>
-              <p class="text-[10px] text-gray-500">Admin</p>
+                <Calendar :size="18" />
+                <span>Events</span>
+              </button>
+              <div class="relative">
+                <button
+                  @click="showMenu = !showMenu"
+                  class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Menu :size="24" class="text-gray-700" />
+                </button>
+                <div
+                  v-if="showMenu"
+                  @click.self="showMenu = false"
+                  class="fixed inset-0 z-40"
+                >
+                  <div
+                    class="absolute right-4 top-16 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px] z-50"
+                  >
+                    <button
+                      @click="
+                        router.push('/analytics');
+                        showMenu = false;
+                      "
+                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <BarChart3 :size="18" class="text-blue-600" />
+                      <span class="text-sm font-medium text-gray-700"
+                        >Analytics</span
+                      >
+                    </button>
+                    <div class="border-t border-gray-200 my-2"></div>
+                    <button
+                      @click="
+                        router.push('/admin-management');
+                        showMenu = false;
+                      "
+                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <Shield :size="18" class="text-indigo-600" />
+                      <span class="text-sm font-medium text-gray-700"
+                        >Admin Management</span
+                      >
+                    </button>
+                    <button
+                      @click="
+                        router.push('/help');
+                        showMenu = false;
+                      "
+                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <HelpCircle :size="18" class="text-emerald" />
+                      <span class="text-sm font-medium text-gray-700"
+                        >Help</span
+                      >
+                    </button>
+                    <div class="border-t border-gray-200 my-2"></div>
+                    <button
+                      @click="handleLogout"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <LogOut :size="18" class="text-gray-600" />
+                      <span class="text-sm font-medium text-gray-700"
+                        >Logout</span
+                      >
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-
-          <!-- Row 2: Buttons spread across full width -->
-          <div class="grid grid-cols-4 gap-2">
-            <button
-              @click="router.push('/admin-management')"
-              class="flex items-center justify-center gap-1 px-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-xs"
-            >
-              <Shield :size="16" />
-              <span>Admin</span>
-            </button>
-            <button
-              @click="router.push('/events')"
-              class="flex items-center justify-center gap-1 px-2 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-xs"
-            >
-              <Calendar :size="16" />
-              <span>Events</span>
-            </button>
-            <button
-              @click="router.push('/help')"
-              class="flex items-center justify-center gap-1 px-2 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors text-xs"
-            >
-              <HelpCircle :size="16" />
-              <span>Help</span>
-            </button>
-            <button
-              @click="handleLogout"
-              class="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs"
-            >
-              <LogOut :size="16" />
-              <span>Logout</span>
-            </button>
           </div>
         </div>
 
-        <!-- Desktop Layout: Single row -->
+        <!-- Desktop Layout -->
         <div class="hidden lg:flex lg:justify-between lg:items-center">
           <div class="flex items-center gap-4">
             <img
@@ -802,47 +842,73 @@ watch(
               <h1 class="text-2xl font-bold text-gray-900">
                 MMS Membership Management System
               </h1>
-              <p class="text-sm text-gray-600 mt-1">Club Admin Dashboard</p>
+              <p class="text-sm text-gray-600 mt-1">
+                {{ authStore.user?.email }} • Administrator
+              </p>
             </div>
           </div>
           <div class="flex items-center gap-3">
-            <div class="text-right">
-              <p
-                class="text-sm font-medium text-gray-700 truncate max-w-[200px]"
-              >
-                {{ authStore.user?.email }}
-              </p>
-              <p class="text-xs text-gray-500">Administrator</p>
-            </div>
-            <div class="flex gap-2">
+            <button
+              @click="router.push('/events')"
+              class="flex items-center justify-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+            >
+              <Calendar :size="18" />
+              <span>Events</span>
+            </button>
+            <button
+              @click="router.push('/analytics')"
+              class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+            >
+              <BarChart3 :size="18" />
+              <span>Analytics</span>
+            </button>
+            <button
+              @click="router.push('/help')"
+              class="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+            >
+              <HelpCircle :size="18" />
+              <span>Help</span>
+            </button>
+            <div class="relative">
               <button
-                @click="router.push('/admin-management')"
-                class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm"
+                @click="showMenu = !showMenu"
+                class="p-2.5 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
+                title="More options"
               >
-                <Shield :size="18" />
-                <span>Admin Management</span>
+                <Menu :size="20" class="text-gray-700" />
               </button>
-              <button
-                @click="router.push('/events')"
-                class="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm"
+              <div
+                v-if="showMenu"
+                @click.self="showMenu = false"
+                class="fixed inset-0 z-40"
               >
-                <Calendar :size="18" />
-                <span>Events</span>
-              </button>
-              <button
-                @click="router.push('/help')"
-                class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald hover:bg-emerald/90 text-white rounded-lg transition-colors text-sm"
-              >
-                <HelpCircle :size="18" />
-                <span>Help</span>
-              </button>
-              <button
-                @click="handleLogout"
-                class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
-              >
-                <LogOut :size="18" />
-                <span>Logout</span>
-              </button>
+                <div
+                  class="absolute right-4 top-20 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[220px] z-50"
+                >
+                  <button
+                    @click="
+                      router.push('/admin-management');
+                      showMenu = false;
+                    "
+                    class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <Shield :size="18" class="text-indigo-600" />
+                    <span class="text-sm font-medium text-gray-700"
+                      >Admin Management</span
+                    >
+                  </button>
+                  <div class="border-t border-gray-200 my-2"></div>
+                  <button
+                    @click="handleLogout"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <LogOut :size="18" class="text-gray-600" />
+                    <span class="text-sm font-medium text-gray-700"
+                      >Logout</span
+                    >
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

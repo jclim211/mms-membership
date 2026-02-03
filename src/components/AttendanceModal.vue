@@ -332,33 +332,37 @@ const handleQuickAddStudent = async (studentData) => {
 
 <template>
   <div
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
   >
     <div
-      class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+      class="bg-white rounded-lg sm:rounded-xl shadow-xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col"
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0"
+        class="flex items-start sm:items-center justify-between px-3 sm:px-6 py-2 sm:py-4 border-b border-gray-200 flex-shrink-0"
       >
-        <div>
-          <h3 class="text-xl font-bold text-gray-900">Mark Attendance</h3>
-          <p class="text-sm text-gray-600 mt-1">
+        <div class="min-w-0 flex-1">
+          <h3 class="text-base sm:text-xl font-bold text-gray-900">
+            Mark Attendance
+          </h3>
+          <p class="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 truncate">
             {{ event.name }} ({{ event.type }})
           </p>
         </div>
         <button
           @click="handleClose"
-          class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+          class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0 ml-2"
         >
           <X :size="20" />
         </button>
       </div>
 
       <!-- Search and Stats -->
-      <div class="px-6 py-4 border-b border-gray-200 space-y-3 flex-shrink-0">
+      <div
+        class="px-3 sm:px-6 py-2 sm:py-4 border-b border-gray-200 space-y-2 sm:space-y-3 flex-shrink-0"
+      >
         <!-- Search and Quick Add -->
-        <div class="flex gap-2">
+        <div class="flex flex-col sm:flex-row gap-2">
           <div class="relative flex-1">
             <div
               class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
@@ -374,7 +378,7 @@ const handleQuickAddStudent = async (studentData) => {
           </div>
           <button
             @click="showQuickAddModal = true"
-            class="flex items-center gap-2 px-4 py-2 bg-emerald text-white rounded-lg hover:bg-emerald/90 transition-colors text-sm font-medium whitespace-nowrap"
+            class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald text-white rounded-lg hover:bg-emerald/90 transition-colors text-sm font-medium whitespace-nowrap"
           >
             <UserPlus :size="18" />
             <span>Add Student</span>
@@ -382,13 +386,13 @@ const handleQuickAddStudent = async (studentData) => {
         </div>
 
         <!-- Attendance Filter -->
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-600">Filter:</span>
-          <div class="flex gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span class="text-sm text-gray-600 flex-shrink-0">Filter:</span>
+          <div class="flex gap-2 overflow-x-auto pb-1">
             <button
               @click="attendanceFilter = 'all'"
               :class="[
-                'px-3 py-1 text-sm font-medium rounded-lg transition-colors',
+                'px-3 py-1 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0',
                 attendanceFilter === 'all'
                   ? 'bg-navy text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
@@ -399,7 +403,7 @@ const handleQuickAddStudent = async (studentData) => {
             <button
               @click="attendanceFilter = 'attended'"
               :class="[
-                'px-3 py-1 text-sm font-medium rounded-lg transition-colors',
+                'px-3 py-1 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0',
                 attendanceFilter === 'attended'
                   ? 'bg-green-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
@@ -410,7 +414,7 @@ const handleQuickAddStudent = async (studentData) => {
             <button
               @click="attendanceFilter = 'not-attended'"
               :class="[
-                'px-3 py-1 text-sm font-medium rounded-lg transition-colors',
+                'px-3 py-1 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0',
                 attendanceFilter === 'not-attended'
                   ? 'bg-red-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
@@ -422,7 +426,9 @@ const handleQuickAddStudent = async (studentData) => {
         </div>
 
         <!-- Stats -->
-        <div class="flex items-center justify-between text-sm">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm"
+        >
           <span class="text-gray-600">
             Showing {{ filteredMembers.length }} of
             {{ memberStore.totalMembers }} members
@@ -443,31 +449,36 @@ const handleQuickAddStudent = async (studentData) => {
       </div>
 
       <!-- Member List -->
-      <div class="flex-1 overflow-y-auto px-6 py-4">
-        <div class="space-y-2">
+      <div class="flex-1 overflow-y-auto px-3 sm:px-6 py-2 sm:py-4">
+        <div class="space-y-1.5 sm:space-y-2">
           <div
             v-for="member in filteredMembers"
             :key="member.id"
-            class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors gap-2 sm:gap-3"
           >
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-gray-900 truncate">
+              <p
+                class="font-medium text-gray-900 truncate text-sm sm:text-base"
+              >
                 {{ member.fullName }}
               </p>
-              <p class="text-sm text-gray-600">
+              <p class="text-xs sm:text-sm text-gray-600 truncate">
                 {{ member.campusId }} •
                 {{ member.schoolEmail?.split("@")[0] }} • {{ member.school }}
               </p>
             </div>
 
             <!-- ISM/ISS Attendance Checkbox -->
-            <div v-if="event.type !== 'NCS'" class="flex items-center gap-3">
+            <div
+              v-if="event.type !== 'NCS'"
+              class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3"
+            >
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   :checked="isAttended(member.id)"
                   @change="toggleAttendance(member.id)"
-                  class="w-5 h-5 text-navy border-gray-300 rounded focus:ring-navy cursor-pointer"
+                  class="w-5 h-5 text-navy border-gray-300 rounded focus:ring-navy cursor-pointer flex-shrink-0"
                 />
                 <span class="text-sm font-medium text-gray-700">Attended</span>
               </label>
@@ -475,7 +486,7 @@ const handleQuickAddStudent = async (studentData) => {
               <!-- Subsidy Dropdown for ISM Events -->
               <div
                 v-if="event.type === 'ISM' && isAttended(member.id)"
-                class="flex items-center gap-2"
+                class="flex items-center gap-2 flex-wrap"
               >
                 <span class="text-xs text-gray-600">Subsidy:</span>
                 <select
@@ -517,13 +528,16 @@ const handleQuickAddStudent = async (studentData) => {
             </div>
 
             <!-- NCS Session Checkboxes -->
-            <div v-else class="flex items-center gap-3">
+            <div
+              v-else
+              class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3"
+            >
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   :checked="isSession1(member.id)"
                   @change="toggleSession(member.id, 1)"
-                  class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer flex-shrink-0"
                 />
                 <span class="text-sm font-medium text-gray-700">Session 1</span>
               </label>
@@ -533,7 +547,7 @@ const handleQuickAddStudent = async (studentData) => {
                   type="checkbox"
                   :checked="isSession2(member.id)"
                   @change="toggleSession(member.id, 2)"
-                  class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
+                  class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer flex-shrink-0"
                 />
                 <span class="text-sm font-medium text-gray-700">Session 2</span>
               </label>
@@ -573,7 +587,7 @@ const handleQuickAddStudent = async (studentData) => {
 
       <!-- Footer -->
       <div
-        class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 flex-shrink-0"
+        class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex-shrink-0"
       >
         <button
           @click="handleClose"

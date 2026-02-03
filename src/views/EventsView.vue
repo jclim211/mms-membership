@@ -488,18 +488,22 @@ const handleBulkImportSave = async (attendance) => {
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        >
+          <div class="flex items-center gap-3 sm:gap-4">
             <button
               @click="router.push('/')"
-              class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              class="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               title="Back to Dashboard"
             >
               <ArrowLeft :size="24" />
             </button>
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900">Event Management</h1>
-              <p class="text-sm text-gray-600 mt-1">
+            <div class="min-w-0">
+              <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
+                Event Management
+              </h1>
+              <p class="text-xs sm:text-sm text-gray-600 mt-1">
                 Manage ISM, ISS, and NCS events and track attendance
               </p>
             </div>
@@ -517,7 +521,7 @@ const handleBulkImportSave = async (attendance) => {
               v-for="tab in ['ISM', 'ISS', 'NCS']"
               :key="tab"
               @click="activeTab = tab"
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors"
+              class="px-4 sm:px-6 py-3 sm:py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0"
               :class="
                 activeTab === tab
                   ? 'border-navy text-navy'
@@ -546,9 +550,9 @@ const handleBulkImportSave = async (attendance) => {
         </div>
 
         <!-- Tab Content -->
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
           <!-- Search and Filter Bar -->
-          <div class="mb-6 flex flex-col sm:flex-row gap-3">
+          <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3">
             <!-- Search Bar -->
             <div class="relative flex-1">
               <div
@@ -575,7 +579,7 @@ const handleBulkImportSave = async (attendance) => {
             <!-- Year Picker -->
             <select
               v-model="selectedYear"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm font-medium"
+              class="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy text-sm font-medium"
             >
               <option value="all">All Years</option>
               <option v-for="year in availableYears" :key="year" :value="year">
@@ -586,10 +590,11 @@ const handleBulkImportSave = async (attendance) => {
             <!-- Create Event Button -->
             <button
               @click="openCreateModal"
-              class="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors font-medium whitespace-nowrap"
+              class="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition-colors font-medium whitespace-nowrap text-sm"
             >
               <Plus :size="18" />
-              <span>Create {{ activeTab }} Event</span>
+              <span class="hidden sm:inline">Create {{ activeTab }} Event</span>
+              <span class="sm:hidden">Create</span>
             </button>
           </div>
 
@@ -598,15 +603,15 @@ const handleBulkImportSave = async (attendance) => {
             <div
               v-for="event in currentEvents"
               :key="event.id"
-              class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+              class="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors"
             >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <h3 class="text-lg font-semibold text-gray-900">
+              <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-base sm:text-lg font-semibold text-gray-900">
                     {{ event.name }}
                   </h3>
                   <div
-                    class="flex items-center gap-4 mt-2 text-sm text-gray-600"
+                    class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs sm:text-sm text-gray-600"
                   >
                     <div class="flex items-center gap-1">
                       <Calendar :size="16" />
@@ -628,20 +633,21 @@ const handleBulkImportSave = async (attendance) => {
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
                   <button
                     @click="openAttendanceModal(event)"
-                    class="px-4 py-2 bg-emerald text-white rounded-lg hover:bg-emerald/90 transition-colors text-sm font-medium"
+                    class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-emerald text-white rounded-lg hover:bg-emerald/90 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
                   >
                     Mark Attendance
                   </button>
                   <button
                     @click="openBulkImportModal(event)"
-                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2"
+                    class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm font-medium flex items-center justify-center gap-2 whitespace-nowrap"
                     title="Bulk Import from Excel"
                   >
                     <Upload :size="16" />
-                    <span>Bulk Import</span>
+                    <span class="hidden sm:inline">Bulk Import</span>
+                    <span class="sm:hidden">Import</span>
                   </button>
                   <button
                     @click="openEditModal(event)"
