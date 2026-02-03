@@ -15,7 +15,10 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
+  Calendar,
+  Plus,
 } from "lucide-vue-next";
+import AppHeader from "../components/AppHeader.vue";
 
 const router = useRouter();
 </script>
@@ -23,26 +26,11 @@ const router = useRouter();
 <template>
   <div class="min-h-screen bg-light-grey">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex items-center gap-4">
-          <button
-            @click="router.push('/dashboard')"
-            class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft :size="20" />
-          </button>
-          <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
-              Help & Documentation
-            </h1>
-            <p class="text-sm text-gray-600 mt-1">
-              Learn how to use the MMS Membership Management System
-            </p>
-          </div>
-        </div>
-      </div>
-    </header>
+    <AppHeader
+      page-title="Help & Documentation"
+      page-subtitle="Learn how to use the MMS Membership Management System"
+      :is-dashboard="false"
+    />
 
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Quick Start Guide -->

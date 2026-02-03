@@ -5,9 +5,7 @@ import { useAuthStore } from "../stores/authStore";
 import { useMemberStore } from "../stores/memberStore";
 import { useEventStore } from "../stores/eventStore";
 import {
-  ArrowLeft,
   UserPlus,
-  Shield,
   Trash2,
   CheckCircle,
   XCircle,
@@ -17,6 +15,7 @@ import {
   Database,
   FileJson,
 } from "lucide-vue-next";
+import AppHeader from "../components/AppHeader.vue";
 import {
   writeBatch,
   doc,
@@ -430,27 +429,11 @@ const downloadJSON = (data, filename) => {
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200">
-      <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div
-          class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-        >
-          <button
-            @click="router.push('/dashboard')"
-            class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeft :size="20" />
-            <span class="text-sm sm:text-base">Back to Dashboard</span>
-          </button>
-          <div class="flex items-center gap-2 sm:gap-3">
-            <Shield :size="20" class="sm:w-6 sm:h-6 text-indigo-600" />
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
-              Admin Management
-            </h1>
-          </div>
-        </div>
-      </div>
-    </header>
+    <AppHeader
+      page-title="Admin Management"
+      page-subtitle="Manage administrator access and permissions"
+      :is-dashboard="false"
+    />
 
     <!-- Main Content -->
     <main class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">

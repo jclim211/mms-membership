@@ -15,18 +15,13 @@ import {
 } from "chart.js";
 import { Pie, Bar } from "vue-chartjs";
 import {
-  LogOut,
   Users,
   CheckCircle,
-  Shield,
-  HelpCircle,
-  Calendar,
-  BarChart3,
   TrendingUp,
   Award,
   Filter,
-  Menu,
 } from "lucide-vue-next";
+import AppHeader from "../components/AppHeader.vue";
 
 // Register Chart.js components
 ChartJS.register(
@@ -45,16 +40,12 @@ const router = useRouter();
 // Filters for Admit Year Chart
 const admitYearMembershipFilter = ref([]);
 const admitYearStudentStatusFilter = ref([]);
-const showMenu = ref(false);
 
 onMounted(() => {
   memberStore.startRealtimeSync();
 });
 
-const handleLogout = async () => {
-  await authStore.signOut();
-  router.push("/login");
-};
+
 
 // Membership Type Pie Chart Data
 const membershipTypeData = computed(() => {
@@ -268,190 +259,11 @@ const trackDistributionOptions = {
 <template>
   <div class="min-h-screen bg-light-grey">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <!-- Mobile Layout -->
-        <div class="lg:hidden">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <img
-                src="/logo.png"
-                alt="MMS Logo"
-                class="h-10 w-10 object-contain flex-shrink-0"
-              />
-              <div class="min-w-0">
-                <h1 class="text-base font-bold text-gray-900 truncate">
-                  Analytics
-                </h1>
-                <p class="text-xs text-gray-600 truncate">
-                  {{ authStore.user?.email }}
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <button
-                @click="router.push('/events')"
-                class="flex items-center justify-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
-              >
-                <Calendar :size="18" />
-                <span>Events</span>
-              </button>
-              <div class="relative">
-                <button
-                  @click="showMenu = !showMenu"
-                  class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Menu :size="24" class="text-gray-700" />
-                </button>
-                <div
-                  v-if="showMenu"
-                  @click.self="showMenu = false"
-                  class="fixed inset-0 z-40"
-                >
-                  <div
-                    class="absolute right-4 top-16 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px] z-50"
-                  >
-                    <button
-                      @click="
-                        router.push('/dashboard');
-                        showMenu = false;
-                      "
-                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                    >
-                      <Users :size="18" class="text-navy" />
-                      <span class="text-sm font-medium text-gray-700"
-                        >Dashboard</span
-                      >
-                    </button>
-                    <div class="border-t border-gray-200 my-2"></div>
-                    <button
-                      @click="
-                        router.push('/admin-management');
-                        showMenu = false;
-                      "
-                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                    >
-                      <Shield :size="18" class="text-indigo-600" />
-                      <span class="text-sm font-medium text-gray-700"
-                        >Admin Management</span
-                      >
-                    </button>
-                    <button
-                      @click="
-                        router.push('/help');
-                        showMenu = false;
-                      "
-                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                    >
-                      <HelpCircle :size="18" class="text-emerald" />
-                      <span class="text-sm font-medium text-gray-700"
-                        >Help</span
-                      >
-                    </button>
-                    <div class="border-t border-gray-200 my-2"></div>
-                    <button
-                      @click="handleLogout"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                    >
-                      <LogOut :size="18" class="text-gray-600" />
-                      <span class="text-sm font-medium text-gray-700"
-                        >Logout</span
-                      >
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Desktop Layout -->
-        <div class="hidden lg:flex lg:justify-between lg:items-center">
-          <div class="flex items-center gap-4">
-            <img
-              src="/logo.png"
-              alt="MMS Logo"
-              class="h-12 w-12 object-contain"
-            />
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900">
-                MMS Analytics & Insights
-              </h1>
-              <p class="text-sm text-gray-600 mt-1">
-                {{ authStore.user?.email }} • Administrator
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <button
-              @click="router.push('/events')"
-              class="flex items-center justify-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
-            >
-              <Calendar :size="18" />
-              <span>Events</span>
-            </button>
-            <button
-              @click="router.push('/dashboard')"
-              class="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium border border-gray-300"
-            >
-              <Users :size="18" />
-              <span>Dashboard</span>
-            </button>
-            <div class="relative">
-              <button
-                @click="showMenu = !showMenu"
-                class="p-2.5 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
-                title="More options"
-              >
-                <Menu :size="20" class="text-gray-700" />
-              </button>
-              <div
-                v-if="showMenu"
-                @click.self="showMenu = false"
-                class="fixed inset-0 z-40"
-              >
-                <div
-                  class="absolute right-4 top-20 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[220px] z-50"
-                >
-                  <button
-                    @click="
-                      router.push('/admin-management');
-                      showMenu = false;
-                    "
-                    class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <Shield :size="18" class="text-indigo-600" />
-                    <span class="text-sm font-medium text-gray-700"
-                      >Admin Management</span
-                    >
-                  </button>
-                  <button
-                    @click="
-                      router.push('/help');
-                      showMenu = false;
-                    "
-                    class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <HelpCircle :size="18" class="text-emerald" />
-                    <span class="text-sm font-medium text-gray-700">Help</span>
-                  </button>
-                  <div class="border-t border-gray-200 my-2"></div>
-                  <button
-                    @click="handleLogout"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <LogOut :size="18" class="text-gray-600" />
-                    <span class="text-sm font-medium text-gray-700"
-                      >Logout</span
-                    >
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
+    <AppHeader
+      page-title="Analytics & Insights"
+      page-subtitle="Visualize membership statistics and trends"
+      :is-dashboard="false"
+    />
 
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Stats Row (Reused from Dashboard) -->

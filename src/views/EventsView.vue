@@ -5,7 +5,6 @@ import { useAuthStore } from "../stores/authStore";
 import { useEventStore } from "../stores/eventStore";
 import { useMemberStore } from "../stores/memberStore";
 import {
-  ArrowLeft,
   Plus,
   Calendar,
   Users,
@@ -19,6 +18,7 @@ import {
 import EventModal from "../components/EventModal.vue";
 import AttendanceModal from "../components/AttendanceModal.vue";
 import BulkAttendanceImportModal from "../components/BulkAttendanceImportModal.vue";
+import AppHeader from "../components/AppHeader.vue";
 import { calculateNextSubsidyRate } from "../utils/helpers";
 
 const router = useRouter();
@@ -486,31 +486,11 @@ const handleBulkImportSave = async (attendance) => {
 <template>
   <div class="min-h-screen bg-light-grey">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div
-          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-        >
-          <div class="flex items-center gap-3 sm:gap-4">
-            <button
-              @click="router.push('/')"
-              class="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-              title="Back to Dashboard"
-            >
-              <ArrowLeft :size="24" />
-            </button>
-            <div class="min-w-0">
-              <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
-                Event Management
-              </h1>
-              <p class="text-xs sm:text-sm text-gray-600 mt-1">
-                Manage ISM, ISS, and NCS events and track attendance
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
+    <AppHeader
+      page-title="Event Management"
+      page-subtitle="Manage ISM, ISS, and NCS events and track attendance"
+      :is-dashboard="false"
+    />
 
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Tabs -->
