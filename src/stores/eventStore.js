@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useMemberStore } from "./memberStore";
 import { eventService } from "../services/eventService";
+import { registerListener } from "../utils/visibilityManager";
 
 export const useEventStore = defineStore("events", () => {
   const events = ref([]);
@@ -9,7 +10,10 @@ export const useEventStore = defineStore("events", () => {
   const error = ref(null);
   const realtimeEnabled = ref(true);
   const lastSyncTime = ref(null);
+  const lastFetchTime = ref(null); // Track last fetch for throttling
   let unsubscribe = null;
+  let isListenerActive = false; // Guard against multiple listeners
+  let unsubscribeVisibility = null; // For visibility manager
 
   // Helper: Check for duplicate event (Same Name AND Same Date)
   const checkForDuplicate = (name, date, excludeEventId = null) => {
@@ -59,8 +63,30 @@ export const useEventStore = defineStore("events", () => {
     events.value.filter((event) => event.type === "NCS"),
   );
 
+  // Register with visibility manager
+  const setupVisibilityManagement = () => {
+    if (unsubscribeVisibility) return; // Already registered
+
+    unsubscribeVisibility = registerListener((action) => {
+      if (action === "disconnect") {
+        console.log("[EventStore] Pausing listener due to inactivity");
+        stopRealtimeSync();
+      } else if (action === "reconnect") {
+        console.log("[EventStore] Resuming listener after activity");
+        startRealtimeSync();
+      }
+    });
+  };
+
   // Actions
   const startRealtimeSync = () => {
+    // Guard: Don't start if listener is already active
+    if (isListenerActive && unsubscribe) {
+      console.log("[EventStore] Listener already active, skipping start");
+      return;
+    }
+
+    // Clean up any existing subscription
     if (unsubscribe) {
       unsubscribe();
     }
@@ -78,7 +104,9 @@ export const useEventStore = defineStore("events", () => {
       loading.value = false;
     });
 
+    isListenerActive = true;
     realtimeEnabled.value = true;
+    setupVisibilityManagement();
   };
 
   const stopRealtimeSync = () => {
@@ -86,6 +114,7 @@ export const useEventStore = defineStore("events", () => {
       unsubscribe();
       unsubscribe = null;
     }
+    isListenerActive = false;
     realtimeEnabled.value = false;
   };
 
@@ -97,7 +126,21 @@ export const useEventStore = defineStore("events", () => {
     }
   };
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (force = false) => {
+    // Throttle: Don't fetch if recently fetched (within 2 minutes)
+    const now = Date.now();
+    const FETCH_COOLDOWN = 2 * 60 * 1000; // 2 minutes
+
+    if (
+      !force &&
+      lastFetchTime.value &&
+      now - lastFetchTime.value < FETCH_COOLDOWN
+    ) {
+      console.log("[EventStore] Fetch skipped - recently fetched");
+      return; // Skip fetch, use cached data
+    }
+
+    console.log(`[EventStore] Fetching events... ${force ? "(forced)" : ""}`);
     loading.value = true;
     error.value = null;
     const result = await eventService.getAllEvents();
@@ -106,6 +149,7 @@ export const useEventStore = defineStore("events", () => {
     } else {
       events.value = result.events;
       lastSyncTime.value = new Date();
+      lastFetchTime.value = now;
     }
     loading.value = false;
   };

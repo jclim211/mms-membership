@@ -326,8 +326,8 @@ const handleImport = async () => {
 
     step.value = 4; // Move to results
 
-    // Refresh member list
-    await memberStore.fetchMembers();
+    // Refresh member list (force = true to bypass throttling after import)
+    await memberStore.fetchMembers(true);
   } catch (error) {
     alert("Error importing members: " + error.message);
   } finally {

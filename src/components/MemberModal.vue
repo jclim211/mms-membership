@@ -19,6 +19,7 @@ import {
   ShieldOff,
   Link2,
   Unlink,
+  ChevronDown,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -125,13 +126,24 @@ const deleteConfirmation = ref({
 // Track original membership type to detect transitions
 const originalMembershipType = ref(props.member?.membershipType || null);
 
-// Scroll to section if specified
-onMounted(async () => {
-  // Ensure events are loaded for dropdown population
+// Track if events have been loaded (for lazy loading)
+const eventsLoadedForModal = ref(false);
+const isLoadingEvents = ref(false);
+
+// Lazy load events only when user opens add event section
+const ensureEventsLoaded = async () => {
+  if (eventsLoadedForModal.value || isLoadingEvents.value) return;
+
+  isLoadingEvents.value = true;
   if (eventStore.events.length === 0) {
     await eventStore.fetchEvents();
   }
+  eventsLoadedForModal.value = true;
+  isLoadingEvents.value = false;
+};
 
+// Scroll to section if specified
+onMounted(async () => {
   if (props.scrollSection) {
     nextTick(() => {
       let targetRef = null;
@@ -267,6 +279,27 @@ const nextSubsidyRate = computed(() => {
 // Check if both NCS sessions are selected
 const isBothNCSSessionsSelected = computed(() => {
   return newNCSEvent.value.session1 && newNCSEvent.value.session2;
+});
+
+// Lazy load events when user opens add ISM section
+watch(showAddISM, async (newVal) => {
+  if (newVal) {
+    await ensureEventsLoaded();
+  }
+});
+
+// Lazy load events when user opens add NCS section
+watch(showAddNCS, async (newVal) => {
+  if (newVal) {
+    await ensureEventsLoaded();
+  }
+});
+
+// Lazy load events when user opens add ISS section
+watch(showAddISS, async (newVal) => {
+  if (newVal) {
+    await ensureEventsLoaded();
+  }
 });
 
 // Toggle both NCS sessions
@@ -541,6 +574,61 @@ watch(
   },
 );
 
+// Trigger datalist dropdown for iOS compatibility
+// iOS Safari doesn't support showPicker() for datalist, so we trigger it by adding/removing a space
+const triggerISMDropdown = (event) => {
+  // Find the input element - it's a sibling in the same parent div
+  const button = event.target.closest("button");
+  const parent = button?.parentElement;
+  const input = parent?.querySelector('input[list="ism-searchable-events"]');
+
+  if (!newISMEvent.value.selectedEventId && input) {
+    input.focus();
+    // Add a space to trigger datalist, then remove it after a brief delay
+    const originalValue = input.value;
+    input.value = originalValue + " ";
+    setTimeout(() => {
+      if (input.value === originalValue + " ") {
+        input.value = originalValue;
+      }
+    }, 100);
+  }
+};
+
+const triggerNCSDropdown = (event) => {
+  const button = event.target.closest("button");
+  const parent = button?.parentElement;
+  const input = parent?.querySelector('input[list="ncs-searchable-events"]');
+
+  if (!newNCSEvent.value.selectedEventId && input) {
+    input.focus();
+    const originalValue = input.value;
+    input.value = originalValue + " ";
+    setTimeout(() => {
+      if (input.value === originalValue + " ") {
+        input.value = originalValue;
+      }
+    }, 100);
+  }
+};
+
+const triggerISSDropdown = (event) => {
+  const button = event.target.closest("button");
+  const parent = button?.parentElement;
+  const input = parent?.querySelector('input[list="iss-searchable-events"]');
+
+  if (!newISSEvent.value.selectedEventId && input) {
+    input.focus();
+    const originalValue = input.value;
+    input.value = originalValue + " ";
+    setTimeout(() => {
+      if (input.value === originalValue + " ") {
+        input.value = originalValue;
+      }
+    }, 100);
+  }
+};
+
 // Handle ISM event selection from dropdown
 const handleISMEventSelect = (eventId) => {
   if (eventId === "CLEAR") {
@@ -562,10 +650,13 @@ const handleISMEventSelect = (eventId) => {
 };
 
 // Add ISM attendance
-const addISMAttendance = () => {
+const addISMAttendance = async () => {
   if (!newISMEvent.value.eventName) {
     return;
   }
+
+  // Ensure events are loaded for eventId mapping
+  await ensureEventsLoaded();
 
   // Calculate the subsidy for this event based on current next subsidy rate
   const subsidyToUse = nextSubsidyRate.value;
@@ -698,10 +789,13 @@ const handleNCSEventSelect = (eventId) => {
   }
 };
 
-const addNCSEvent = () => {
+const addNCSEvent = async () => {
   if (!newNCSEvent.value.eventName) {
     return;
   }
+
+  // Ensure events are loaded for eventId mapping
+  await ensureEventsLoaded();
 
   const eventDate = newNCSEvent.value.date
     ? new Date(newNCSEvent.value.date).toISOString()
@@ -823,10 +917,13 @@ const handleISSEventSelect = (eventId) => {
 };
 
 // Add ISS event
-const addISSEvent = () => {
+const addISSEvent = async () => {
   if (!newISSEvent.value.eventName) {
     return;
   }
+
+  // Ensure events are loaded for eventId mapping
+  await ensureEventsLoaded();
 
   const eventDate = newISSEvent.value.date
     ? new Date(newISSEvent.value.date).toISOString()
@@ -1076,9 +1173,7 @@ const handleSave = async () => {
         removedISM.length > 0
       ) {
         // Ensure events are loaded
-        if (eventStore.events.length === 0) {
-          await eventStore.fetchEvents();
-        }
+        await ensureEventsLoaded();
 
         // Process NCS removals
         for (const removed of removedNCS) {
@@ -1166,9 +1261,9 @@ const handleSave = async () => {
           );
           if (event) {
             await eventStore.addAttendee(event.id, props.member.id, {
-              attended: true,
-              session1: true,
-              session2: true,
+              attended: added.session1 || added.session2,
+              session1: added.session1,
+              session2: added.session2,
             });
           }
         }
@@ -1201,6 +1296,7 @@ const handleSave = async () => {
           if (event) {
             await eventStore.addAttendee(event.id, props.member.id, {
               attended: true,
+              subsidyOverride: added.subsidyUsed,
             });
           }
         }
@@ -1622,7 +1718,7 @@ const handleSave = async () => {
               <input
                 v-model="formData.ordinaryADeclarationDate"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                class="w-full max-w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
               />
 
               <p class="mt-2 text-xs text-blue-800">
@@ -1857,8 +1953,10 @@ const handleSave = async () => {
                       :disabled="!!newISMEvent.selectedEventId"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                       :class="{
-                        'bg-gray-100 cursor-not-allowed pr-16':
+                        'bg-gray-100 cursor-not-allowed':
                           !!newISMEvent.selectedEventId,
+                        'pr-20': !newISMEvent.selectedEventId,
+                        'pr-16': !!newISMEvent.selectedEventId,
                       }"
                     />
                     <datalist id="ism-searchable-events">
@@ -1868,6 +1966,17 @@ const handleSave = async () => {
                         :value="`[${formatDateOnly(event.date)}] ${event.name}`"
                       />
                     </datalist>
+                    <!-- Dropdown trigger button for mobile -->
+                    <button
+                      v-if="!newISMEvent.selectedEventId"
+                      type="button"
+                      @click="triggerISMDropdown"
+                      class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                      title="Show all events"
+                    >
+                      <ChevronDown :size="16" />
+                    </button>
+                    <!-- Clear button -->
                     <button
                       v-if="newISMEvent.selectedEventId"
                       type="button"
@@ -1892,7 +2001,7 @@ const handleSave = async () => {
                     v-model="newISMEvent.date"
                     type="date"
                     :disabled="!!newISMEvent.selectedEventId"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    class="w-full max-w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                     :class="{
                       'bg-gray-100 cursor-not-allowed':
                         !!newISMEvent.selectedEventId,
@@ -2210,8 +2319,10 @@ const handleSave = async () => {
                         :disabled="!!newNCSEvent.selectedEventId"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                         :class="{
-                          'bg-gray-100 cursor-not-allowed pr-16':
+                          'bg-gray-100 cursor-not-allowed':
                             !!newNCSEvent.selectedEventId,
+                          'pr-20': !newNCSEvent.selectedEventId,
+                          'pr-16': !!newNCSEvent.selectedEventId,
                         }"
                       />
                       <datalist id="ncs-searchable-events">
@@ -2221,6 +2332,17 @@ const handleSave = async () => {
                           :value="`[${formatDateOnly(event.date)}] ${event.name}`"
                         />
                       </datalist>
+                      <!-- Dropdown trigger button for mobile -->
+                      <button
+                        v-if="!newNCSEvent.selectedEventId"
+                        type="button"
+                        @click="triggerNCSDropdown"
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                        title="Show all events"
+                      >
+                        <ChevronDown :size="16" />
+                      </button>
+                      <!-- Clear button -->
                       <button
                         v-if="newNCSEvent.selectedEventId"
                         type="button"
@@ -2288,7 +2410,7 @@ const handleSave = async () => {
                       v-model="newNCSEvent.date"
                       type="date"
                       :disabled="!!newNCSEvent.selectedEventId"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                      class="w-full max-w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                       :class="{
                         'bg-gray-100 cursor-not-allowed':
                           !!newNCSEvent.selectedEventId,
@@ -2427,8 +2549,10 @@ const handleSave = async () => {
                         :disabled="!!newISSEvent.selectedEventId"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                         :class="{
-                          'bg-gray-100 cursor-not-allowed pr-16':
+                          'bg-gray-100 cursor-not-allowed':
                             !!newISSEvent.selectedEventId,
+                          'pr-20': !newISSEvent.selectedEventId,
+                          'pr-16': !!newISSEvent.selectedEventId,
                         }"
                       />
                       <datalist id="iss-searchable-events">
@@ -2438,6 +2562,17 @@ const handleSave = async () => {
                           :value="`[${formatDateOnly(event.date)}] ${event.name}`"
                         />
                       </datalist>
+                      <!-- Dropdown trigger button for mobile -->
+                      <button
+                        v-if="!newISSEvent.selectedEventId"
+                        type="button"
+                        @click="triggerISSDropdown"
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                        title="Show all events"
+                      >
+                        <ChevronDown :size="16" />
+                      </button>
+                      <!-- Clear button -->
                       <button
                         v-if="newISSEvent.selectedEventId"
                         type="button"
@@ -2462,7 +2597,7 @@ const handleSave = async () => {
                       v-model="newISSEvent.date"
                       type="date"
                       :disabled="!!newISSEvent.selectedEventId"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                      class="w-full max-w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
                       :class="{
                         'bg-gray-100 cursor-not-allowed':
                           !!newISSEvent.selectedEventId,

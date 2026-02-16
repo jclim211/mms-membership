@@ -150,12 +150,12 @@ const exportSelectedData = async () => {
   exportSuccess.value = null;
 
   try {
-    // Ensure data is loaded
+    // Ensure data is loaded (force = true to bypass throttling for user-initiated export)
     if (exportCollections.value.members && memberStore.members.length === 0) {
-      await memberStore.fetchMembers();
+      await memberStore.fetchMembers(true);
     }
     if (exportCollections.value.events && eventStore.events.length === 0) {
-      await eventStore.fetchEvents();
+      await eventStore.fetchEvents(true);
     }
 
     const timestamp = new Date().toISOString().split("T")[0];

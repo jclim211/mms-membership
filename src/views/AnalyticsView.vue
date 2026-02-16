@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useMemberStore } from "../stores/memberStore";
 import { useAuthStore } from "../stores/authStore";
@@ -14,13 +14,7 @@ import {
   LinearScale,
 } from "chart.js";
 import { Pie, Bar } from "vue-chartjs";
-import {
-  Users,
-  CheckCircle,
-  TrendingUp,
-  Award,
-  Filter,
-} from "lucide-vue-next";
+import { Users, CheckCircle, TrendingUp, Award, Filter } from "lucide-vue-next";
 import AppHeader from "../components/AppHeader.vue";
 
 // Register Chart.js components
@@ -45,7 +39,9 @@ onMounted(() => {
   memberStore.startRealtimeSync();
 });
 
-
+onUnmounted(() => {
+  memberStore.stopRealtimeSync();
+});
 
 // Membership Type Pie Chart Data
 const membershipTypeData = computed(() => {

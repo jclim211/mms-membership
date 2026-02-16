@@ -9,7 +9,7 @@ import {
   AlertTriangle,
 } from "lucide-vue-next";
 import { useMemberStore } from "../stores/memberStore";
-import { calculateNextSubsidyRate } from "../utils/helpers";
+import { calculateNextSubsidyRate, normalizeCampusId } from "../utils/helpers";
 import * as XLSX from "xlsx";
 
 const props = defineProps({
@@ -193,7 +193,7 @@ const downloadTemplate = () => {
       ...(props.event.type === "NCS"
         ? { "Session 1": "1", "Session 2": "1" }
         : props.event.type === "ISM"
-          ? { Attended: "1", "Subsidy %": "90" } // ISM with subsidy
+          ? { "Subsidy %": "90" } // ISM with subsidy only
           : { Attended: "1" }), // ISS
     },
   ];
@@ -251,7 +251,6 @@ const downloadExistingData = () => {
           Email: member.schoolEmail || "",
           Name: member.fullName || "",
           "Student ID": member.campusId || "",
-          Attended: "1",
           "Subsidy %": ismRecord?.subsidyUsed || 0,
         });
       } else {
@@ -605,6 +604,11 @@ const toggleAllNewStudents = () => {
                 <li v-if="event.type === 'NCS'">
                   • <strong>Session 2</strong>: 1 (Attended) / 0 (Not Attended)
                   or TRUE/FALSE
+                </li>
+                <li v-else-if="event.type === 'ISM'">
+                  • <strong>Subsidy %</strong>: Subsidy percentage (0-100)
+                  (Optional - if omitted, auto-calculated based on membership
+                  type)
                 </li>
                 <li v-else>
                   • <strong>Attended</strong>: 1 (Attended) / 0 (Not Attended)

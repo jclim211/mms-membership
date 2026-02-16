@@ -4,6 +4,7 @@ import { memberService } from "../services/memberService";
 import { useEventStore } from "./eventStore";
 import { writeBatch, doc } from "firebase/firestore";
 import { db } from "../services/firebase";
+import { registerListener } from "../utils/visibilityManager";
 
 export const useMemberStore = defineStore("members", () => {
   const members = ref([]);
@@ -20,7 +21,10 @@ export const useMemberStore = defineStore("members", () => {
   const incompleteFilter = ref(["complete"]); // Default to showing only complete profiles // Default to showing only complete profiles
   const realtimeEnabled = ref(true); // Toggle for real-time sync
   const lastSyncTime = ref(null); // Track last sync time
+  const lastFetchTime = ref(null); // Track last fetch for throttling
   let unsubscribe = null; // Store the unsubscribe function
+  let isListenerActive = false; // Guard against multiple listeners
+  let unsubscribeVisibility = null; // For visibility manager
 
   // Helper: Check if an NCS event counts based on declaration date and session completion
   const isNCSEventValid = (member, event) => {
@@ -235,8 +239,29 @@ export const useMemberStore = defineStore("members", () => {
       ).length,
   );
 
+  // Register with visibility manager
+  const setupVisibilityManagement = () => {
+    if (unsubscribeVisibility) return; // Already registered
+
+    unsubscribeVisibility = registerListener((action) => {
+      if (action === "disconnect") {
+        console.log("[MemberStore] Pausing listener due to inactivity");
+        stopRealtimeSync();
+      } else if (action === "reconnect") {
+        console.log("[MemberStore] Resuming listener after activity");
+        startRealtimeSync();
+      }
+    });
+  };
+
   // Actions
   const startRealtimeSync = () => {
+    // Guard: Don't start if listener is already active
+    if (isListenerActive && unsubscribe) {
+      console.log("[MemberStore] Listener already active, skipping start");
+      return;
+    }
+
     // Stop existing subscription if any
     if (unsubscribe) {
       unsubscribe();
@@ -256,7 +281,9 @@ export const useMemberStore = defineStore("members", () => {
       loading.value = false;
     });
 
+    isListenerActive = true;
     realtimeEnabled.value = true;
+    setupVisibilityManagement();
   };
 
   const stopRealtimeSync = () => {
@@ -264,6 +291,7 @@ export const useMemberStore = defineStore("members", () => {
       unsubscribe();
       unsubscribe = null;
     }
+    isListenerActive = false;
     realtimeEnabled.value = false;
   };
 
@@ -276,7 +304,21 @@ export const useMemberStore = defineStore("members", () => {
   };
 
   // Manual fetch (for when real-time is disabled)
-  const fetchMembers = async () => {
+  const fetchMembers = async (force = false) => {
+    // Throttle: Don't fetch if recently fetched (within 2 minutes)
+    const now = Date.now();
+    const FETCH_COOLDOWN = 2 * 60 * 1000; // 2 minutes
+
+    if (
+      !force &&
+      lastFetchTime.value &&
+      now - lastFetchTime.value < FETCH_COOLDOWN
+    ) {
+      console.log("[MemberStore] Fetch skipped - recently fetched");
+      return; // Skip fetch, use cached data
+    }
+
+    console.log(`[MemberStore] Fetching members... ${force ? "(forced)" : ""}`);
     loading.value = true;
     error.value = null;
     const result = await memberService.getAllMembers();
@@ -285,6 +327,7 @@ export const useMemberStore = defineStore("members", () => {
     } else {
       members.value = result.members;
       lastSyncTime.value = new Date();
+      lastFetchTime.value = now;
     }
     loading.value = false;
   };
