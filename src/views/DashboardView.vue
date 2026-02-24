@@ -815,83 +815,44 @@ watch(
         </div>
       </div>
 
-      <!-- Last Backup Indicator -->
-      <div
-        v-if="lastBackup"
-        class="flex items-center gap-2 mb-3 text-xs text-gray-500"
-      >
-        <DatabaseBackup :size="13" class="text-gray-400 flex-shrink-0" />
-        <span>
-          Last automated backup:
-          <span class="font-medium text-gray-700">
-            {{ formatBackupTime(lastBackup.timestamp) }}
-          </span>
-          &mdash;
-          <span class="text-gray-500">
-            {{ lastBackup.collections?.members ?? "?" }} members,
-            {{ lastBackup.collections?.events ?? "?" }} events
-          </span>
-        </span>
-      </div>
-
-      <!-- Real-Time Sync Status Banner -->
-      <div
-        v-if="memberStore.realtimeEnabled"
-        class="bg-emerald-50 border-l-4 border-emerald-400 rounded-lg p-4 mb-4 shadow-sm"
-      >
-        <div class="flex items-start gap-2 sm:gap-3">
-          <div class="relative flex-shrink-0 mt-0.5">
-            <Radio :size="18" class="text-emerald-600" />
+      <!-- Real-Time Sync Status (compact pill) -->
+      <div class="flex items-center gap-2 mb-3">
+        <div
+          v-if="memberStore.realtimeEnabled"
+          class="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1"
+        >
+          <span class="relative flex h-1.5 w-1.5">
             <span
-              class="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-ping"
+              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
             ></span>
             <span
-              class="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full"
+              class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"
             ></span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs sm:text-sm font-medium text-emerald-800">
-              🔄 Real-Time Sync Active
-            </p>
-            <p class="text-xs sm:text-sm text-emerald-700 mt-1">
-              Data auto-refreshes when changes are made.
-              <span
-                v-if="memberStore.lastSyncTime"
-                class="block sm:inline text-[10px] sm:text-xs mt-1 sm:mt-0"
-              >
-                Last synced: {{ formatDate(memberStore.lastSyncTime) }}
-              </span>
-            </p>
-          </div>
+          </span>
+          <span class="font-medium">Real-time sync on</span>
+          <span v-if="memberStore.lastSyncTime" class="text-emerald-600">
+            · synced {{ formatDate(memberStore.lastSyncTime) }}
+          </span>
           <button
             @click="memberStore.toggleRealtimeSync"
-            class="flex-shrink-0 text-xs px-2 sm:px-3 py-1 bg-white hover:bg-gray-50 text-emerald-700 border border-emerald-300 font-medium rounded transition-colors whitespace-nowrap shadow-sm"
+            class="ml-1 text-emerald-500 hover:text-emerald-700 transition-colors"
+            title="Disable real-time sync"
           >
-            Disable
+            <X :size="12" />
           </button>
         </div>
-      </div>
-
-      <!-- Manual Mode Banner -->
-      <div
-        v-else
-        class="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4 mb-4 shadow-sm"
-      >
-        <div class="flex items-start gap-2 sm:gap-3">
-          <Radio :size="18" class="text-gray-500 flex-shrink-0 mt-0.5" />
-          <div class="flex-1 min-w-0">
-            <p class="text-xs sm:text-sm font-medium text-gray-800">
-              Manual Refresh Mode
-            </p>
-            <p class="text-xs sm:text-sm text-gray-600 mt-1">
-              Real-time sync is disabled. Refresh manually to see updates.
-            </p>
-          </div>
+        <div
+          v-else
+          class="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-3 py-1"
+        >
+          <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+          <span class="font-medium">Real-time sync off</span>
           <button
             @click="memberStore.toggleRealtimeSync"
-            class="flex-shrink-0 text-xs px-2 sm:px-3 py-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium rounded transition-colors whitespace-nowrap shadow-sm"
+            class="ml-1 text-gray-400 hover:text-gray-600 transition-colors"
+            title="Enable real-time sync"
           >
-            Enable
+            <Radio :size="12" />
           </button>
         </div>
       </div>
@@ -903,7 +864,27 @@ watch(
         <div class="flex items-start gap-3">
           <AlertCircle :size="20" class="text-amber-600 flex-shrink-0 mt-0.5" />
           <div class="flex-1">
-            <p class="text-sm font-medium text-amber-800">💾 Backup Reminder</p>
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <p class="text-sm font-medium text-amber-800">
+                💾 Backup Reminder
+              </p>
+              <span
+                v-if="lastBackup"
+                class="flex items-center gap-1.5 text-xs text-amber-700"
+              >
+                <DatabaseBackup :size="12" class="flex-shrink-0" />
+                Last automated backup:
+                <span class="font-semibold">{{
+                  formatBackupTime(lastBackup.timestamp)
+                }}</span>
+                &mdash;
+                {{ lastBackup.collections?.members ?? "?" }} members,
+                {{ lastBackup.collections?.events ?? "?" }} events
+              </span>
+              <span v-else class="text-xs text-amber-600 italic"
+                >No automated backup recorded yet</span
+              >
+            </div>
             <p class="text-sm text-amber-700 mt-1">
               Always backup your data frequently by clicking
               <span class="font-semibold">Export All/Filtered</span>
