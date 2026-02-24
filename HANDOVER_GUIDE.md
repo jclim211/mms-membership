@@ -122,14 +122,31 @@ Instead of manually editing each member, you can use the **Events Page**:
 
 ---
 
-## 4. Data Backup & Restore ✨ **NEW in v2.1.0**
+## 4. Data Backup & Restore
 
-### Exporting Data
+### Automated Daily Backup ✨ NEW
+
+The system automatically backs up your data every day at **2 AM SGT** using GitHub Actions.
+
+- Backups are saved to a separate private GitHub repository (`mms-backup`)
+- Each backup creates a dated folder (e.g., `backups/2026-02-24/`) containing:
+  - `members.json` — full member data
+  - `events.json` — all events
+  - `backup_YYYY-MM-DD.xlsx` — Excel workbook with Members & Events sheets
+  - `manifest.json` — summary of record counts
+- The **Dashboard** shows the date/time and record counts of the last backup in the Backup Reminder card
+- You can also trigger a backup manually: go to GitHub → your codebase repo → **Actions** → **Firestore Backup** → **Run workflow**
+
+> ✅ **No action needed for daily backups** — they run automatically. Check the Dashboard to confirm they are happening.
+
+### Manual Export (In-App)
 
 1. Go to **Admin Management** page.
 2. Scroll to "Export Data" section.
 3. **Select collections**: Check/uncheck Members, Events, Admins.
 4. Click **Export Selected** to download a single JSON backup file.
+
+On the **Dashboard**, clicking **Export All/Filtered** downloads an Excel file of members.
 
 ### Importing Data (Restore)
 
@@ -152,16 +169,119 @@ Instead of manually editing each member, you can use the **Events Page**:
 
 All data is stored in **Google Firebase**, a secure cloud database.
 
-- **Safe**: It's backed up by Google.
-- **Exportable**: You can click **Export Selected** on the Admin Management page to download a JSON backup.
-- **Restorable**: You can import JSON backups to restore data.
+- **Safe**: Backed up by Google and also by the daily automated GitHub backup.
+- **Exportable**: Click **Export Selected** on Admin Management to download a JSON backup.
+- **Restorable**: Import JSON backups to restore data.
 - **Secure**: Only logged-in admins can see or change data.
 
-> ⚠️ **Important**: Make it a habit to export your data once a week and save the file on your computer. This is your ultimate backup.
+> ⚠️ **Important**: Even though backups are automated, it's good practice to also manually export data before making big changes.
 
 ---
 
-## 6. If something breaks...
+## 6. 🔑 Transferring Ownership to a New Admin/Owner
+
+This section is for when you are **handing the entire project over** to the next person (e.g., next year's Exco).
+
+---
+
+### What accounts / services are involved?
+
+| Service                               | What it holds                             | Who needs access |
+| ------------------------------------- | ----------------------------------------- | ---------------- |
+| **GitHub** (codebase repo)            | All source code, GitHub Actions workflows | New owner        |
+| **GitHub** (backup repo `mms-backup`) | Automated daily backups                   | New owner        |
+| **Firebase Console**                  | Live database, hosting, authentication    | New owner        |
+| **Google Account**                    | Used to sign in to Firebase               | New owner        |
+
+---
+
+### Step 1 — Transfer GitHub repository ownership
+
+1. Ask the current owner to go to: **GitHub → `mms-membership` repo → Settings → General → Danger Zone → Transfer ownership**
+2. Enter the new owner's GitHub username.
+3. Repeat for the **`mms-backup`** repo.
+
+> Alternatively, the new owner can be added as an **admin collaborator** instead of full ownership transfer (safer if multiple people share access).
+
+---
+
+### Step 2 — Add new owner to Firebase project
+
+1. Go to the **[Firebase Console](https://console.firebase.google.com)**.
+2. Select the **mms-membership** project.
+3. Click ⚙️ **Project Settings** → **Users and permissions**.
+4. Click **Add member**, enter the new owner's Google email, set role to **Owner**.
+5. They will receive an invitation email — they must accept it.
+
+Once accepted, they can manage the database, deploy rules, and view hosting.
+
+---
+
+### Step 3 — Regenerate the Firebase Service Account Key (automated backup)
+
+The daily backup requires a **Firebase Service Account Key** stored as a GitHub Actions secret. You must regenerate this for the new owner's setup.
+
+1. Go to **Firebase Console → Project Settings → Service accounts**.
+2. Click **Generate new private key** → **Generate Key**.
+3. Save the downloaded `.json` file securely — **do not share it** via chat or email.
+4. Go to **GitHub → `mms-membership` repo → Settings → Secrets and variables → Actions**.
+5. Update the secret `FIREBASE_SERVICE_ACCOUNT_KEY` by pasting the full contents of the `.json` file.
+
+> ⚠️ The old key should be **deleted** from Firebase after rotating: Firebase Console → Service Accounts → find the key → Delete.
+
+---
+
+### Step 4 — Regenerate the GitHub Personal Access Token (for backup repo)
+
+The workflow uses a Personal Access Token (PAT) to push backups to `mms-backup`.
+
+1. The **new owner** logs into GitHub and goes to: **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. Set:
+   - **Token name**: `MMS Backup Bot`
+   - **Expiration**: 1 year (set a calendar reminder to renew)
+   - **Repository access**: Only `mms-backup`
+   - **Permissions**: Contents → **Read and Write**
+3. Copy the generated token.
+4. Go to **GitHub → `mms-membership` → Settings → Secrets and variables → Actions**.
+5. Update the secret `BACKUP_REPO_PAT` with the new token.
+6. Also confirm `BACKUP_REPO` secret is set to the correct value: `new-username/mms-backup`.
+
+---
+
+### Step 5 — Add new admin to the MMS website itself
+
+1. The new owner logs into the live MMS site with their Google account.
+2. The **current admin** goes to **Admin Management** → **Add New Admin** → enters the new owner's email.
+3. The new owner's account is now approved and they can access the dashboard.
+4. The old admin can then remove themselves if desired.
+
+---
+
+### Step 6 — Update Firebase Hosting authorised users (optional)
+
+If you want the new owner to be able to deploy the website:
+
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Run `firebase login` with the new owner's Google account.
+3. Run `firebase projects:list` to confirm the project is visible.
+4. They can now run `firebase deploy` to push updates.
+
+---
+
+### Step 7 — Transfer remaining credentials/docs
+
+Make sure the new owner has:
+
+- [ ] The live website URL (`https://mms-membership.web.app`)
+- [ ] Access to the GitHub codebase repo (`mms-membership`)
+- [ ] Access to the GitHub backup repo (`mms-backup`)
+- [ ] Firebase project access (Owner role)
+- [ ] A copy of this documentation folder
+- [ ] The `.env` variable names (see `.env.example`) — the actual values are in Firebase and don't need to be transferred
+
+---
+
+## 7. If something breaks...
 
 Don't panic!
 
@@ -171,10 +291,11 @@ Don't panic!
 
 ---
 
-## Summary of Documentation files
+## Summary of Documentation Files
 
-- **[HANDOVER_GUIDE.md](HANDOVER_GUIDE.md)**: **You are reading this.**
-- **[NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md)**: Simple technical guide for non-coders.
-- **[SETUP_GUIDE.md](SETUP_GUIDE.md)**: How to set up the website from scratch.
+- **[HANDOVER_GUIDE.md](HANDOVER_GUIDE.md)**: **You are reading this.** Start here for ownership & admin tasks.
+- **[NON_TECHNICAL_GUIDE.md](NON_TECHNICAL_GUIDE.md)**: Simple technical guide for non-coders (how to run the site locally).
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)**: How to set up the website from scratch (for developers).
 - **[CHANGELOG.md](CHANGELOG.md)**: Version history and feature changes.
-- **[README.md](README.md)**: Technical manual for developers (you can ignore this mostly).
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**: Common issues and fixes.
+- **[README.md](README.md)**: Technical developer manual.

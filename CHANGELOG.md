@@ -4,6 +4,54 @@ All notable changes to the MMS Portal are documented in this file.
 
 ---
 
+## [2.2.0] - 2026-02-24
+
+### 🗄️ Automated Firestore Backups (GitHub Actions)
+
+A fully automated daily backup system has been set up using GitHub Actions.
+
+#### New Features
+
+- **Scheduled Daily Backups**: Runs automatically every day at 2 AM SGT (18:00 UTC) via a GitHub Actions cron job
+- **Manual Trigger**: Can also be triggered on demand from the GitHub Actions tab
+- **JSON Backup**: All `members` and `events` documents are saved as timestamped JSON files (`backups/YYYY-MM-DD/members.json`, `backups/YYYY-MM-DD/events.json`)
+- **XLSX Backup**: A combined Excel workbook (`backups/YYYY-MM-DD/backup_YYYY-MM-DD.xlsx`) is generated with a **Members** sheet and an **Events** sheet, matching the format of the in-app export
+- **Backup Manifest**: A `manifest.json` is saved alongside each backup with timestamp and document counts
+- **Separate Private Repo**: Backups are pushed to a dedicated private GitHub repository (`mms-backup`) to keep them isolated from the codebase
+- **Last Backup Timestamp**: After each successful backup, a `_meta/lastBackup` document is written to Firestore
+
+#### Technical Details
+
+- New file: `scripts/backup-firestore.js` — Node.js script using `firebase-admin` to export Firestore data and generate XLSX
+- New file: `.github/workflows/firestore-backup.yml` — GitHub Actions workflow
+- Required GitHub Secrets: `FIREBASE_SERVICE_ACCOUNT_KEY`, `BACKUP_REPO`, `BACKUP_REPO_PAT`
+- Firestore security rules updated: `_meta` collection readable by approved admins only, write blocked from client
+
+---
+
+### 📊 Dashboard Last-Backup Indicator
+
+- **Backup Reminder Card** now shows the date/time and document counts of the last automated backup
+- Falls back to _"No automated backup recorded yet"_ if no backup has run
+- Reads from `_meta/lastBackup` in Firestore on dashboard load
+
+---
+
+### 🔒 Lock/Unlock Sensitive Fields in Member Modal
+
+- **Campus ID**, **School Email**, and **Personal Email** are now locked by default when editing an existing member
+- Click the 🔒 lock icon next to the field to unlock it and enable editing
+- Prevents accidental overwrites of critical identifier fields
+
+---
+
+### 🎨 UI/UX Improvements
+
+- **Real-time sync banner** replaced with a compact pill indicator (animated green dot when active)
+- Toggle real-time sync on/off directly from the pill without navigating away
+
+---
+
 ## [2.1.0] - 2026-02-02
 
 ### 🔄 Event ID Tracking System
