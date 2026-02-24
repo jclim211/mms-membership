@@ -24,5 +24,11 @@ service cloud.firestore {
       // Only existing approved admins can create/update/delete admin records
       allow read, write: if isApprovedAdmin();
     }
+
+    // Metadata collection - backup status etc. (written by service account, read by admins)
+    match /_meta/{docId} {
+      allow read: if isApprovedAdmin();
+      allow write: if false; // Only written by backend service account
+    }
   }
 }

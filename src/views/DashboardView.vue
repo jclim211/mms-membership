@@ -6,6 +6,8 @@ import { useAuthStore } from "../stores/authStore";
 import { useEventStore } from "../stores/eventStore";
 import { exportToExcel } from "../utils/exportExcel";
 import { downloadTemplate } from "../utils/bulkImport";
+import { db } from "../services/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import {
   calculateNextSubsidyRate,
   getMembershipBadgeColor,
@@ -32,6 +34,7 @@ import {
   HelpCircle,
   Radio,
   AlertTriangle,
+  DatabaseBackup,
 } from "lucide-vue-next";
 import MemberModal from "../components/MemberModal.vue";
 import BulkImportModal from "../components/BulkImportModal.vue";
@@ -542,9 +545,34 @@ const shortenMembershipType = (type) => {
   return shortNames[type] || type;
 };
 
-onMounted(() => {
+// Last backup status
+const lastBackup = ref(null);
+
+const formatBackupTime = (isoString) => {
+  if (!isoString) return null;
+  const d = new Date(isoString);
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+onMounted(async () => {
   // Start real-time sync when component mounts
   memberStore.startRealtimeSync();
+
+  // Fetch last backup info
+  try {
+    const snap = await getDoc(doc(db, "_meta", "lastBackup"));
+    if (snap.exists()) {
+      lastBackup.value = snap.data();
+    }
+  } catch {
+    // silently ignore — backup indicator is non-critical
+  }
 });
 
 onUnmounted(() => {
@@ -785,6 +813,25 @@ watch(
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Last Backup Indicator -->
+      <div
+        v-if="lastBackup"
+        class="flex items-center gap-2 mb-3 text-xs text-gray-500"
+      >
+        <DatabaseBackup :size="13" class="text-gray-400 flex-shrink-0" />
+        <span>
+          Last automated backup:
+          <span class="font-medium text-gray-700">
+            {{ formatBackupTime(lastBackup.timestamp) }}
+          </span>
+          &mdash;
+          <span class="text-gray-500">
+            {{ lastBackup.collections?.members ?? "?" }} members,
+            {{ lastBackup.collections?.events ?? "?" }} events
+          </span>
+        </span>
       </div>
 
       <!-- Real-Time Sync Status Banner -->
