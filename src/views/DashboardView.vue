@@ -864,13 +864,17 @@ watch(
         <div class="flex items-start gap-3">
           <AlertCircle :size="20" class="text-amber-600 flex-shrink-0 mt-0.5" />
           <div class="flex-1">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <p class="text-sm font-medium text-amber-800">
-                💾 Backup Reminder
-              </p>
+            <p class="text-sm font-medium text-amber-800">💾 Backup Reminder</p>
+            <p class="text-sm text-amber-700 mt-1">
+              Always backup your data frequently by clicking
+              <span class="font-semibold">Export All/Filtered</span>
+              to prevent data loss. Export as JSON function is available and
+              it's under Admin Management page.
+            </p>
+            <div class="mt-2">
               <span
                 v-if="lastBackup"
-                class="flex items-center gap-1.5 text-xs text-amber-700"
+                class="flex items-center gap-1.5 text-xs text-amber-600"
               >
                 <DatabaseBackup :size="12" class="flex-shrink-0" />
                 Last automated backup:
@@ -885,12 +889,6 @@ watch(
                 >No automated backup recorded yet</span
               >
             </div>
-            <p class="text-sm text-amber-700 mt-1">
-              Always backup your data frequently by clicking
-              <span class="font-semibold">Export All/Filtered</span>
-              to prevent data loss. Export as JSON function is available and
-              it's under Admin Management page.
-            </p>
           </div>
         </div>
       </div>
