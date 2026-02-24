@@ -29,16 +29,22 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         run: node scripts/backup-firestore.js
 
-      - name: Checkout backup repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ secrets.BACKUP_REPO }} # e.g. your-username/mms-backup
-          token: ${{ secrets.BACKUP_REPO_PAT }}
-          path: backup-repo
+      - name: Clone or init backup repo
+        run: |
+          REPO_URL="https://x-access-token:${{ secrets.BACKUP_REPO_PAT }}@github.com/${{ secrets.BACKUP_REPO }}.git"
+          if git clone --depth 1 "$REPO_URL" backup-repo 2>/dev/null; then
+            echo "✅ Cloned existing backup repo"
+          else
+            echo "⚠️  Backup repo is empty — initialising fresh"
+            mkdir -p backup-repo
+            cd backup-repo
+            git init
+            git checkout -b main
+            git remote add origin "$REPO_URL"
+          fi
 
       - name: Copy backup files to backup repo
         run: |
-          # Get today's date for the folder name
           DATE=$(date -u +"%Y-%m-%d")
           mkdir -p backup-repo/backups/$DATE
           cp -r backups/$DATE/. backup-repo/backups/$DATE/
@@ -46,10 +52,12 @@ jobs:
       - name: Commit and push to backup repo
         run: |
           DATE=$(date -u +"%Y-%m-%d")
+          REPO_URL="https://x-access-token:${{ secrets.BACKUP_REPO_PAT }}@github.com/${{ secrets.BACKUP_REPO }}.git"
           cd backup-repo
           git config user.name "MMS Backup Bot"
           git config user.email "backup-bot@mms.local"
+          git remote set-url origin "$REPO_URL"
+          git checkout -B main 2>/dev/null || true
           git add backups/
-          # Only commit if there are changes
           git diff --cached --quiet || git commit -m "🗄️ Automated backup — $DATE"
-          git push
+          git push origin main --set-upstream
