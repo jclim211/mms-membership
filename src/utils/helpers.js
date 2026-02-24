@@ -5,8 +5,11 @@
  * Algorithm:
  * - Exco members: Always 95% (regardless of membership tier)
  * - Associate members: Always 10%
- * - Ordinary B members: 70% if not used, otherwise 10%
- * - Ordinary A members: Check tiers in order (90%, 70%, 50%), return first unused, otherwise 10%
+ * - Ordinary B members: Sequence [70, 10] - use 70% first, then 10% forever
+ * - Ordinary A members: Sequence [90, 70, 50, 10] - go through unused rates in order, then 10% forever
+ *
+ * The key logic: Go through the sequence in ORDER and return the first rate that hasn't been used yet.
+ * This handles upgrades correctly (e.g., Ord B used 70%, upgrades to Ord A, gets 90% next, then 50%)
  *
  * @param {string} membershipType - The membership type ('Associate', 'Ordinary B', 'Ordinary A')
  * @param {boolean} isExco - Whether the member is an Exco member
@@ -28,23 +31,26 @@ export function calculateNextSubsidyRate(
     return 10;
   }
 
-  // Ordinary B members
+  // Ordinary B members: Sequence [70, 10]
   if (membershipType === "Ordinary B") {
-    // Check if 70% tier has been used
-    const has70 = subsidyHistory.includes(70);
-    return has70 ? 10 : 70;
+    const sequence = [70, 10];
+    for (const rate of sequence) {
+      if (!subsidyHistory.includes(rate)) {
+        return rate;
+      }
+    }
+    return 10; // All used, continue with minimum
   }
 
-  // Ordinary A members - check tiers in order
+  // Ordinary A members: Sequence [90, 70, 50, 10]
   if (membershipType === "Ordinary A") {
-    const has90 = subsidyHistory.includes(90);
-    const has70 = subsidyHistory.includes(70);
-    const has50 = subsidyHistory.includes(50);
-
-    if (!has90) return 90;
-    if (!has70) return 70;
-    if (!has50) return 50;
-    return 10;
+    const sequence = [90, 70, 50, 10];
+    for (const rate of sequence) {
+      if (!subsidyHistory.includes(rate)) {
+        return rate;
+      }
+    }
+    return 10; // All used, continue with minimum
   }
 
   // Default fallback

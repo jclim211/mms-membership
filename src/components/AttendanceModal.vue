@@ -74,13 +74,15 @@ const getAutoCalculatedSubsidy = (member) => {
   if (props.event.type !== "ISM") return null;
 
   // Calculate based on history (excluding current event)
+  // Include ALL subsidies in history (both manual and auto)
+  // isAutoSubsidy flag only controls if it can be recalculated, not if it counts toward history
   const subsidyHistory = (member.ismAttendance || [])
     .filter((a) => {
       // Exclude current event from history
       const isSameEvent =
         a.eventName === props.event.name &&
         toLocalYMD(a.date) === toLocalYMD(props.event.date);
-      return !isSameEvent && a.isAutoSubsidy !== false;
+      return !isSameEvent;
     })
     .map((a) => a.subsidyUsed);
 

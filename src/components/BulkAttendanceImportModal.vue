@@ -314,9 +314,10 @@ const handleImport = async () => {
               attendanceData.subsidyOverride = row.subsidyOverride;
             } else if (row.member) {
               // Auto-calculate subsidy
-              const subsidyHistory = (row.member.ismAttendance || [])
-                .filter((a) => a.isAutoSubsidy !== false)
-                .map((a) => a.subsidyUsed);
+              // Include ALL subsidies in history (both manual and auto)
+              const subsidyHistory = (row.member.ismAttendance || []).map(
+                (a) => a.subsidyUsed,
+              );
               attendanceData.subsidyOverride = calculateNextSubsidyRate(
                 row.member.membershipType,
                 row.member.isExco || false,
@@ -408,11 +409,6 @@ const handleImport = async () => {
           `Failed to create student ${student.data.schoolEmail}: ${result.error}`,
         );
       }
-    }
-
-    // Wait a moment for real-time sync if we added new members
-    if (newStudents.length > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     // Check if we have any attendance to save

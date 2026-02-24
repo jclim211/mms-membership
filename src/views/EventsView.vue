@@ -205,10 +205,10 @@ const updateMemberRecords = async (event, attendance) => {
 
         if (existingIndex === -1) {
           // New attendance - Calculate subsidy based on membership type and history
-          // Only count auto-applied subsidies in history
-          const subsidyHistory = (member.ismAttendance || [])
-            .filter((a) => a.isAutoSubsidy !== false) // Include undefined (old data) and true
-            .map((a) => a.subsidyUsed);
+          // Include ALL subsidies in history (both manual and auto)
+          const subsidyHistory = (member.ismAttendance || []).map(
+            (a) => a.subsidyUsed,
+          );
 
           let subsidyToUse = 0;
           let isAutoSubsidy = true;
@@ -245,10 +245,9 @@ const updateMemberRecords = async (event, attendance) => {
         } else {
           // Update existing attendance - check if subsidy changed
           if (attendanceData.subsidyOverride !== undefined) {
+            // Include ALL subsidies except current event in history
             const subsidyHistory = (member.ismAttendance || [])
-              .filter(
-                (a, idx) => idx !== existingIndex && a.isAutoSubsidy !== false,
-              )
+              .filter((a, idx) => idx !== existingIndex)
               .map((a) => a.subsidyUsed);
 
             const autoValue = calculateNextSubsidyRate(

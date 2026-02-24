@@ -337,10 +337,14 @@ export const useMemberStore = defineStore("members", () => {
     error.value = null;
     const result = await memberService.addMember(memberData);
     if (!result.error) {
-      // If we're not in realtime mode, update local state
-      if (!realtimeEnabled.value) {
-        members.value.push({ ...memberData, id: result.id });
-      }
+      // Always add to local state immediately for instant availability
+      // Realtime listener will update it later if needed
+      members.value.push({
+        ...memberData,
+        id: result.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
     } else {
       error.value = result.error;
     }
@@ -353,11 +357,15 @@ export const useMemberStore = defineStore("members", () => {
     error.value = null;
     const result = await memberService.updateMember(memberId, memberData);
     if (!result.error) {
-      if (!realtimeEnabled.value) {
-        const index = members.value.findIndex((m) => m.id === memberId);
-        if (index !== -1) {
-          members.value[index] = { ...members.value[index], ...memberData };
-        }
+      // Always update local state immediately for instant availability
+      // Realtime listener will update it later if needed
+      const index = members.value.findIndex((m) => m.id === memberId);
+      if (index !== -1) {
+        members.value[index] = {
+          ...members.value[index],
+          ...memberData,
+          updatedAt: new Date().toISOString(),
+        };
       }
     } else {
       error.value = result.error;
@@ -376,9 +384,9 @@ export const useMemberStore = defineStore("members", () => {
 
     const result = await memberService.deleteMember(memberId);
     if (!result.error) {
-      if (!realtimeEnabled.value) {
-        members.value = members.value.filter((m) => m.id !== memberId);
-      }
+      // Always update local state immediately for instant availability
+      // Realtime listener will update it later if needed
+      members.value = members.value.filter((m) => m.id !== memberId);
     } else {
       error.value = result.error;
     }

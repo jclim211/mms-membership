@@ -20,6 +20,8 @@ import {
   Link2,
   Unlink,
   ChevronDown,
+  Lock,
+  Unlock,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -87,6 +89,18 @@ const formData = ref({
 
 const errors = ref({});
 const isSaving = ref(false);
+
+// Locked fields state - locked by default in edit mode to prevent accidental changes
+const lockedFields = ref({
+  campusId: true,
+  schoolEmail: true,
+  personalEmail: true,
+});
+
+const toggleFieldLock = (field) => {
+  lockedFields.value[field] = !lockedFields.value[field];
+};
+
 const showAddISM = ref(false);
 const newISMEvent = ref({
   eventName: "",
@@ -265,10 +279,11 @@ const nextSubsidyRate = computed(() => {
   }
 
   // Otherwise calculate based on membership type and history
-  // Only count auto-applied subsidies in history
-  const subsidyHistory = formData.value.ismAttendance
-    .filter((ism) => ism.isAutoSubsidy !== false) // Include undefined (old data) and true
-    .map((ism) => ism.subsidyUsed);
+  // Include ALL subsidies in history (both manual and auto)
+  // isAutoSubsidy flag only controls if it can be recalculated, not if it counts toward history
+  const subsidyHistory = formData.value.ismAttendance.map(
+    (ism) => ism.subsidyUsed,
+  );
   return calculateNextSubsidyRate(
     formData.value.membershipType,
     formData.value.isExco,
@@ -1383,21 +1398,48 @@ const handleSave = async () => {
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Campus ID -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Campus ID <span class="text-red-500">*</span>
-                  </label>
+                  <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                      Campus ID <span class="text-red-500">*</span>
+                    </label>
+                    <button
+                      v-if="isEditMode"
+                      type="button"
+                      @click="toggleFieldLock('campusId')"
+                      class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors"
+                      :class="
+                        lockedFields.campusId
+                          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      "
+                      :title="
+                        lockedFields.campusId
+                          ? 'Click to unlock and edit'
+                          : 'Click to lock field'
+                      "
+                    >
+                      <Lock v-if="lockedFields.campusId" :size="11" />
+                      <Unlock v-else :size="11" />
+                      {{ lockedFields.campusId ? "Locked" : "Unlocked" }}
+                    </button>
+                  </div>
                   <input
                     v-model="formData.campusId"
                     type="text"
                     pattern="[0-9]*"
                     inputmode="numeric"
                     maxlength="8"
-                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy font-mono"
+                    :disabled="isEditMode && lockedFields.campusId"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy font-mono transition-colors"
                     :class="{
                       'border-red-500': errors.campusId,
                       'border-red-500 bg-amber-50':
                         !formData.campusId && isEditMode,
-                      'border-gray-300': formData.campusId || !isEditMode,
+                      'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed':
+                        isEditMode && lockedFields.campusId,
+                      'border-gray-300':
+                        (formData.campusId || !isEditMode) &&
+                        !(isEditMode && lockedFields.campusId),
                     }"
                   />
                   <p v-if="errors.campusId" class="mt-1 text-sm text-red-500">
@@ -1583,14 +1625,44 @@ const handleSave = async () => {
 
                 <!-- School Email -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    School Email <span class="text-red-500">*</span>
-                  </label>
+                  <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                      School Email <span class="text-red-500">*</span>
+                    </label>
+                    <button
+                      v-if="isEditMode"
+                      type="button"
+                      @click="toggleFieldLock('schoolEmail')"
+                      class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors"
+                      :class="
+                        lockedFields.schoolEmail
+                          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      "
+                      :title="
+                        lockedFields.schoolEmail
+                          ? 'Click to unlock and edit'
+                          : 'Click to lock field'
+                      "
+                    >
+                      <Lock v-if="lockedFields.schoolEmail" :size="11" />
+                      <Unlock v-else :size="11" />
+                      {{ lockedFields.schoolEmail ? "Locked" : "Unlocked" }}
+                    </button>
+                  </div>
                   <input
                     v-model="formData.schoolEmail"
                     type="email"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
-                    :class="{ 'border-red-500': errors.schoolEmail }"
+                    :disabled="isEditMode && lockedFields.schoolEmail"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy transition-colors"
+                    :class="{
+                      'border-red-500': errors.schoolEmail,
+                      'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed':
+                        isEditMode && lockedFields.schoolEmail,
+                      'border-gray-300':
+                        !(isEditMode && lockedFields.schoolEmail) &&
+                        !errors.schoolEmail,
+                    }"
                   />
                   <p
                     v-if="errors.schoolEmail"
@@ -1602,14 +1674,44 @@ const handleSave = async () => {
 
                 <!-- Personal Email -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Personal Email
-                  </label>
+                  <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                      Personal Email
+                    </label>
+                    <button
+                      v-if="isEditMode"
+                      type="button"
+                      @click="toggleFieldLock('personalEmail')"
+                      class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors"
+                      :class="
+                        lockedFields.personalEmail
+                          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      "
+                      :title="
+                        lockedFields.personalEmail
+                          ? 'Click to unlock and edit'
+                          : 'Click to lock field'
+                      "
+                    >
+                      <Lock v-if="lockedFields.personalEmail" :size="11" />
+                      <Unlock v-else :size="11" />
+                      {{ lockedFields.personalEmail ? "Locked" : "Unlocked" }}
+                    </button>
+                  </div>
                   <input
                     v-model="formData.personalEmail"
                     type="email"
                     placeholder="Optional"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy"
+                    :disabled="isEditMode && lockedFields.personalEmail"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy transition-colors"
+                    :class="{
+                      'border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed':
+                        isEditMode && lockedFields.personalEmail,
+                      'border-gray-300': !(
+                        isEditMode && lockedFields.personalEmail
+                      ),
+                    }"
                   />
                   <p class="mt-1 text-xs text-gray-500">
                     For communication after graduation
