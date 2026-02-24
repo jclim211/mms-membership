@@ -1,0 +1,55 @@
+name: Firestore Backup
+
+on:
+  # Run daily at 2 AM SGT (UTC+8) = 18:00 UTC
+  schedule:
+    - cron: "0 18 * * *"
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: Backup Firestore to Private Repo
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout codebase repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install firebase-admin
+        run: npm install firebase-admin --prefix ./scripts
+
+      - name: Run backup script
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/backup-firestore.js
+
+      - name: Checkout backup repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.BACKUP_REPO }} # e.g. your-username/mms-backup
+          token: ${{ secrets.BACKUP_REPO_PAT }}
+          path: backup-repo
+
+      - name: Copy backup files to backup repo
+        run: |
+          # Get today's date for the folder name
+          DATE=$(date -u +"%Y-%m-%d")
+          mkdir -p backup-repo/backups/$DATE
+          cp -r backups/$DATE/. backup-repo/backups/$DATE/
+
+      - name: Commit and push to backup repo
+        run: |
+          DATE=$(date -u +"%Y-%m-%d")
+          cd backup-repo
+          git config user.name "MMS Backup Bot"
+          git config user.email "backup-bot@mms.local"
+          git add backups/
+          # Only commit if there are changes
+          git diff --cached --quiet || git commit -m "🗄️ Automated backup — $DATE"
+          git push
