@@ -35,6 +35,20 @@ const router = useRouter();
 const admitYearMembershipFilter = ref([]);
 const admitYearStudentStatusFilter = ref([]);
 
+// Base dataset: exclude Alumni from all analytics
+const activeMembers = computed(() =>
+  memberStore.members.filter((m) => m.studentStatus !== "Alumni"),
+);
+
+// Local stat computeds (exclude alumni) — store versions are used by Dashboard
+const activeTotalMembers = computed(() => activeMembers.value.length);
+const activeOrdinaryAMembers = computed(
+  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary A").length,
+);
+const activeOrdinaryBMembers = computed(
+  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary B").length,
+);
+
 onMounted(() => {
   memberStore.startRealtimeSync();
 });
@@ -45,13 +59,13 @@ onUnmounted(() => {
 
 // Membership Type Pie Chart Data
 const membershipTypeData = computed(() => {
-  const ordinaryA = memberStore.members.filter(
+  const ordinaryA = activeMembers.value.filter(
     (m) => m.membershipType === "Ordinary A",
   ).length;
-  const ordinaryB = memberStore.members.filter(
+  const ordinaryB = activeMembers.value.filter(
     (m) => m.membershipType === "Ordinary B",
   ).length;
-  const associate = memberStore.members.filter(
+  const associate = activeMembers.value.filter(
     (m) => m.membershipType === "Associate",
   ).length;
 
@@ -98,8 +112,8 @@ const membershipTypeOptions = {
 
 // Admit Year Column Chart Data
 const admitYearData = computed(() => {
-  // Filter members based on selected filters
-  let filteredMembers = memberStore.members;
+  // Filter members based on selected filters (alumni already excluded from activeMembers)
+  let filteredMembers = activeMembers.value;
 
   // Apply membership type filter
   if (admitYearMembershipFilter.value.length > 0) {
@@ -185,7 +199,7 @@ const admitYearOptions = {
 
 // Track Distribution for Ordinary A Members Only
 const trackDistributionData = computed(() => {
-  const ordinaryAMembers = memberStore.members.filter(
+  const ordinaryAMembers = activeMembers.value.filter(
     (m) => m.membershipType === "Ordinary A",
   );
 
@@ -273,7 +287,7 @@ const trackDistributionOptions = {
             <div>
               <p class="text-sm font-medium text-gray-600">Total Members</p>
               <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ memberStore.totalMembers }}
+                {{ activeTotalMembers }}
               </p>
             </div>
             <div class="p-3 bg-navy/10 rounded-lg">
@@ -291,7 +305,7 @@ const trackDistributionOptions = {
                 Ordinary A Members
               </p>
               <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ memberStore.ordinaryAMembers }}
+                {{ activeOrdinaryAMembers }}
               </p>
             </div>
             <div class="p-3 bg-blue-100 rounded-lg">
@@ -309,7 +323,7 @@ const trackDistributionOptions = {
                 Ordinary B Members
               </p>
               <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ memberStore.ordinaryBMembers }}
+                {{ activeOrdinaryBMembers }}
               </p>
             </div>
             <div class="p-3 bg-blue-100 rounded-lg">
@@ -340,7 +354,7 @@ const trackDistributionOptions = {
             </div>
             <div class="h-[300px] flex items-center justify-center">
               <Pie
-                v-if="memberStore.totalMembers > 0"
+                v-if="activeTotalMembers > 0"
                 :data="membershipTypeData"
                 :options="membershipTypeOptions"
               />
@@ -418,7 +432,7 @@ const trackDistributionOptions = {
                 >
                 <div class="flex flex-wrap gap-2">
                   <label
-                    v-for="status in STUDENT_STATUSES"
+                    v-for="status in STUDENT_STATUSES.filter((s) => s !== 'Alumni')"
                     :key="status"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors text-xs"
                     :class="
@@ -441,7 +455,7 @@ const trackDistributionOptions = {
 
             <div class="h-[300px]">
               <Bar
-                v-if="memberStore.totalMembers > 0"
+                v-if="activeTotalMembers > 0"
                 :data="admitYearData"
                 :options="admitYearOptions"
               />
@@ -470,7 +484,7 @@ const trackDistributionOptions = {
           <div class="h-[350px] flex items-center justify-center">
             <div class="w-full max-w-2xl h-full">
               <Pie
-                v-if="memberStore.ordinaryAMembers > 0"
+                v-if="activeOrdinaryAMembers > 0"
                 :data="trackDistributionData"
                 :options="trackDistributionOptions"
               />

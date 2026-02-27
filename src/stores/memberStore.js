@@ -18,7 +18,7 @@ export const useMemberStore = defineStore("members", () => {
   const schoolFilter = ref([]);
   const trackFilter = ref([]);
   const ncsCompletionFilter = ref([]);
-  const incompleteFilter = ref(["complete"]); // Default to showing only complete profiles // Default to showing only complete profiles
+  const incompleteFilter = ref([]); 
   const realtimeEnabled = ref(true); // Toggle for real-time sync
   const lastSyncTime = ref(null); // Track last sync time
   const lastFetchTime = ref(null); // Track last fetch for throttling

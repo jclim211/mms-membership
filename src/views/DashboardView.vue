@@ -46,6 +46,18 @@ const authStore = useAuthStore();
 const eventStore = useEventStore();
 const router = useRouter();
 
+// Base dataset: exclude Alumni from dashboard stat cards
+const activeMembers = computed(() =>
+  memberStore.members.filter((m) => m.studentStatus !== "Alumni"),
+);
+const activeTotalMembers = computed(() => activeMembers.value.length);
+const activeOrdinaryAMembers = computed(
+  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary A").length,
+);
+const activeOrdinaryBMembers = computed(
+  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary B").length,
+);
+
 /*
   ═══════════════════════════════════════════════════════════════════════
   INCOMPLETE MEMBER TRACKING - HOW IT WORKS
@@ -769,7 +781,7 @@ watch(
             <div>
               <p class="text-sm font-medium text-gray-600">Total Members</p>
               <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ memberStore.totalMembers }}
+                {{ activeTotalMembers }}
               </p>
             </div>
             <div class="p-3 bg-navy/10 rounded-lg">
@@ -787,7 +799,7 @@ watch(
                 Ordinary A Members
               </p>
               <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ memberStore.ordinaryAMembers }}
+                {{ activeOrdinaryAMembers }}
               </p>
             </div>
             <div class="p-3 bg-blue-100 rounded-lg">
@@ -805,7 +817,7 @@ watch(
                 Ordinary B Members
               </p>
               <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ memberStore.ordinaryBMembers }}
+                {{ activeOrdinaryBMembers }}
               </p>
             </div>
             <div class="p-3 bg-blue-100 rounded-lg">
