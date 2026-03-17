@@ -201,7 +201,7 @@ const handleBulkOrdADateChange = () => {
   )
     return;
 
-  // Apply to valid records that are Ordinary A and don't have a date
+  // Apply ONLY to new members (not already in the system) that are Ordinary A and don't have a date
   // Fix timezone issue: parse as local date and convert to ISO without timezone shift
   const [year, month, day] =
     verificationConfig.value.ordADeclarationDate.split("-");
@@ -215,8 +215,14 @@ const handleBulkOrdADateChange = () => {
   );
   const dateToApply = localDate.toISOString();
 
+  // Build a set of existing member campus IDs for quick lookup
+  const existingIds = new Set(
+    memberStore.members.map((m) => m.campusId.toString()),
+  );
+
   parseResult.value.valid.forEach((m) => {
-    if (m.membershipType === "Ordinary A" && !m.ordinaryADeclarationDate) {
+    const isNew = !existingIds.has(m.campusId.toString());
+    if (isNew && m.membershipType === "Ordinary A" && !m.ordinaryADeclarationDate) {
       m.ordinaryADeclarationDate = dateToApply;
     }
   });
@@ -712,48 +718,6 @@ const downloadExistingMembers = () => {
                     </div>
                   </div>
 
-                  <!-- Ordinary A Declaration Date Section -->
-                  <div
-                    class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
-                  >
-                    <div class="flex items-center gap-2 mb-3">
-                      <input
-                        type="checkbox"
-                        id="setOrdADate"
-                        v-model="verificationConfig.setOrdADeclarationDate"
-                        @change="handleBulkOrdADateChange"
-                        class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                      />
-                      <label
-                        for="setOrdADate"
-                        class="text-sm font-medium text-gray-900"
-                      >
-                        Bulk Set Ordinary A Declaration Date
-                      </label>
-                    </div>
-
-                    <div
-                      v-if="verificationConfig.setOrdADeclarationDate"
-                      class="space-y-2"
-                    >
-                      <label class="block text-xs font-medium text-gray-700">
-                        Declaration Date for New Ordinary A Members
-                      </label>
-                      <input
-                        v-model="verificationConfig.ordADeclarationDate"
-                        type="date"
-                        @change="handleBulkOrdADateChange"
-                        class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <p class="text-xs text-blue-800">
-                        This date will be applied to all Ordinary A members in
-                        the upload who don't already have a declaration date
-                        set. Only NCS events after this date will count toward
-                        graduation.
-                      </p>
-                    </div>
-                  </div>
-
                   <!-- Missing Members List -->
                   <div
                     class="bg-white rounded-lg border border-gray-200 max-h-60 overflow-y-auto"
@@ -893,14 +857,44 @@ const downloadExistingMembers = () => {
                       New Members to Add ({{ newMembers.length }})
                     </h4>
                   </div>
-                  <p class="text-sm text-gray-700 mb-3">
-                    Preview of new members (showing first 5):
-                  </p>
+
+                  <!-- Ordinary A Declaration Date — always shown when there are new members -->
                   <div
-                    class="overflow-x-auto border border-green-200 rounded-lg"
+                    class="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg"
+                  >
+                    <div class="flex items-center gap-2 mb-2">
+                      <input
+                        type="checkbox"
+                        id="setOrdADate"
+                        v-model="verificationConfig.setOrdADeclarationDate"
+                        @change="handleBulkOrdADateChange"
+                        class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      />
+                      <label
+                        for="setOrdADate"
+                        class="text-sm font-semibold text-indigo-900"
+                      >
+                        Set Ordinary A Declaration Date for New Members
+                      </label>
+                    </div>
+                    <p class="text-xs text-indigo-700 mb-3 ml-6">
+                      Tick to assign a declaration date to all new Ordinary A members being added. Existing members in the system are unaffected. Only NCS events on or after this date count toward graduation.
+                    </p>
+                    <div v-if="verificationConfig.setOrdADeclarationDate" class="ml-6 space-y-1">
+                      <label class="block text-xs font-medium text-gray-700">Declaration Date</label>
+                      <input
+                        v-model="verificationConfig.ordADeclarationDate"
+                        type="date"
+                        @change="handleBulkOrdADateChange"
+                        class="text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <div
+                    class="border border-green-200 rounded-lg max-h-60 overflow-y-auto"
                   >
                     <table class="min-w-full divide-y divide-gray-200">
-                      <thead class="bg-green-50">
+                      <thead class="bg-green-50 sticky top-0">
                         <tr>
                           <th
                             class="px-4 py-2 text-left text-xs font-medium text-gray-500"
@@ -927,28 +921,45 @@ const downloadExistingMembers = () => {
                           >
                             Status
                           </th>
+                          <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500"
+                          >
+                            Tracks
+                          </th>
                         </tr>
                       </thead>
                       <tbody class="bg-white divide-y divide-gray-200 text-sm">
                         <tr
-                          v-for="(member, idx) in newMembers.slice(0, 5)"
+                          v-for="(member, idx) in newMembers"
                           :key="idx"
                         >
-                          <td class="px-4 py-2">{{ member.campusId }}</td>
-                          <td class="px-4 py-2">{{ member.fullName }}</td>
-                          <td class="px-4 py-2">{{ member.schoolEmail }}</td>
-                          <td class="px-4 py-2">{{ member.membershipType }}</td>
-                          <td class="px-4 py-2">{{ member.studentStatus }}</td>
+                          <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ member.campusId }}</td>
+                          <td class="px-4 py-2 font-medium text-gray-900">{{ member.fullName }}</td>
+                          <td class="px-4 py-2 text-gray-500 text-xs">{{ member.schoolEmail }}</td>
+                          <td class="px-4 py-2">
+                            <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium"
+                              :class="member.membershipType === 'Ordinary A' ? 'bg-indigo-100 text-indigo-700' : member.membershipType === 'Ordinary B' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'"
+                            >{{ member.membershipType || '—' }}</span>
+                          </td>
+                          <td class="px-4 py-2">
+                            <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium"
+                              :class="member.studentStatus === 'Undergraduate' ? 'bg-green-100 text-green-700' : member.studentStatus === 'Alumni' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'"
+                            >{{ member.studentStatus || '—' }}</span>
+                          </td>
+                          <td class="px-4 py-2">
+                            <div class="flex flex-wrap gap-1">
+                              <span
+                                v-for="track in (member.tracks || [])"
+                                :key="track"
+                                class="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                              >{{ track }}</span>
+                              <span v-if="!member.tracks || member.tracks.length === 0" class="text-gray-400 text-xs">—</span>
+                            </div>
+                          </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                  <p
-                    v-if="newMembers.length > 5"
-                    class="text-xs text-gray-500 mt-2"
-                  >
-                    ...and {{ newMembers.length - 5 }} more
-                  </p>
                 </div>
 
                 <!-- Member Edits Section -->

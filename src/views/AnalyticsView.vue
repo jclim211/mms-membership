@@ -43,10 +43,12 @@ const activeMembers = computed(() =>
 // Local stat computeds (exclude alumni) — store versions are used by Dashboard
 const activeTotalMembers = computed(() => activeMembers.value.length);
 const activeOrdinaryAMembers = computed(
-  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary A").length,
+  () =>
+    activeMembers.value.filter((m) => m.membershipType === "Ordinary A").length,
 );
 const activeOrdinaryBMembers = computed(
-  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary B").length,
+  () =>
+    activeMembers.value.filter((m) => m.membershipType === "Ordinary B").length,
 );
 
 onMounted(() => {
@@ -432,7 +434,9 @@ const trackDistributionOptions = {
                 >
                 <div class="flex flex-wrap gap-2">
                   <label
-                    v-for="status in STUDENT_STATUSES.filter((s) => s !== 'Alumni')"
+                    v-for="status in STUDENT_STATUSES.filter(
+                      (s) => s !== 'Alumni',
+                    )"
                     :key="status"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors text-xs"
                     :class="

@@ -52,10 +52,12 @@ const activeMembers = computed(() =>
 );
 const activeTotalMembers = computed(() => activeMembers.value.length);
 const activeOrdinaryAMembers = computed(
-  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary A").length,
+  () =>
+    activeMembers.value.filter((m) => m.membershipType === "Ordinary A").length,
 );
 const activeOrdinaryBMembers = computed(
-  () => activeMembers.value.filter((m) => m.membershipType === "Ordinary B").length,
+  () =>
+    activeMembers.value.filter((m) => m.membershipType === "Ordinary B").length,
 );
 
 /*
